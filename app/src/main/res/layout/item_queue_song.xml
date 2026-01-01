@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:paddingHorizontal="16dp"
+    android:paddingVertical="6dp"
+    android:gravity="center_vertical"
+    android:background="?attr/selectableItemBackground">
+
+    <!-- Modern Drag Handle with Dots -->
+    <ImageView
+        android:id="@+id/btnDrag"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:padding="4dp"
+        android:src="@drawable/ic_drag_handle"
+        app:tint="?attr/colorOnSurfaceVariant"
+        android:contentDescription="Drag to reorder"
+        android:scaleType="centerInside" 
+        android:alpha="0.6"/>
+
+    <!-- Album Art with Rounded Corners -->
+    <com.google.android.material.imageview.ShapeableImageView
+        android:id="@+id/ivArt"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:layout_marginStart="12dp"
+        android:scaleType="centerCrop"
+        android:background="#222222"
+        app:shapeAppearanceOverlay="@style/RoundedCorner12" />
+        
+    <!-- Playing Indicator - Vertical Bar -->
+    <View
+        android:id="@+id/playingIndicator"
+        android:layout_width="3dp"
+        android:layout_height="32dp"
+        android:background="@drawable/playing_indicator_bg"
+        android:layout_marginStart="12dp"
+        android:visibility="invisible" />
+
+    <!-- Song Info -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:layout_marginStart="16dp"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/tvTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Song Title"
+            android:textAppearance="?attr/textAppearanceBodyLarge"
+            android:textColor="?attr/colorOnSurface"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:letterSpacing="0.005" />
+
+        <TextView
+            android:id="@+id/tvArtist"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:text="Artist Name"
+            android:textAppearance="?attr/textAppearanceBodySmall"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:maxLines="1"
+            android:ellipsize="end" />
+    </LinearLayout>
+    
+    <!-- Modern Remove Button -->
+    <ImageButton
+        android:id="@+id/btnRemove"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:layout_marginStart="8dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:src="@drawable/ic_remove_modern"
+        app:tint="?attr/colorOnSurfaceVariant"
+        android:contentDescription="Remove from queue"
+        android:padding="6dp"
+        android:alpha="0.7" />
+
+</LinearLayout>

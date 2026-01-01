@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="purple_200">#FFBB86FC</color>
+    <color name="purple_500">#FF6200EE</color>
+    <color name="purple_700">#FF3700B3</color>
+    <color name="teal_200">#FF03DAC5</color>
+    <color name="teal_700">#FF018786</color>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    
+    <!-- 2026 Unified Color Palette - Vibrant Violet -->
+    <color name="colorViolet">#A78BFA</color>           <!-- Primary accent - readable violet -->
+    <color name="colorVioletDark">#7C3AED</color>       <!-- Darker variant -->
+    <color name="colorVioletLight">#C4B5FD</color>      <!-- Light variant for pressed states -->
+    
+    <!-- Secondary Action Colors -->
+    <color name="colorMint">#34D399</color>
+    <color name="colorRose">#FB7185</color>
+    <color name="colorCyan">#22D3EE</color>
+    <color name="colorAmber">#FBBF24</color>
+    
+    <color name="colorActionIcon">#FFFFFF</color>
+    
+    <!-- Unified Primary = Violet -->
+    <color name="colorPrimaryUnified">#A78BFA</color>
+</resources>

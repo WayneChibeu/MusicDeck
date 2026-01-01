@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">MusicDeck</string>
+    <string name="title_permission_needed">Permission Needed</string>
+    <string name="desc_permission_needed">This app needs access to your audio files to play music.</string>
+    <string name="action_grant">Grant Permission</string>
+    <string name="unknown_artist">Unknown Artist</string>
+</resources>

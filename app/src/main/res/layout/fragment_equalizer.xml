@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="24dp">
+
+    <!-- Header with title and switch -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="16dp">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Equalizer"
+            android:textAppearance="?attr/textAppearanceHeadlineSmall"
+            android:textColor="?attr/colorOnSurface" />
+
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/switchEq"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:checked="true" />
+    </LinearLayout>
+
+    <!-- Preset Spinner -->
+    <Spinner
+        android:id="@+id/spinnerPresets"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_marginBottom="24dp"
+        android:background="?attr/colorSurfaceVariant"
+        android:padding="8dp" />
+
+    <!-- EQ Bands -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="200dp"
+        android:orientation="horizontal">
+
+        <!-- Band 1 -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center_horizontal">
+
+            <SeekBar
+                android:id="@+id/seekBand1"
+                android:layout_width="150dp"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:rotation="270"
+                android:max="100"
+                android:progress="50" />
+
+            <TextView
+                android:id="@+id/labelBand1"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="60Hz"
+                android:textSize="10sp"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:layout_marginTop="4dp" />
+        </LinearLayout>
+
+        <!-- Band 2 -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center_horizontal">
+
+            <SeekBar
+                android:id="@+id/seekBand2"
+                android:layout_width="150dp"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:rotation="270"
+                android:max="100"
+                android:progress="50" />
+
+            <TextView
+                android:id="@+id/labelBand2"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="230Hz"
+                android:textSize="10sp"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:layout_marginTop="4dp" />
+        </LinearLayout>
+
+        <!-- Band 3 -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center_horizontal">
+
+            <SeekBar
+                android:id="@+id/seekBand3"
+                android:layout_width="150dp"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:rotation="270"
+                android:max="100"
+                android:progress="50" />
+
+            <TextView
+                android:id="@+id/labelBand3"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="910Hz"
+                android:textSize="10sp"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:layout_marginTop="4dp" />
+        </LinearLayout>
+
+        <!-- Band 4 -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center_horizontal">
+
+            <SeekBar
+                android:id="@+id/seekBand4"
+                android:layout_width="150dp"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:rotation="270"
+                android:max="100"
+                android:progress="50" />
+
+            <TextView
+                android:id="@+id/labelBand4"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="3.6kHz"
+                android:textSize="10sp"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:layout_marginTop="4dp" />
+        </LinearLayout>
+
+        <!-- Band 5 -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center_horizontal">
+
+            <SeekBar
+                android:id="@+id/seekBand5"
+                android:layout_width="150dp"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:rotation="270"
+                android:max="100"
+                android:progress="50" />
+
+            <TextView
+                android:id="@+id/labelBand5"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="14kHz"
+                android:textSize="10sp"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:layout_marginTop="4dp" />
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <!-- Bass Boost Slider -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_marginTop="16dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Bass Boost"
+            android:textAppearance="?attr/textAppearanceLabelLarge"
+            android:textColor="?attr/colorOnSurface" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginTop="8dp">
+
+            <SeekBar
+                android:id="@+id/seekBassBoost"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:max="1000"
+                android:progress="0" />
+
+            <TextView
+                android:id="@+id/tvBassBoostLevel"
+                android:layout_width="48dp"
+                android:layout_height="wrap_content"
+                android:gravity="end"
+                android:text="0%"
+                android:textColor="?attr/colorOnSurfaceVariant" />
+        </LinearLayout>
+    </LinearLayout>
+
+</LinearLayout>

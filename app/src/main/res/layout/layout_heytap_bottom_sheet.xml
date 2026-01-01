@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="#1E1E1E"
+    android:paddingBottom="16dp">
+
+    <!-- Cancel Header (Red) -->
+    <TextView
+        android:id="@+id/action_cancel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Cancel"
+        android:textColor="#FF5252"
+        android:padding="16dp"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:background="?attr/selectableItemBackground"/>
+
+    <!-- Options List -->
+    
+    <TextView
+        android:id="@+id/action_play_next"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Play next"
+        android:textColor="#FFFFFF"
+        android:padding="16dp"
+        android:drawableStart="@drawable/ic_play_next"
+        android:drawablePadding="16dp"
+        android:drawableTint="#FFFFFF"
+        android:background="?attr/selectableItemBackground"
+        android:gravity="center_vertical"/>
+
+    <TextView
+        android:id="@+id/action_add_queue"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Add to play queue"
+        android:textColor="#FFFFFF"
+        android:padding="16dp"
+        android:drawableStart="@drawable/ic_add_to_queue"
+        android:drawablePadding="16dp"
+        android:drawableTint="#FFFFFF"
+        android:background="?attr/selectableItemBackground"
+        android:gravity="center_vertical"/>
+
+    <TextView
+        android:id="@+id/action_add_playlist"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Add to Playlist"
+        android:textColor="#FFFFFF"
+        android:padding="16dp"
+        android:drawableStart="@drawable/ic_playlist_add"
+        android:drawablePadding="16dp"
+        android:drawableTint="#FFFFFF"
+        android:background="?attr/selectableItemBackground"
+        android:gravity="center_vertical"/>
+
+    <TextView
+        android:id="@+id/action_song_info"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Song Info"
+        android:textColor="#FFFFFF"
+        android:padding="16dp"
+        android:drawableStart="@drawable/ic_info_outline"
+        android:drawablePadding="16dp"
+        android:drawableTint="#FFFFFF"
+        android:background="?attr/selectableItemBackground"
+        android:gravity="center_vertical"/>
+
+    <TextView
+        android:id="@+id/action_album_info"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Album: Unknown Album"
+        android:textColor="#FFFFFF"
+        android:padding="16dp"
+        android:drawableStart="@drawable/ic_album"
+        android:drawablePadding="16dp"
+        android:drawableTint="#FFFFFF"
+        android:background="?attr/selectableItemBackground"
+        android:gravity="center_vertical"/>
+
+    <TextView
+        android:id="@+id/action_ringtone"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Set Ringtone"
+        android:textColor="#FFFFFF"
+        android:padding="16dp"
+        android:drawableStart="@drawable/ic_ringtone"
+        android:drawablePadding="16dp"
+        android:drawableTint="#FFFFFF"
+        android:background="?attr/selectableItemBackground"
+        android:gravity="center_vertical"/>
+
+    <TextView
+        android:id="@+id/action_share"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Share local file"
+        android:textColor="#FFFFFF"
+        android:padding="16dp"
+        android:drawableStart="@drawable/ic_share"
+        android:drawablePadding="16dp"
+        android:drawableTint="#FFFFFF"
+        android:background="?attr/selectableItemBackground"
+        android:gravity="center_vertical"/>
+    
+    <TextView
+        android:id="@+id/action_set_cover"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Set Album Cover"
+        android:textColor="#FFFFFF"
+        android:padding="16dp"
+        android:drawableStart="@drawable/ic_image"
+        android:drawablePadding="16dp"
+        android:drawableTint="#FFFFFF"
+        android:background="?attr/selectableItemBackground"
+        android:gravity="center_vertical"/>
+    
+    <TextView
+        android:id="@+id/action_remove_cover"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Remove Custom Cover"
+        android:textColor="#FFFFFF"
+        android:padding="16dp"
+        android:drawableStart="@drawable/ic_remove_modern"
+        android:drawablePadding="16dp"
+        android:drawableTint="#FFFFFF"
+        android:background="?attr/selectableItemBackground"
+        android:gravity="center_vertical"
+        android:visibility="gone"/>
+        
+    <TextView
+        android:id="@+id/action_remove"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Remove from playlist?"
+        android:textColor="#FFFFFF"
+        android:padding="16dp"
+        android:drawableStart="@drawable/ic_delete"
+        android:drawablePadding="16dp"
+        android:drawableTint="#FFFFFF"
+        android:background="?attr/selectableItemBackground"
+        android:gravity="center_vertical"/>
+
+</LinearLayout>

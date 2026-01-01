@@ -1,0 +1,328 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="?attr/colorSurface">
+
+    <!-- COVER VIEW - Main player layout -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/coverView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:paddingHorizontal="20dp"
+        android:paddingTop="104dp"
+        android:paddingBottom="12dp"
+        android:visibility="visible">
+
+        <!-- Album Art -->
+        <com.google.android.material.imageview.ShapeableImageView
+            android:id="@+id/ivFullArt"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:scaleType="centerCrop"
+            android:src="@drawable/default_album_art"
+            app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Large"
+            app:layout_constraintDimensionRatio="1:1"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintBottom_toTopOf="@+id/tvFullTitle"
+            app:layout_constraintVertical_chainStyle="packed"
+            android:elevation="4dp" />
+
+        <!-- Title + Favorite -->
+        <TextView
+            android:id="@+id/tvFullTitle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="Song Title"
+            android:textAppearance="?attr/textAppearanceTitleLarge"
+            android:textColor="?attr/colorOnSurface"
+            android:textStyle="bold"
+            android:singleLine="true"
+            android:ellipsize="end"
+            app:layout_constraintTop_toBottomOf="@+id/ivFullArt"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toStartOf="@+id/btnFavorite"
+            app:layout_constraintBottom_toTopOf="@+id/tvFullArtist"
+            android:layout_marginEnd="8dp" />
+
+        <ImageButton
+            android:id="@+id/btnFavorite"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Favorite"
+            android:src="@drawable/ic_favorite_border"
+            app:tint="?attr/colorOnSurface"
+            app:layout_constraintTop_toTopOf="@+id/tvFullTitle"
+            app:layout_constraintBottom_toBottomOf="@+id/tvFullTitle"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <!-- Artist -->
+        <TextView
+            android:id="@+id/tvFullArtist"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:text="Artist Name"
+            android:textAppearance="?attr/textAppearanceBodyMedium"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:singleLine="true"
+            app:layout_constraintTop_toBottomOf="@+id/tvFullTitle"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintBottom_toTopOf="@+id/tvCurrentTime" />
+
+        <!-- INLINE SEEK BAR LAYOUT -->
+        
+        <TextView
+            android:id="@+id/tvCurrentTime"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="00:00"
+            android:textSize="12sp"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:layout_marginStart="0dp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="@+id/seekBar"
+            app:layout_constraintBottom_toBottomOf="@+id/seekBar" />
+
+        <androidx.appcompat.widget.AppCompatSeekBar
+            android:id="@+id/seekBar"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:layout_marginBottom="24dp"
+            android:max="1000"
+            android:progress="0"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:splitTrack="false"
+            android:thumb="@android:color/transparent"
+            android:thumbOffset="0dp"
+            android:progressTint="?attr/colorPrimary"
+            android:progressBackgroundTint="?attr/colorOutlineVariant"
+            app:layout_constraintTop_toBottomOf="@+id/tvFullArtist"
+            app:layout_constraintStart_toEndOf="@+id/tvCurrentTime"
+            app:layout_constraintEnd_toStartOf="@+id/tvTotalTime" />
+
+        <TextView
+            android:id="@+id/tvTotalTime"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="00:00"
+            android:textSize="12sp"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:layout_marginEnd="0dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="@+id/seekBar"
+            app:layout_constraintBottom_toBottomOf="@+id/seekBar" />
+
+        <!-- Controls -->
+        <LinearLayout
+            android:id="@+id/layoutControls"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:layout_marginTop="8dp"
+            app:layout_constraintTop_toBottomOf="@+id/seekBar"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent">
+
+            <ImageButton
+                android:id="@+id/btnRepeat"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/exo_icon_repeat_off"
+                app:tint="?attr/colorOnSurface"
+                android:contentDescription="Repeat" />
+
+            <ImageButton
+                android:id="@+id/btnPrev"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_marginHorizontal="8dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/exo_icon_previous"
+                app:tint="?attr/colorOnSurface"
+                android:contentDescription="Previous" />
+
+            <FrameLayout
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:background="@drawable/bg_play_button_ring">
+
+                <ImageButton
+                    android:id="@+id/btnPlayPause"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@android:color/transparent"
+                    android:src="@drawable/exo_icon_play"
+                    android:scaleType="center"
+                    app:tint="?attr/colorOnSurface"
+                    android:contentDescription="Play/Pause" />
+            </FrameLayout>
+
+            <ImageButton
+                android:id="@+id/btnNext"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_marginHorizontal="8dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/exo_icon_next"
+                app:tint="?attr/colorOnSurface"
+                android:contentDescription="Next" />
+
+            <ImageButton
+                android:id="@+id/btnQueue"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_queue"
+                app:tint="?attr/colorOnSurface"
+                android:contentDescription="Queue" />
+
+        </LinearLayout>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <!-- LYRIC VIEW -->
+    <LinearLayout
+        android:id="@+id/lyricView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:paddingTop="104dp"
+        android:paddingBottom="12dp"
+        android:visibility="gone">
+
+        <!-- No Lyric Placeholder -->
+        <LinearLayout
+            android:id="@+id/noLyricPlaceholder"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:visibility="visible">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="No Lyric Yet"
+                android:textAppearance="?attr/textAppearanceTitleMedium"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:alpha="0.6" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="32dp"
+                android:text="or"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:alpha="0.4" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnManuallySpecifyLyric"
+                style="@style/Widget.Material3.Button.TonalButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="Manually specify lyric file"
+                android:textAllCaps="false" />
+
+        </LinearLayout>
+
+        <!-- Lyrics RecyclerView -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvLyrics"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone"
+            android:paddingHorizontal="20dp"
+            android:paddingVertical="16dp"
+            android:clipToPadding="false"
+            android:scrollbars="vertical" />
+
+    </LinearLayout>
+
+    <!-- HEADER (Always on top) -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/headerView"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:background="?attr/colorSurface"
+        android:elevation="4dp"
+        android:paddingHorizontal="16dp">
+
+        <ImageButton
+            android:id="@+id/btnCollapse"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_chevron_down"
+            app:tint="?attr/colorOnSurface"
+            android:contentDescription="Collapse"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent" />
+
+        <LinearLayout
+            android:id="@+id/toggleContainer"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:orientation="horizontal"
+            android:background="@drawable/bg_toggle_track"
+            android:padding="2dp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnCover"
+                style="@style/Widget.Material3.Button.TextButton"
+                android:layout_width="80dp"
+                android:layout_height="match_parent"
+                android:text="COVER"
+                android:textSize="11sp"
+                android:textColor="@color/selector_toggle_text"
+                android:background="@drawable/bg_toggle_button"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                app:cornerRadius="17dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnLyric"
+                style="@style/Widget.Material3.Button.TextButton"
+                android:layout_width="80dp"
+                android:layout_height="match_parent"
+                android:text="LYRIC"
+                android:textSize="11sp"
+                android:textColor="@color/selector_toggle_text"
+                android:background="@drawable/bg_toggle_button"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                app:cornerRadius="17dp" />
+
+        </LinearLayout>
+
+        <ImageButton
+            android:id="@+id/btnMenu"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_more_vert"
+            app:tint="?attr/colorOnSurface"
+            android:contentDescription="Menu"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</FrameLayout>

@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="?attr/colorSurface"
+    android:padding="24dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Song Info"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:textColor="?attr/colorOnSurface"
+        android:layout_marginBottom="16dp" />
+
+    <!-- Title -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Title"
+        android:textSize="12sp"
+        android:textColor="?attr/colorOnSurfaceVariant" />
+    <TextView
+        android:id="@+id/tvInfoTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Song Title"
+        android:textSize="16sp"
+        android:textColor="?attr/colorOnSurface"
+        android:layout_marginBottom="12dp" />
+
+    <!-- Artist -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Artist"
+        android:textSize="12sp"
+        android:textColor="?attr/colorOnSurfaceVariant" />
+    <TextView
+        android:id="@+id/tvInfoArtist"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Artist Name"
+        android:textSize="16sp"
+        android:textColor="?attr/colorOnSurface"
+        android:layout_marginBottom="12dp" />
+
+    <!-- Duration -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Duration"
+        android:textSize="12sp"
+        android:textColor="?attr/colorOnSurfaceVariant" />
+    <TextView
+        android:id="@+id/tvInfoDuration"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="0:00"
+        android:textSize="16sp"
+        android:textColor="?attr/colorOnSurface"
+        android:layout_marginBottom="12dp" />
+
+    <!-- File Path -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="File Path"
+        android:textSize="12sp"
+        android:textColor="?attr/colorOnSurfaceVariant" />
+    <TextView
+        android:id="@+id/tvInfoPath"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="/path/to/file.mp3"
+        android:textSize="14sp"
+        android:textColor="?attr/colorOnSurface"
+        android:maxLines="2"
+        android:ellipsize="middle"
+        android:layout_marginBottom="24dp" />
+
+    <!-- Close Button -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnClose"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Close"
+        style="@style/Widget.Material3.Button.TextButton" />
+
+</LinearLayout>

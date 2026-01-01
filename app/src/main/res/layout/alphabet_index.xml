@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/alphabetIndex"
+    android:layout_width="16dp"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:paddingVertical="2dp"
+    android:background="@android:color/transparent">
+    
+    <TextView android:text="☆" android:tag="★" style="@style/AlphabetLetter" />
+    <TextView android:text="A" android:tag="A" style="@style/AlphabetLetter" />
+    <TextView android:text="B" android:tag="B" style="@style/AlphabetLetter" />
+    <TextView android:text="C" android:tag="C" style="@style/AlphabetLetter" />
+    <TextView android:text="D" android:tag="D" style="@style/AlphabetLetter" />
+    <TextView android:text="E" android:tag="E" style="@style/AlphabetLetter" />
+    <TextView android:text="F" android:tag="F" style="@style/AlphabetLetter" />
+    <TextView android:text="G" android:tag="G" style="@style/AlphabetLetter" />
+    <TextView android:text="H" android:tag="H" style="@style/AlphabetLetter" />
+    <TextView android:text="I" android:tag="I" style="@style/AlphabetLetter" />
+    <TextView android:text="J" android:tag="J" style="@style/AlphabetLetter" />
+    <TextView android:text="K" android:tag="K" style="@style/AlphabetLetter" />
+    <TextView android:text="L" android:tag="L" style="@style/AlphabetLetter" />
+    <TextView android:text="M" android:tag="M" style="@style/AlphabetLetter" />
+    <TextView android:text="N" android:tag="N" style="@style/AlphabetLetter" />
+    <TextView android:text="O" android:tag="O" style="@style/AlphabetLetter" />
+    <TextView android:text="P" android:tag="P" style="@style/AlphabetLetter" />
+    <TextView android:text="Q" android:tag="Q" style="@style/AlphabetLetter" />
+    <TextView android:text="R" android:tag="R" style="@style/AlphabetLetter" />
+    <TextView android:text="S" android:tag="S" style="@style/AlphabetLetter" />
+    <TextView android:text="T" android:tag="T" style="@style/AlphabetLetter" />
+    <TextView android:text="U" android:tag="U" style="@style/AlphabetLetter" />
+    <TextView android:text="V" android:tag="V" style="@style/AlphabetLetter" />
+    <TextView android:text="W" android:tag="W" style="@style/AlphabetLetter" />
+    <TextView android:text="X" android:tag="X" style="@style/AlphabetLetter" />
+    <TextView android:text="Y" android:tag="Y" style="@style/AlphabetLetter" />
+    <TextView android:text="Z" android:tag="Z" style="@style/AlphabetLetter" />
+    <TextView android:text="#" android:tag="#" style="@style/AlphabetLetter" />
+
+</LinearLayout>
