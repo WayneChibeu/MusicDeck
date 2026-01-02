@@ -4,108 +4,199 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:padding="24dp">
+    android:background="@drawable/bg_bottom_sheet_glassmorphic"
+    android:padding="20dp">
+
+    <!-- Drag Handle -->
+    <View
+        android:layout_width="40dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="16dp"
+        android:background="@drawable/bg_drag_handle" />
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Tools &amp; Settings"
-        android:textSize="20sp"
+        android:textSize="22sp"
         android:textStyle="bold"
+        android:textColor="@android:color/white"
         android:gravity="center"
         android:layout_marginBottom="24dp" />
 
-    <com.google.android.material.card.MaterialCardView
+    <!-- Rescan Library -->
+    <LinearLayout
         android:id="@+id/btnRescan"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="12dp"
-        android:clickable="true"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:padding="16dp"
+        android:layout_marginBottom="8dp"
+        android:background="@drawable/bg_glassmorphic_item"
         android:foreground="?attr/selectableItemBackground"
-        app:cardCornerRadius="16dp"
-        app:cardElevation="2dp">
+        android:clickable="true"
+        android:focusable="true">
+        
+        <ImageView
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:src="@drawable/ic_refresh"
+            app:tint="@color/colorViolet" />
+        
         <LinearLayout
-            android:layout_width="match_parent"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:padding="16dp"
-            android:gravity="center_vertical">
-            <ImageView
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:src="@android:drawable/ic_popup_sync"
-                app:tint="?attr/colorPrimary"/>
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:layout_marginStart="16dp">
+            
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Rescan Library"
                 android:textSize="16sp"
-                android:layout_marginStart="16dp"/>
+                android:textColor="@android:color/white"
+                android:textStyle="bold" />
+            
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Refresh music files from storage"
+                android:textSize="12sp"
+                android:textColor="#80FFFFFF" />
         </LinearLayout>
-    </com.google.android.material.card.MaterialCardView>
+        
+        <ImageView
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:src="@drawable/ic_chevron_right"
+            app:tint="#80FFFFFF" />
+    </LinearLayout>
 
-    <com.google.android.material.card.MaterialCardView
+    <!-- Backup Playlists -->
+    <LinearLayout
         android:id="@+id/btnBackup"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="12dp"
-        android:clickable="true"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:padding="16dp"
+        android:layout_marginBottom="8dp"
+        android:background="@drawable/bg_glassmorphic_item"
         android:foreground="?attr/selectableItemBackground"
-        app:cardCornerRadius="16dp"
-        app:cardElevation="2dp">
+        android:clickable="true"
+        android:focusable="true">
+        
+        <ImageView
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:src="@drawable/ic_backup"
+            app:tint="@color/colorViolet" />
+        
         <LinearLayout
-            android:layout_width="match_parent"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:padding="16dp"
-            android:gravity="center_vertical">
-            <ImageView
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:src="@android:drawable/ic_menu_save"
-                app:tint="?attr/colorPrimary"/>
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:layout_marginStart="16dp">
+            
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Backup Playlists"
                 android:textSize="16sp"
-                android:layout_marginStart="16dp"/>
+                android:textColor="@android:color/white"
+                android:textStyle="bold" />
+            
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Export playlists to JSON file"
+                android:textSize="12sp"
+                android:textColor="#80FFFFFF" />
         </LinearLayout>
-    </com.google.android.material.card.MaterialCardView>
+        
+        <ImageView
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:src="@drawable/ic_chevron_right"
+            app:tint="#80FFFFFF" />
+    </LinearLayout>
     
-    <com.google.android.material.card.MaterialCardView
+    <!-- Restore Playlists -->
+    <LinearLayout
         android:id="@+id/btnRestore"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="24dp"
-        android:clickable="true"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:padding="16dp"
+        android:layout_marginBottom="20dp"
+        android:background="@drawable/bg_glassmorphic_item"
         android:foreground="?attr/selectableItemBackground"
-        app:cardCornerRadius="16dp"
-        app:cardElevation="2dp">
-         <LinearLayout
-            android:layout_width="match_parent"
+        android:clickable="true"
+        android:focusable="true">
+        
+        <ImageView
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:src="@drawable/ic_restore"
+            app:tint="@color/colorViolet" />
+        
+        <LinearLayout
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:padding="16dp"
-            android:gravity="center_vertical">
-            <ImageView
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:src="@android:drawable/ic_menu_upload"
-                app:tint="?attr/colorPrimary"/>
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:layout_marginStart="16dp">
+            
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Restore Playlists"
                 android:textSize="16sp"
-                android:layout_marginStart="16dp"/>
+                android:textColor="@android:color/white"
+                android:textStyle="bold" />
+            
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Import playlists from backup"
+                android:textSize="12sp"
+                android:textColor="#80FFFFFF" />
         </LinearLayout>
-    </com.google.android.material.card.MaterialCardView>
+        
+        <ImageView
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:src="@drawable/ic_chevron_right"
+            app:tint="#80FFFFFF" />
+    </LinearLayout>
+
+    <!-- Divider -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#20FFFFFF"
+        android:layout_marginBottom="16dp" />
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Designed &amp; Built by Wayne Chibeu (@WayneChibeu)"
+        android:text="Designed &amp; Built with ❤️ by Wayne Chibeu"
         android:textSize="12sp"
+        android:textColor="#60FFFFFF"
+        android:gravity="center" />
+    
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@WayneChibeu"
+        android:textSize="11sp"
+        android:textColor="@color/colorViolet"
         android:gravity="center"
-        android:alpha="0.6"
-        android:layout_marginTop="16dp" />
+        android:layout_marginTop="4dp" />
 
 </LinearLayout>

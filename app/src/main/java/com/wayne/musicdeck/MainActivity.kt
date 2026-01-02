@@ -60,6 +60,9 @@ class MainActivity : AppCompatActivity() {
     // State for Folder Browsing
     private var currentFolder: String? = null
     
+    // Scroll position persistence for Tracks tab
+    private var tracksScrollPosition: android.os.Parcelable? = null
+    
     private val imagePickerLauncher = registerForActivityResult(
         androidx.activity.result.contract.ActivityResultContracts.GetContent()
     ) { uri ->
@@ -504,6 +507,13 @@ class MainActivity : AppCompatActivity() {
                         adapter.submitList(processHeaders(viewModel.songs.value ?: emptyList()))
                         binding.fastScroller.visibility = View.VISIBLE
                         binding.fabAddPlaylist.visibility = View.GONE
+                        
+                        // Restore scroll position
+                        tracksScrollPosition?.let { savedPosition ->
+                            binding.recyclerView.post {
+                                binding.recyclerView.layoutManager?.onRestoreInstanceState(savedPosition)
+                            }
+                        }
                     }
                     1 -> { // Artists
                         isPlaylistTab = false
@@ -582,7 +592,12 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
             }
-            override fun onTabUnselected(tab: com.google.android.material.tabs.TabLayout.Tab?) {}
+            override fun onTabUnselected(tab: com.google.android.material.tabs.TabLayout.Tab?) {
+                // Save scroll position when leaving Tracks tab
+                if (tab?.position == 0) {
+                    tracksScrollPosition = binding.recyclerView.layoutManager?.onSaveInstanceState()
+                }
+            }
             override fun onTabReselected(tab: com.google.android.material.tabs.TabLayout.Tab?) {}
         })
         
