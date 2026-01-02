@@ -605,11 +605,18 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     put(MediaStore.Audio.Media.ALBUM, album)
                 }
                 
-                getApplication<Application>().contentResolver.update(uri, values, null, null)
+                val rowsUpdated = getApplication<Application>().contentResolver.update(uri, values, null, null)
                 
-                loadSongs()
-                withContext(Dispatchers.Main) {
-                     android.widget.Toast.makeText(getApplication(), "Tags updated", android.widget.Toast.LENGTH_SHORT).show()
+                if (rowsUpdated > 0) {
+                    loadSongs()
+                    withContext(Dispatchers.Main) {
+                         android.widget.Toast.makeText(getApplication(), "Tags updated! Refresh may take a moment.", android.widget.Toast.LENGTH_SHORT).show()
+                    }
+                } else {
+                    // Rows = 0 means it silently failed, need permission
+                    withContext(Dispatchers.Main) {
+                        _tagEditPermissionRequest.value = TagEditRequest(song, title, artist, album)
+                    }
                 }
             } catch (e: SecurityException) {
                 // Android 10+ requires special permission - emit request event
@@ -642,11 +649,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     put(MediaStore.Audio.Media.ALBUM, album)
                 }
                 
-                getApplication<Application>().contentResolver.update(uri, values, null, null)
+                val rowsUpdated = getApplication<Application>().contentResolver.update(uri, values, null, null)
                 
-                loadSongs()
-                withContext(Dispatchers.Main) {
-                     android.widget.Toast.makeText(getApplication(), "Tags updated", android.widget.Toast.LENGTH_SHORT).show()
+                if (rowsUpdated > 0) {
+                    loadSongs()
+                    withContext(Dispatchers.Main) {
+                         android.widget.Toast.makeText(getApplication(), "Tags updated! Refresh may take a moment.", android.widget.Toast.LENGTH_SHORT).show()
+                    }
+                } else {
+                    withContext(Dispatchers.Main) {
+                        android.widget.Toast.makeText(getApplication(), "Update failed - Android may not allow modifying this file", android.widget.Toast.LENGTH_LONG).show()
+                    }
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
