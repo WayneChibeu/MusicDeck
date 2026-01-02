@@ -46,6 +46,15 @@
             android:layout_marginTop="2dp"/>
     </LinearLayout>
 
+    <!-- Animated equalizer for now playing indicator -->
+    <ImageView
+        android:id="@+id/ivEqualizer"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:layout_marginEnd="8dp"
+        android:src="@drawable/equalizer_animation"
+        android:visibility="gone"/>
+
     <ImageButton
         android:id="@+id/btnMore"
         android:layout_width="40dp"

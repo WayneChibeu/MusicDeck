@@ -59,6 +59,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     // Database & Repository
     private val database = com.wayne.musicdeck.data.MusicDatabase.getDatabase(application)
     private val playlistRepository = com.wayne.musicdeck.data.PlaylistRepository(database.playlistDao())
+    private val playCountDao = database.playCountDao()
     private val customCoverRepository = com.wayne.musicdeck.data.CustomCoverRepository(application)
     private val lyricsRepository = com.wayne.musicdeck.data.LyricsRepository(application)
     
@@ -73,6 +74,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     
     private val _albums = MutableLiveData<List<Album>>()
     val albums: LiveData<List<Album>> = _albums
+    
+    private val _mostPlayed = MutableLiveData<List<Song>>()
+    val mostPlayed: LiveData<List<Song>> = _mostPlayed
     
     private var favoritesPlaylistId: Long = -1
 
@@ -525,11 +529,39 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         controller.play()
         
         lastPlayedSongId = song.id
+        
+        // Track play count
+        incrementPlayCount(song.id)
     }
     
     fun savePosition() {
         val controller = mediaController.value ?: return
         lastPlayedPosition = controller.currentPosition
+    }
+    
+    // Play Count Tracking
+    fun incrementPlayCount(songId: Long) {
+        viewModelScope.launch(Dispatchers.IO) {
+            playCountDao.ensureExists(songId)
+            playCountDao.incrementPlayCount(songId)
+        }
+    }
+    
+    suspend fun getPlayCount(songId: Long): Int {
+        return playCountDao.getPlayCount(songId) ?: 0
+    }
+    
+    suspend fun getMostPlayedSongs(limit: Int = 20): List<Song> {
+        val playCounts = playCountDao.getMostPlayed(limit)
+        val allSongs = _songs.value ?: return emptyList()
+        return playCounts.mapNotNull { pc -> allSongs.find { it.id == pc.songId } }
+    }
+    
+    fun loadMostPlayed() {
+        viewModelScope.launch(Dispatchers.IO) {
+            val songs = getMostPlayedSongs(20)
+            _mostPlayed.postValue(songs)
+        }
     }
     
     // Backup/Restore

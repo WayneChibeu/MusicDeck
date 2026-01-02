@@ -83,6 +83,8 @@ class MainActivity : AppCompatActivity() {
         viewModel.songs.observe(this) { songs ->
             adapter.submitList(processHeaders(songs))
             restoreLastSong(songs)
+            // Update song count in header
+            binding.tvSongCount.text = "${songs.size} songs"
         }
         
         adapter.onSongMenuClick = { song, action ->
@@ -159,6 +161,9 @@ class MainActivity : AppCompatActivity() {
 
                     override fun onIsPlayingChanged(isPlaying: Boolean) {
                         updatePlayPauseIcon(isPlaying)
+                        // Update adapter to animate/pause equalizer
+                        adapter.isPlaying = isPlaying
+                        
                         if (isPlaying) {
                             binding.miniPlayer.miniPlayerProgress.post(progressRunnable)
                         } else {
@@ -231,6 +236,7 @@ class MainActivity : AppCompatActivity() {
         tabLayout.addTab(tabLayout.newTab().setText("Albums"))
         tabLayout.addTab(tabLayout.newTab().setText("Playlists"))
         tabLayout.addTab(tabLayout.newTab().setText("Favorites"))
+        tabLayout.addTab(tabLayout.newTab().setText("Most Played"))
         
         // Initialize Adapters
         artistAdapter = ArtistAdapter { artist ->
@@ -484,6 +490,22 @@ class MainActivity : AppCompatActivity() {
                                 if (favs.isEmpty()) {
                                     android.widget.Toast.makeText(this@MainActivity, "No favorites yet!", android.widget.Toast.LENGTH_SHORT).show()
                                 }
+                            }
+                        }
+                    }
+                    5 -> { // Most Played
+                        isPlaylistTab = false 
+                        binding.fastScroller.visibility = View.GONE
+                        binding.fabAddPlaylist.visibility = View.GONE
+                        
+                        viewModel.loadMostPlayed()
+                        
+                        viewModel.mostPlayed.observe(this@MainActivity) { songs ->
+                            if (tabLayout.selectedTabPosition == 5) {
+                                // Direct mapping to preserve play count order (no headers)
+                                val items = songs.map { com.wayne.musicdeck.SongListItem.SongItem(it) }
+                                adapter.submitList(items)
+                                binding.recyclerView.adapter = adapter
                             }
                         }
                     }

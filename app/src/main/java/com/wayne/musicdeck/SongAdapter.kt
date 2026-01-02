@@ -35,6 +35,14 @@ class SongAdapter(
                 notifyDataSetChanged() // Simple approach, or find specific positions
             }
         }
+    
+    var isPlaying: Boolean = false
+        set(value) {
+            if (field != value) {
+                field = value
+                notifyDataSetChanged()
+            }
+        }
 
     override fun getItemViewType(position: Int): Int {
         return when (getItem(position)) {
@@ -77,17 +85,35 @@ class SongAdapter(
             binding.tvArtist.text = song.artist
             
             // Highlight currently playing song
-            val isPlaying = song.id == currentlyPlayingId
+            val isCurrentSong = song.id == currentlyPlayingId
             val context = binding.root.context
-            if (isPlaying) {
+            if (isCurrentSong) {
                 val primaryColor = com.google.android.material.color.MaterialColors.getColor(context, com.google.android.material.R.attr.colorPrimary, 0)
                 binding.tvTitle.setTextColor(primaryColor)
                 binding.tvArtist.setTextColor(primaryColor)
+                
+                // Show equalizer
+                binding.ivEqualizer.visibility = android.view.View.VISIBLE
+                val animDrawable = binding.ivEqualizer.drawable as? android.graphics.drawable.AnimationDrawable
+                
+                // Animate only if player is playing
+                if (this@SongAdapter.isPlaying) {
+                    if (animDrawable?.isRunning == false) animDrawable.start()
+                } else {
+                    if (animDrawable?.isRunning == true) animDrawable.stop()
+                    // Optional: Reset to first frame so it looks static
+                    animDrawable?.selectDrawable(0)
+                }
             } else {
                 val onSurfaceColor = com.google.android.material.color.MaterialColors.getColor(context, com.google.android.material.R.attr.colorOnSurface, 0)
                 val onSurfaceVariantColor = com.google.android.material.color.MaterialColors.getColor(context, com.google.android.material.R.attr.colorOnSurfaceVariant, 0)
                 binding.tvTitle.setTextColor(onSurfaceColor)
                 binding.tvArtist.setTextColor(onSurfaceVariantColor)
+                
+                // Hide equalizer
+                binding.ivEqualizer.visibility = android.view.View.GONE
+                val animDrawable = binding.ivEqualizer.drawable as? android.graphics.drawable.AnimationDrawable
+                animDrawable?.stop()
             }
             
             
