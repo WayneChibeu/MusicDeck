@@ -29,6 +29,17 @@ class SearchBottomSheet : BottomSheetDialogFragment() {
     private lateinit var rvSearchResults: RecyclerView
     
     var onSongClick: ((Song) -> Unit)? = null
+    
+    private val speechLauncher = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            val matches = result.data?.getStringArrayListExtra(android.speech.RecognizerIntent.EXTRA_RESULTS)
+            val spokenText = matches?.get(0) ?: return@registerForActivityResult
+            etSearch.setText(spokenText)
+            // Cursor to end
+            etSearch.setSelection(spokenText.length)
+            performSearch()
+        }
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -53,6 +64,7 @@ class SearchBottomSheet : BottomSheetDialogFragment() {
         val btnBack = view.findViewById<ImageButton>(R.id.btnBack)
         val btnSearch = view.findViewById<com.google.android.material.button.MaterialButton>(R.id.btnSearch)
         val btnClearHistory = view.findViewById<ImageButton>(R.id.btnClearHistory)
+        val btnVoiceSearch = view.findViewById<ImageButton>(R.id.btnVoiceSearch)
         
         // Setup adapter
         adapter = SongAdapter { song ->
@@ -70,6 +82,18 @@ class SearchBottomSheet : BottomSheetDialogFragment() {
         
         // Search button
         btnSearch.setOnClickListener { performSearch() }
+        
+        // Voice Search
+        btnVoiceSearch.setOnClickListener {
+            val intent = android.content.Intent(android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
+            intent.putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE_MODEL, android.speech.RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+            intent.putExtra(android.speech.RecognizerIntent.EXTRA_PROMPT, "Say a song or artist name...")
+            try {
+                speechLauncher.launch(intent)
+            } catch (e: Exception) {
+                android.widget.Toast.makeText(context, "Voice search not supported", android.widget.Toast.LENGTH_SHORT).show()
+            }
+        }
         
         // Search on keyboard action
         etSearch.setOnEditorActionListener { _, actionId, _ ->

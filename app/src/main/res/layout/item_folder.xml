@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:padding="12dp"
+    android:gravity="center_vertical"
+    android:background="?attr/selectableItemBackground">
+
+    <ImageView
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:src="@drawable/ic_folder"
+        android:padding="10dp"
+        android:background="@drawable/bg_album_art_placeholder"
+        android:contentDescription="Folder"
+        app:tint="?attr/colorOnSurface"
+        xmlns:app="http://schemas.android.com/apk/res-auto"/>
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:layout_marginStart="16dp">
+
+        <TextView
+            android:id="@+id/tvFolderName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Folder Name"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="?attr/colorOnSurface"
+            android:maxLines="1"
+            android:ellipsize="end"/>
+
+        <TextView
+            android:id="@+id/tvSongCount"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="0 songs"
+            android:textSize="14sp"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:layout_marginTop="2dp"/>
+    </LinearLayout>
+</LinearLayout>

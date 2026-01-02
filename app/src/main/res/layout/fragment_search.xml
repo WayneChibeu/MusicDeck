@@ -61,6 +61,17 @@
                     android:imeOptions="actionSearch"
                     android:singleLine="true"
                     android:textSize="14sp"/>
+
+                <ImageButton
+                    android:id="@+id/btnVoiceSearch"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@drawable/ic_mic"
+                    app:tint="?attr/colorPrimary"
+                    android:padding="6dp"
+                    android:scaleType="fitCenter"
+                    android:contentDescription="Voice Search"/>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
         

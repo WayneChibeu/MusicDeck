@@ -564,6 +564,37 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
     
+    fun getFolders(): List<SongListItem.FolderItem> {
+        val allSongs = _songs.value ?: emptyList()
+        val groupByParent = allSongs.groupBy {
+             try {
+                val file = java.io.File(it.data)
+                if (it.data.startsWith("/")) file.parentFile?.path ?: "Unknown" else "Unknown"
+             } catch (e: Exception) {
+                "Unknown"
+             }
+        }
+        
+        return groupByParent.mapNotNull { (path, songs) ->
+            if (path == "Unknown") null else {
+                val name = java.io.File(path).name
+                SongListItem.FolderItem(name, path, songs.size)
+            }
+        }.sortedBy { it.name }
+    }
+    
+    fun getSongsInFolder(path: String): List<SongListItem.SongItem> {
+        val allSongs = _songs.value ?: emptyList()
+        return allSongs.filter { 
+             try {
+                val file = java.io.File(it.data)
+                file.parentFile?.path == path
+            } catch (e: Exception) {
+                false
+            }
+        }.sortedBy { it.title }.map { SongListItem.SongItem(it) }
+    }
+    
     // Backup/Restore
     private val _backupResult = MutableLiveData<String?>()
     val backupResult: LiveData<String?> = _backupResult

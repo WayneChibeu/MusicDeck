@@ -22,8 +22,10 @@ class SongAdapter(
     companion object {
         private const val VIEW_TYPE_HEADER = 0
         private const val VIEW_TYPE_SONG = 1
+        private const val VIEW_TYPE_FOLDER = 2
     }
 
+    var onFolderClick: ((SongListItem.FolderItem) -> Unit)? = null
     var onSongMenuClick: ((Song, String) -> Unit)? = null
     var showRemoveFromPlaylistOption: Boolean = false
     var currentlyPlayingId: Long = -1L
@@ -48,6 +50,7 @@ class SongAdapter(
         return when (getItem(position)) {
             is SongListItem.Header -> VIEW_TYPE_HEADER
             is SongListItem.SongItem -> VIEW_TYPE_SONG
+            is SongListItem.FolderItem -> VIEW_TYPE_FOLDER
         }
     }
 
@@ -57,6 +60,11 @@ class SongAdapter(
                 val view = LayoutInflater.from(parent.context)
                     .inflate(R.layout.item_header, parent, false)
                 HeaderViewHolder(view)
+            }
+            VIEW_TYPE_FOLDER -> {
+                val view = LayoutInflater.from(parent.context)
+                    .inflate(R.layout.item_folder, parent, false)
+                FolderViewHolder(view)
             }
             else -> {
                 val binding = ItemSongBinding.inflate(LayoutInflater.from(parent.context), parent, false)
@@ -69,6 +77,7 @@ class SongAdapter(
         when (val item = getItem(position)) {
             is SongListItem.Header -> (holder as HeaderViewHolder).bind(item.letter)
             is SongListItem.SongItem -> (holder as SongViewHolder).bind(item.song)
+            is SongListItem.FolderItem -> (holder as FolderViewHolder).bind(item)
         }
     }
 
@@ -76,6 +85,16 @@ class SongAdapter(
         private val textView: TextView = itemView.findViewById(R.id.tvHeader)
         fun bind(letter: String) {
             textView.text = letter
+        }
+    }
+    
+    inner class FolderViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+        private val tvName: TextView = itemView.findViewById(R.id.tvFolderName)
+        private val tvCount: TextView = itemView.findViewById(R.id.tvSongCount)
+        fun bind(item: SongListItem.FolderItem) {
+            tvName.text = item.name
+            tvCount.text = "${item.count} songs"
+            itemView.setOnClickListener { onFolderClick?.invoke(item) }
         }
     }
 

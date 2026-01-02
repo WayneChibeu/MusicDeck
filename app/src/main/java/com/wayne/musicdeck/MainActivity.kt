@@ -37,6 +37,10 @@ class MainActivity : AppCompatActivity() {
     
     // Image picker for custom album covers
     private var targetSongForCover: Song? = null
+    
+    // State for Folder Browsing
+    private var currentFolder: String? = null
+    
     private val imagePickerLauncher = registerForActivityResult(
         androidx.activity.result.contract.ActivityResultContracts.GetContent()
     ) { uri ->
@@ -54,6 +58,18 @@ class MainActivity : AppCompatActivity() {
         
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        onBackPressedDispatcher.addCallback(this) {
+             val tabLayout = binding.topBar.findViewById<com.google.android.material.tabs.TabLayout>(R.id.tabLayout)
+             if (tabLayout.selectedTabPosition == 6 && currentFolder != null) { // Index 6 is Folders
+                 currentFolder = null
+                 showFoldersList()
+             } else {
+                 isEnabled = false
+                 onBackPressedDispatcher.onBackPressed()
+                 isEnabled = true
+             }
+        }
 
         setupRecyclerView()
         // setupOneTimeEvents() removed
@@ -237,6 +253,7 @@ class MainActivity : AppCompatActivity() {
         tabLayout.addTab(tabLayout.newTab().setText("Playlists"))
         tabLayout.addTab(tabLayout.newTab().setText("Favorites"))
         tabLayout.addTab(tabLayout.newTab().setText("Most Played"))
+        tabLayout.addTab(tabLayout.newTab().setText("Folders"))
         
         // Initialize Adapters
         artistAdapter = ArtistAdapter { artist ->
@@ -508,6 +525,13 @@ class MainActivity : AppCompatActivity() {
                                 binding.recyclerView.adapter = adapter
                             }
                         }
+                    }
+                    6 -> { // Folders
+                        isPlaylistTab = false
+                        binding.fastScroller.visibility = View.GONE
+                        binding.fabAddPlaylist.visibility = View.GONE
+                        currentFolder = null
+                        showFoldersList()
                     }
                 }
             }
@@ -876,6 +900,17 @@ class MainActivity : AppCompatActivity() {
     // scrollToLetter removed - unused
     // Garbage removed
     
+    private fun showFoldersList() {
+        val folders = viewModel.getFolders()
+        adapter.submitList(folders)
+        adapter.onFolderClick = { folder ->
+            currentFolder = folder.path
+            val songs = viewModel.getSongsInFolder(folder.path)
+            adapter.submitList(songs)
+            binding.fastScroller.visibility = View.VISIBLE
+        }
+    }
+
     private fun processHeaders(songs: List<Song>): List<SongListItem> {
         if (songs.isEmpty()) return emptyList()
         
