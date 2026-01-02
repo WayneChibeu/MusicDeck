@@ -595,6 +595,33 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }.sortedBy { it.title }.map { SongListItem.SongItem(it) }
     }
     
+    fun updateSongTags(song: Song, title: String, artist: String, album: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val uri = ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, song.id)
+                val values = android.content.ContentValues().apply {
+                    put(MediaStore.Audio.Media.TITLE, title)
+                    put(MediaStore.Audio.Media.ARTIST, artist)
+                    put(MediaStore.Audio.Media.ALBUM, album)
+                }
+                
+                getApplication<Application>().contentResolver.update(uri, values, null, null)
+                
+                loadSongs()
+                withContext(Dispatchers.Main) {
+                     android.widget.Toast.makeText(getApplication(), "Tags updated", android.widget.Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: SecurityException) {
+                // Simplified handling: Just notify user it failed due to permission
+                 withContext(Dispatchers.Main) {
+                     android.widget.Toast.makeText(getApplication(), "Permission denied. Android 10+ restrictions apply.", android.widget.Toast.LENGTH_LONG).show()
+                }
+            } catch (e: Exception) {
+               e.printStackTrace()
+            }
+        }
+    }
+    
     // Backup/Restore
     private val _backupResult = MutableLiveData<String?>()
     val backupResult: LiveData<String?> = _backupResult

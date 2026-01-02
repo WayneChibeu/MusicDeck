@@ -107,7 +107,7 @@ class MainActivity : AppCompatActivity() {
             when (action) {
                 "show_menu" -> showPlaylistSongOptions(song)
                 "details" -> showSongDetailsDialog(song)
-                "edit" -> showEditSongOptions(song)
+                "edit" -> TagEditorFragment.newInstance(song.id).show(supportFragmentManager, "TagEditor")
                 "add_to_playlist" -> showAddToPlaylistDialog(song)
                 "remove_from_playlist" -> { /* Handled in PlaylistDetailFragment usually, but if here... */ }
                 "delete" -> deleteSong(song)
@@ -877,7 +877,7 @@ class MainActivity : AppCompatActivity() {
     private fun showNameDialog(prefs: android.content.SharedPreferences) {
         val sheet = InputBottomSheetFragment.newInstance(
             title = "What's your name?",
-            hint = "Wayne",
+            hint = "Your Name",
             positiveButtonText = "Let's Go!"
         )
         sheet.onSaveListener = { name ->
