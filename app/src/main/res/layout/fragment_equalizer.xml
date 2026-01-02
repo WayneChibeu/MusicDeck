@@ -4,7 +4,16 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
+    android:background="@drawable/bg_bottom_sheet_glassmorphic"
     android:padding="24dp">
+
+    <!-- Drag Handle -->
+    <View
+        android:layout_width="40dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="16dp"
+        android:background="@drawable/bg_drag_handle"/>
 
     <!-- Header with title and switch -->
     <LinearLayout
@@ -19,7 +28,8 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="Equalizer"
-            android:textAppearance="?attr/textAppearanceHeadlineSmall"
+            android:textSize="20sp"
+            android:textStyle="bold"
             android:textColor="?attr/colorOnSurface" />
 
         <com.google.android.material.materialswitch.MaterialSwitch
@@ -35,7 +45,8 @@
         android:layout_width="match_parent"
         android:layout_height="48dp"
         android:layout_marginBottom="24dp"
-        android:background="?attr/colorSurfaceVariant"
+        android:background="@drawable/bg_album_art_placeholder"
+        android:backgroundTint="?attr/colorSurfaceVariant"
         android:padding="8dp" />
 
     <!-- EQ Bands -->
@@ -192,7 +203,8 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Bass Boost"
-            android:textAppearance="?attr/textAppearanceLabelLarge"
+            android:textSize="16sp"
+            android:textStyle="bold"
             android:textColor="?attr/colorOnSurface" />
 
         <LinearLayout
