@@ -79,12 +79,11 @@ class MusicWidgetProvider : AppWidgetProvider() {
             val appPendingIntent = PendingIntent.getActivity(context, 0, appIntent, PendingIntent.FLAG_IMMUTABLE)
             views.setOnClickPendingIntent(R.id.widgetBox, appPendingIntent)
 
-            // Album art - prioritize bitmap, fallback to default
+            // Album art - ALWAYS set explicitly to prevent launcher caching issues
+            // First clear any cached bitmap by setting default, then set actual
+            views.setImageViewResource(R.id.ivWidgetArt, R.drawable.default_album_art)
             if (albumArtBitmap != null) {
                  views.setImageViewBitmap(R.id.ivWidgetArt, albumArtBitmap)
-            } else {
-                 // Always show default art if no valid bitmap
-                 views.setImageViewResource(R.id.ivWidgetArt, R.drawable.default_album_art)
             }
 
             appWidgetManager.updateAppWidget(appWidgetId, views)

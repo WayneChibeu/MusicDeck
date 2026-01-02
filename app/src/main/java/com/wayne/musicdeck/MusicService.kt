@@ -336,24 +336,25 @@ class MusicService : MediaSessionService() {
                 MusicWidgetProvider.pushUpdate(this@MusicService, title, artist, isPlaying, isFav, artUri, artBitmap)
                 if (currentId != -1L) updateMediaSessionLayout(player)
                 
-                // Set artwork data for Notification (Fixes missing art)
-                if (artBitmap != null && mediaItem?.mediaMetadata?.artworkData == null) {
-                    val stream = java.io.ByteArrayOutputStream()
-                    artBitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, stream)
-                    val byteArray = stream.toByteArray()
+                // ALWAYS update artwork data for Notification to prevent stale cached art
+                // This ensures each song gets its own art (or lack thereof)
+                if (mediaItem != null) {
+                    val newMetaBuilder = mediaItem.mediaMetadata.buildUpon()
                     
-                    val newMeta = mediaItem?.mediaMetadata?.buildUpon()
-                        ?.setArtworkData(byteArray, androidx.media3.common.MediaMetadata.PICTURE_TYPE_FRONT_COVER)
-                        ?.build()
-                        
-                    if (newMeta != null) {
-                        val newItem = mediaItem.buildUpon().setMediaMetadata(newMeta).build()
-                        // Replace without interrupting playback?
-                        // If current index match
-                        val idx = player.currentMediaItemIndex
-                        if (idx != -1 && player.currentMediaItem?.mediaId == newItem.mediaId) {
-                             player.replaceMediaItem(idx, newItem)
-                        }
+                    if (artBitmap != null) {
+                        val stream = java.io.ByteArrayOutputStream()
+                        artBitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, stream)
+                        val byteArray = stream.toByteArray()
+                        newMetaBuilder.setArtworkData(byteArray, androidx.media3.common.MediaMetadata.PICTURE_TYPE_FRONT_COVER)
+                    }
+                    // Note: Can't set null artwork in Media3, but widget gets explicit null bitmap
+                    
+                    val newMeta = newMetaBuilder.build()
+                    val newItem = mediaItem.buildUpon().setMediaMetadata(newMeta).build()
+                    
+                    val idx = player.currentMediaItemIndex
+                    if (idx != -1 && player.currentMediaItem?.mediaId == newItem.mediaId) {
+                         player.replaceMediaItem(idx, newItem)
                     }
                 }
             }
