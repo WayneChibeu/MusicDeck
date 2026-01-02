@@ -1122,71 +1122,17 @@ class MainActivity : AppCompatActivity() {
 
 
     private fun showPlaylistSongOptions(song: Song) {
-        val dialog = com.google.android.material.bottomsheet.BottomSheetDialog(this)
-        val view = layoutInflater.inflate(R.layout.layout_heytap_bottom_sheet, null)
-        dialog.setContentView(view)
-
-        // Cancel Action
-        view.findViewById<android.widget.TextView>(R.id.action_cancel).setOnClickListener {
-            dialog.dismiss()
+        val sheet = SongActionBottomSheet.newInstance(
+            songId = song.id,
+            title = song.title,
+            artist = song.artist,
+            albumId = song.albumId,
+            showRemoveFromPlaylist = currentViewingPlaylistId != -1L
+        )
+        sheet.onActionSelected = { action ->
+            handleSongMenuAction(song, action)
         }
-
-        // Play Next
-        view.findViewById<android.widget.TextView>(R.id.action_play_next).setOnClickListener {
-            viewModel.addToQueue(listOf(song))
-            android.widget.Toast.makeText(this, "Added to Play Next", android.widget.Toast.LENGTH_SHORT).show()
-            dialog.dismiss()
-        }
-
-        // Add to Queue
-        view.findViewById<android.widget.TextView>(R.id.action_add_queue).setOnClickListener {
-            viewModel.addToQueue(listOf(song))
-            android.widget.Toast.makeText(this, "Added to Queue", android.widget.Toast.LENGTH_SHORT).show()
-            dialog.dismiss()
-        }
-
-        // Add to Playlist
-        view.findViewById<android.widget.TextView>(R.id.action_add_playlist).setOnClickListener {
-            showAddToPlaylistDialog(song)
-            dialog.dismiss()
-        }
-
-        // Song Info
-        view.findViewById<android.widget.TextView>(R.id.action_song_info).setOnClickListener {
-            SongInfoBottomSheet.newInstance(song).show(supportFragmentManager, "SongInfo")
-            dialog.dismiss()
-        }
-
-        // Album Info
-        val albumText = view.findViewById<android.widget.TextView>(R.id.action_album_info)
-        albumText.text = "Album: ${song.album}"
-        albumText.setOnClickListener {
-             android.widget.Toast.makeText(this, "Album: ${song.album}", android.widget.Toast.LENGTH_SHORT).show()
-            dialog.dismiss()
-        }
-                // Details/Delete blocks removed as IDs don't exist in this layout
-                // Using existing actions: action_song_info handles details
-                
-                // Remove from Playlist (only show when viewing a playlist)
-        val removeView = view.findViewById<android.widget.TextView>(R.id.action_remove)
-        if (currentViewingPlaylistId != -1L) {
-            removeView.visibility = android.view.View.VISIBLE
-            removeView.setOnClickListener {
-                viewModel.removeSongFromPlaylist(currentViewingPlaylistId, song.id)
-                android.widget.Toast.makeText(this, "Removed from playlist", android.widget.Toast.LENGTH_SHORT).show()
-                dialog.dismiss()
-            }
-        } else {
-            removeView.visibility = android.view.View.GONE
-        }
-        
-        // Set Custom Album Cover - HIDDEN since album art not shown in list view
-        view.findViewById<android.widget.TextView>(R.id.action_set_cover).visibility = android.view.View.GONE
-        
-        // Remove Custom Cover - HIDDEN since album art not shown in list view
-        view.findViewById<android.widget.TextView>(R.id.action_remove_cover).visibility = android.view.View.GONE
-
-        dialog.show()
+        sheet.show(supportFragmentManager, "SongActions")
     }
 
     // Fix: Add missing dialog methods
