@@ -110,6 +110,19 @@
         android:drawableTint="#FFFFFF"
         android:background="?attr/selectableItemBackground"
         android:gravity="center_vertical"/>
+        
+    <TextView
+        android:id="@+id/action_edit_info"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Edit Info"
+        android:textColor="#FFFFFF"
+        android:padding="16dp"
+        android:drawableStart="@drawable/ic_edit"
+        android:drawablePadding="16dp"
+        android:drawableTint="#FFFFFF"
+        android:background="?attr/selectableItemBackground"
+        android:gravity="center_vertical"/>
     
     <TextView
         android:id="@+id/action_set_cover"

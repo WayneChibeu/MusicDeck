@@ -289,7 +289,7 @@ class MusicService : MediaSessionService() {
             if (currentId != -1L) isCurrentSongFavorite = isFav
 
             // Load Bitmap for Widget (Fixes missing art on some launchers)
-            // Load Bitmap for Widget (Fixes missing art on some launchers)
+            // Tries artUri first, then fallback to embedded MP3 art
             var artBitmap: android.graphics.Bitmap? = null
             if (artUri != null) {
                 try {
@@ -308,8 +308,27 @@ class MusicService : MediaSessionService() {
                         artBitmap = android.provider.MediaStore.Images.Media.getBitmap(contentResolver, artUri)
                     }
                 } catch (e: Exception) {
-                    // Bitmap load failed - ensure we don't crash, logging optional
-                    android.util.Log.e("MusicService", "Failed to load widget art: ${e.message}")
+                    // Bitmap load failed - will try embedded art fallback
+                    android.util.Log.e("MusicService", "Failed to load widget art from URI: ${e.message}")
+                }
+            }
+            
+            // Fallback: Try embedded art from MP3 file (like PlayerBottomSheetFragment does)
+            if (artBitmap == null && currentId != -1L) {
+                try {
+                    val uri = android.content.ContentUris.withAppendedId(
+                        android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                        currentId
+                    )
+                    val retriever = android.media.MediaMetadataRetriever()
+                    retriever.setDataSource(this@MusicService, uri)
+                    val embeddedArt = retriever.embeddedPicture
+                    retriever.release()
+                    if (embeddedArt != null) {
+                        artBitmap = android.graphics.BitmapFactory.decodeByteArray(embeddedArt, 0, embeddedArt.size)
+                    }
+                } catch (e: Exception) {
+                    android.util.Log.e("MusicService", "Failed to load embedded art: ${e.message}")
                 }
             }
 
