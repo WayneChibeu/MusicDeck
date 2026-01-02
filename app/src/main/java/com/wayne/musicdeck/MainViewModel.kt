@@ -62,6 +62,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val playCountDao = database.playCountDao()
     private val customCoverRepository = com.wayne.musicdeck.data.CustomCoverRepository(application)
     private val lyricsRepository = com.wayne.musicdeck.data.LyricsRepository(application)
+    private val customMetadataDao = database.customMetadataDao()
     
     val playlists = MutableLiveData<List<com.wayne.musicdeck.data.Playlist>>()
     
@@ -345,8 +346,24 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 }
                 songs
             }
-            originalSongs = songList
-            _songs.postValue(songList)
+            
+            // Apply custom metadata overrides from local database
+            val customMetadataMap = customMetadataDao.getAllCustomMetadata().associateBy { it.songId }
+            val songsWithOverrides = songList.map { song ->
+                val override = customMetadataMap[song.id]
+                if (override != null) {
+                    song.copy(
+                        title = override.customTitle ?: song.title,
+                        artist = override.customArtist ?: song.artist,
+                        album = override.customAlbum ?: song.album
+                    )
+                } else {
+                    song
+                }
+            }
+            
+            originalSongs = songsWithOverrides
+            _songs.postValue(songsWithOverrides)
             
             // Refresh favorites now that songs are loaded
             if (favoritesPlaylistId != -1L) {
@@ -354,8 +371,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
             
             // Generate artists and albums lists
-            generateArtistsList(songList)
-            generateAlbumsList(songList)
+            generateArtistsList(songsWithOverrides)
+            generateAlbumsList(songsWithOverrides)
         }
     }
     
@@ -598,33 +615,27 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun updateSongTags(song: Song, title: String, artist: String, album: String) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val uri = ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, song.id)
-                val values = android.content.ContentValues().apply {
-                    put(MediaStore.Audio.Media.TITLE, title)
-                    put(MediaStore.Audio.Media.ARTIST, artist)
-                    put(MediaStore.Audio.Media.ALBUM, album)
-                }
+                // Save to local database instead of trying to modify MediaStore
+                // This works around Android 10+ restrictions
+                val customMetadata = com.wayne.musicdeck.data.CustomMetadata(
+                    songId = song.id,
+                    customTitle = title,
+                    customArtist = artist,
+                    customAlbum = album
+                )
+                customMetadataDao.insertOrUpdate(customMetadata)
                 
-                val rowsUpdated = getApplication<Application>().contentResolver.update(uri, values, null, null)
+                // Reload songs to apply the new override
+                loadSongs()
                 
-                if (rowsUpdated > 0) {
-                    loadSongs()
-                    withContext(Dispatchers.Main) {
-                         android.widget.Toast.makeText(getApplication(), "Tags updated! Refresh may take a moment.", android.widget.Toast.LENGTH_SHORT).show()
-                    }
-                } else {
-                    // Rows = 0 means it silently failed, need permission
-                    withContext(Dispatchers.Main) {
-                        _tagEditPermissionRequest.value = TagEditRequest(song, title, artist, album)
-                    }
-                }
-            } catch (e: SecurityException) {
-                // Android 10+ requires special permission - emit request event
                 withContext(Dispatchers.Main) {
-                    _tagEditPermissionRequest.value = TagEditRequest(song, title, artist, album)
+                    android.widget.Toast.makeText(getApplication(), "Tags saved! (Changes visible in app only)", android.widget.Toast.LENGTH_SHORT).show()
                 }
             } catch (e: Exception) {
-               e.printStackTrace()
+                e.printStackTrace()
+                withContext(Dispatchers.Main) {
+                    android.widget.Toast.makeText(getApplication(), "Failed to save: ${e.message}", android.widget.Toast.LENGTH_LONG).show()
+                }
             }
         }
     }
