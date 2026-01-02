@@ -35,6 +35,25 @@ class MainActivity : AppCompatActivity() {
         }
     }
     
+    // For tag editing permission on Android 10+
+    private var pendingTagEdit: PendingTagEdit? = null
+    private data class PendingTagEdit(val song: Song, val title: String, val artist: String, val album: String)
+    
+    private val writeRequestLauncher = registerForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.StartIntentSenderForResult()
+    ) { result ->
+        if (result.resultCode == RESULT_OK) {
+            // Permission granted - retry the update
+            pendingTagEdit?.let { edit ->
+                viewModel.updateSongTagsForce(edit.song, edit.title, edit.artist, edit.album)
+            }
+            pendingTagEdit = null
+        } else {
+            android.widget.Toast.makeText(this, "Permission denied by user", android.widget.Toast.LENGTH_SHORT).show()
+            pendingTagEdit = null
+        }
+    }
+    
     // Image picker for custom album covers
     private var targetSongForCover: Song? = null
     
@@ -101,6 +120,30 @@ class MainActivity : AppCompatActivity() {
             restoreLastSong(songs)
             // Update song count in header
             binding.tvSongCount.text = "${songs.size} songs"
+        }
+        
+        // Observe tag edit permission requests (Android 10+)
+        viewModel.tagEditPermissionRequest.observe(this) { request ->
+            if (request != null && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                try {
+                    val uri = android.content.ContentUris.withAppendedId(
+                        android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                        request.song.id
+                    )
+                    val writeRequest = android.provider.MediaStore.createWriteRequest(contentResolver, listOf(uri))
+                    pendingTagEdit = PendingTagEdit(request.song, request.title, request.artist, request.album)
+                    writeRequestLauncher.launch(
+                        androidx.activity.result.IntentSenderRequest.Builder(writeRequest.intentSender).build()
+                    )
+                } catch (e: Exception) {
+                    android.widget.Toast.makeText(this, "Cannot request permission: ${e.message}", android.widget.Toast.LENGTH_LONG).show()
+                }
+                viewModel.clearTagEditPermissionRequest()
+            } else if (request != null) {
+                // Pre-Android 11, just show error (shouldn't hit this path normally)
+                android.widget.Toast.makeText(this, "Tag editing not supported on this Android version", android.widget.Toast.LENGTH_LONG).show()
+                viewModel.clearTagEditPermissionRequest()
+            }
         }
         
         adapter.onSongMenuClick = { song, action ->
