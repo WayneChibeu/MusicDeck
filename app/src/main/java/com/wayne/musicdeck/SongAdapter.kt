@@ -102,26 +102,9 @@ class SongAdapter(
                 true
             }
             
-            binding.btnMore.setOnClickListener { view ->
-                // Use reliable PopupMenu - bottom sheet callback was causing crashes
-                val popup = android.widget.PopupMenu(view.context, view)
-                popup.menuInflater.inflate(R.menu.menu_song_options, popup.menu)
-                
-                popup.menu.findItem(R.id.menu_remove_from_playlist)?.isVisible = showRemoveFromPlaylistOption
-                popup.menu.findItem(R.id.menu_add_to_playlist)?.isVisible = !showRemoveFromPlaylistOption
-
-                popup.setOnMenuItemClickListener { item ->
-                    when (item.itemId) {
-                        R.id.menu_add_to_playlist -> onSongMenuClick?.invoke(song, "add_to_playlist")
-                        R.id.menu_remove_from_playlist -> onSongMenuClick?.invoke(song, "remove_from_playlist")
-                        R.id.menu_share -> onSongMenuClick?.invoke(song, "share")
-                        R.id.menu_ringtone -> onSongMenuClick?.invoke(song, "ringtone")
-                        R.id.menu_details -> onSongMenuClick?.invoke(song, "details")
-                        R.id.menu_delete -> onSongMenuClick?.invoke(song, "delete")
-                    }
-                    true
-                }
-                popup.show()
+            binding.btnMore.setOnClickListener {
+                // Same as long-press - show the nice BottomSheet menu
+                onSongMenuClick?.invoke(song, "show_menu")
             }
         }
     }

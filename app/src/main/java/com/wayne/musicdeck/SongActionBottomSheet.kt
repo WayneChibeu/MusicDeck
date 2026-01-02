@@ -78,15 +78,21 @@ class SongActionBottomSheet : BottomSheetDialogFragment() {
             transformations(RoundedCornersTransformation(12f))
         }
         
-        // Toggle remove vs add to playlist
+        // Toggle remove vs add to playlist based on context
         val addToPlaylist = view.findViewById<View>(R.id.actionAddToPlaylist)
+        val removeFromPlaylist = view.findViewById<View>(R.id.actionRemoveFromPlaylist)
+        
         if (showRemove) {
             addToPlaylist.visibility = View.GONE
-            // Could add remove action here if needed
+            removeFromPlaylist.visibility = View.VISIBLE
+        } else {
+            addToPlaylist.visibility = View.VISIBLE
+            removeFromPlaylist.visibility = View.GONE
         }
         
         // Setup click listeners with haptic feedback
         setupAction(view, R.id.actionAddToPlaylist, "add_to_playlist")
+        setupAction(view, R.id.actionRemoveFromPlaylist, "remove_from_playlist")
         setupAction(view, R.id.actionShare, "share")
         setupAction(view, R.id.actionRingtone, "ringtone")
         // actionEdit removed - album art not shown in list view

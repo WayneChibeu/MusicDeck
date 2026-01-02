@@ -202,6 +202,7 @@ class MainActivity : AppCompatActivity() {
         setupActionGrid()
         setupPermissions()
         setupTabs()
+        setupPersonalizedHeader()
         // Removed Rescan and MoreMenu
         
         viewModel.favorites.observe(this) {
@@ -817,6 +818,54 @@ class MainActivity : AppCompatActivity() {
     private fun setupDevInfo() {
         // Moved to Rescan Long Click for now, or just unused
     }
+    
+    private fun setupPersonalizedHeader() {
+        val prefs = getSharedPreferences("musicdeck_prefs", MODE_PRIVATE)
+        val userName = prefs.getString("user_name", null)
+        
+        if (userName.isNullOrEmpty()) {
+            // First run - ask for name
+            showNameDialog(prefs)
+        } else {
+            // Set personalized greeting
+            updateHeaderWithName(userName)
+        }
+        
+        // Long-press header to change name
+        binding.tvMyMusic.setOnLongClickListener {
+            showNameDialog(prefs)
+            true
+        }
+    }
+    
+    private fun showNameDialog(prefs: android.content.SharedPreferences) {
+        val input = android.widget.EditText(this)
+        input.hint = "Enter your name"
+        input.inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_CAP_WORDS
+        input.setPadding(48, 32, 48, 32)
+        
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+            .setTitle("Welcome to MusicDeck!")
+            .setMessage("What should we call you?")
+            .setView(input)
+            .setCancelable(false)
+            .setPositiveButton("Let's Go!") { _, _ ->
+                val name = input.text.toString().trim()
+                if (name.isNotEmpty()) {
+                    prefs.edit().putString("user_name", name).apply()
+                    updateHeaderWithName(name)
+                    android.widget.Toast.makeText(this, "Welcome, $name!", android.widget.Toast.LENGTH_SHORT).show()
+                } else {
+                    // Default if empty
+                    updateHeaderWithName("My Music")
+                }
+            }
+            .show()
+    }
+    
+    private fun updateHeaderWithName(name: String) {
+        binding.tvMyMusic.text = if (name == "My Music") "My Music" else "$name's Music"
+    }
 
     private fun setupRecyclerView() {
         binding.recyclerView.layoutManager = LinearLayoutManager(this)
@@ -1078,34 +1127,24 @@ class MainActivity : AppCompatActivity() {
                 // Details/Delete blocks removed as IDs don't exist in this layout
                 // Using existing actions: action_song_info handles details
                 
-                // Remove from Playlist
-        view.findViewById<android.widget.TextView>(R.id.action_remove).setOnClickListener {
-             if (currentViewingPlaylistId != -1L) {
-                  viewModel.removeSongFromPlaylist(currentViewingPlaylistId, song.id)
-                  android.widget.Toast.makeText(this, "Removed from playlist", android.widget.Toast.LENGTH_SHORT).show()
-             }
-            dialog.dismiss()
-        }
-        
-        // Set Custom Album Cover
-        view.findViewById<android.widget.TextView>(R.id.action_set_cover).setOnClickListener {
-            targetSongForCover = song
-            imagePickerLauncher.launch("image/*")
-            dialog.dismiss()
-        }
-        
-        // Remove Custom Cover (only show if custom cover exists)
-        val removeCoverAction = view.findViewById<android.widget.TextView>(R.id.action_remove_cover)
-        if (viewModel.hasCustomCover(song.id)) {
-            removeCoverAction.visibility = View.VISIBLE
-            removeCoverAction.setOnClickListener {
-                viewModel.removeCustomCover(song)
-                viewModel.loadSongs()
+                // Remove from Playlist (only show when viewing a playlist)
+        val removeView = view.findViewById<android.widget.TextView>(R.id.action_remove)
+        if (currentViewingPlaylistId != -1L) {
+            removeView.visibility = android.view.View.VISIBLE
+            removeView.setOnClickListener {
+                viewModel.removeSongFromPlaylist(currentViewingPlaylistId, song.id)
+                android.widget.Toast.makeText(this, "Removed from playlist", android.widget.Toast.LENGTH_SHORT).show()
                 dialog.dismiss()
-                // Fix: Add missing dialog methods
             }
-
+        } else {
+            removeView.visibility = android.view.View.GONE
         }
+        
+        // Set Custom Album Cover - HIDDEN since album art not shown in list view
+        view.findViewById<android.widget.TextView>(R.id.action_set_cover).visibility = android.view.View.GONE
+        
+        // Remove Custom Cover - HIDDEN since album art not shown in list view
+        view.findViewById<android.widget.TextView>(R.id.action_remove_cover).visibility = android.view.View.GONE
 
         dialog.show()
     }
