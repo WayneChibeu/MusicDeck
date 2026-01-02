@@ -1209,23 +1209,8 @@ class MainActivity : AppCompatActivity() {
     }
     
     private fun showEditSongOptions(song: Song) {
-        val options = arrayOf("Edit Info (Tags)", "Change Cover Image", "Remove Custom Cover", "Change Lyrics File")
-        com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
-            .setTitle("Edit Song")
-            .setItems(options) { _, which ->
-                when (which) {
-                    0 -> TagEditorFragment.newInstance(song.id).show(supportFragmentManager, "TagEditor")
-                    1 -> {
-                        targetSongForCover = song
-                        imagePickerLauncher.launch("image/*")
-                    }
-                    2 -> viewModel.removeCustomCover(song)
-                    3 -> {
-                        android.widget.Toast.makeText(this, "Lyrics picker in Player view only for now", android.widget.Toast.LENGTH_SHORT).show()
-                    }
-                }
-            }
-            .show()
+        // Direct launch to Tag Editor - no intermediate dialog
+        TagEditorFragment.newInstance(song.id).show(supportFragmentManager, "TagEditor")
     }
 
     private fun showAddToPlaylistDialog(song: Song) {
