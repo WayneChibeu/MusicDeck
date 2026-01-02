@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/bg_bottom_sheet_glassmorphic"
+    android:paddingBottom="16dp">
+
+    <!-- Drag Handle -->
+    <View
+        android:layout_width="40dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="12dp"
+        android:layout_marginBottom="12dp"
+        android:background="@drawable/bg_drag_handle"/>
+    
+    <TextView
+        android:id="@+id/tvPlaylistTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingHorizontal="24dp"
+        android:paddingBottom="16dp"
+        android:text="Playlist Name"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:textColor="?attr/colorOnSurface"/>
+        
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#1A000000"
+        android:layout_marginBottom="8dp"/>
+
+    <!-- Rename -->
+    <TextView
+        android:id="@+id/action_rename"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="16dp"
+        android:text="Rename Playlist"
+        android:textSize="16sp"
+        android:textColor="?attr/colorOnSurface"
+        android:drawableStart="@drawable/ic_edit"
+        android:drawablePadding="16dp"
+        android:background="?attr/selectableItemBackground"
+        app:drawableTint="?attr/colorOnSurface"
+        android:gravity="center_vertical"/>
+
+    <!-- Add to Queue -->
+    <TextView
+        android:id="@+id/action_queue"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="16dp"
+        android:text="Add to Play Queue"
+        android:textSize="16sp"
+        android:textColor="?attr/colorOnSurface"
+        android:drawableStart="@drawable/ic_add_to_queue"
+        android:drawablePadding="16dp"
+        android:background="?attr/selectableItemBackground"
+        app:drawableTint="?attr/colorOnSurface"
+        android:gravity="center_vertical"/>
+        
+    <!-- Delete -->
+    <TextView
+        android:id="@+id/action_delete"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="16dp"
+        android:text="Delete Playlist"
+        android:textSize="16sp"
+        android:textColor="?attr/colorError"
+        android:drawableStart="@drawable/ic_delete"
+        android:drawablePadding="16dp"
+        android:background="?attr/selectableItemBackground"
+        app:drawableTint="?attr/colorError"
+        android:gravity="center_vertical"/>
+
+</LinearLayout>

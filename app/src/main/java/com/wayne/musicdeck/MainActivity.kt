@@ -307,30 +307,27 @@ class MainActivity : AppCompatActivity() {
                 }
                 
                 binding.playlistToolbar.btnMenu.setOnClickListener {
-                     // Playlist Options (Image 2)
-                     val options = arrayOf("Add Songs", "Favorite", "Edit playlist info", "Add to play queue", "Delete playlist")
-                     androidx.appcompat.app.AlertDialog.Builder(this)
-                        .setTitle("Playlist Options")
-                        .setItems(options) { _, which ->
-                             when (which) {
-                                  0 -> android.widget.Toast.makeText(this, "Add Songs: Coming Soon", android.widget.Toast.LENGTH_SHORT).show()
-                                  1 -> android.widget.Toast.makeText(this, "Favorite: Coming Soon", android.widget.Toast.LENGTH_SHORT).show()
-                                  2 -> showRenamePlaylistDialog(playlist)
-                                  3 -> {
-                                      // Add to queue
-                                      val songs = viewModel.getPlaylistSongs(playlist.id).value
-                                      if (!songs.isNullOrEmpty()) {
-                                          viewModel.addToQueue(songs)
-                                          android.widget.Toast.makeText(this, "Added to queue", android.widget.Toast.LENGTH_SHORT).show()
-                                      }
-                                  }
-                                  4 -> {
-                                      viewModel.deletePlaylist(playlist)
-                                      onBackPressedDispatcher.onBackPressed()
-                                  }
-                             }
+                     // Playlist Options Bottom Sheet
+                     val sheet = PlaylistOptionsBottomSheet.newInstance(playlist.name)
+                     sheet.onAction = { action ->
+                        when (action) {
+                            "rename" -> showRenamePlaylistDialog(playlist)
+                            "queue" -> {
+                                val songs = viewModel.getPlaylistSongs(playlist.id).value
+                                if (!songs.isNullOrEmpty()) {
+                                    viewModel.addToQueue(songs)
+                                    android.widget.Toast.makeText(this@MainActivity, "Added to queue", android.widget.Toast.LENGTH_SHORT).show()
+                                } else {
+                                     android.widget.Toast.makeText(this@MainActivity, "Playlist is empty", android.widget.Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                            "delete" -> {
+                                viewModel.deletePlaylist(playlist)
+                                onBackPressedDispatcher.onBackPressed()
+                            }
                         }
-                        .show()
+                     }
+                     sheet.show(supportFragmentManager, "PlaylistOptions")
                 }
 
                 // Initialize Detail Adapter
