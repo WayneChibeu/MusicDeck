@@ -384,19 +384,26 @@ class MainActivity : AppCompatActivity() {
                 }
             },
             onPlaylistMenuClick = { playlist ->
-                 // Long press menu on main list
-                 binding.playlistToolbar.btnMenu.performClick() // Reuse logic? No, this is outside.
-                 // Keep simple dialog - removed "Change Cover Image" since album art is hidden
-                 val options = arrayOf("Rename", "Delete")
-                 androidx.appcompat.app.AlertDialog.Builder(this)
-                    .setTitle(playlist.name)
-                    .setItems(options) { _, which ->
-                        when (which) {
-                            0 -> showRenamePlaylistDialog(playlist)
-                            1 -> viewModel.deletePlaylist(playlist)
+                 val sheet = PlaylistOptionsBottomSheet.newInstance(playlist.name)
+                 sheet.onAction = { action ->
+                    when (action) {
+                        "rename" -> showRenamePlaylistDialog(playlist)
+                        "queue" -> {
+                            val songs = viewModel.getPlaylistSongs(playlist.id).value
+                            if (!songs.isNullOrEmpty()) {
+                                viewModel.addToQueue(songs)
+                                android.widget.Toast.makeText(this@MainActivity, "Added to queue", android.widget.Toast.LENGTH_SHORT).show()
+                            } else {
+                                 android.widget.Toast.makeText(this@MainActivity, "Playlist is empty", android.widget.Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                        "delete" -> {
+                            viewModel.deletePlaylist(playlist)
+                            // No need to onBackPressed here as we are in the list view
                         }
                     }
-                    .show()
+                 }
+                 sheet.show(supportFragmentManager, "PlaylistListOptions")
             }
         )
         
@@ -1202,21 +1209,19 @@ class MainActivity : AppCompatActivity() {
     }
     
     private fun showEditSongOptions(song: Song) {
-        val options = arrayOf("Change Cover Image", "Change Lyrics File", "Remove Custom Cover", "Remove Custom Lyrics")
+        val options = arrayOf("Edit Info (Tags)", "Change Cover Image", "Remove Custom Cover", "Change Lyrics File")
         com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
-            .setTitle("Edit Song By...")
+            .setTitle("Edit Song")
             .setItems(options) { _, which ->
                 when (which) {
-                    0 -> {
+                    0 -> TagEditorFragment.newInstance(song.id).show(supportFragmentManager, "TagEditor")
+                    1 -> {
                         targetSongForCover = song
                         imagePickerLauncher.launch("image/*")
                     }
-                    1 -> {
-                        android.widget.Toast.makeText(this, "Lyrics picker in Player view only for now", android.widget.Toast.LENGTH_SHORT).show()
-                    }
                     2 -> viewModel.removeCustomCover(song)
                     3 -> {
-                         android.widget.Toast.makeText(this, "Not implemented yet", android.widget.Toast.LENGTH_SHORT).show()
+                        android.widget.Toast.makeText(this, "Lyrics picker in Player view only for now", android.widget.Toast.LENGTH_SHORT).show()
                     }
                 }
             }

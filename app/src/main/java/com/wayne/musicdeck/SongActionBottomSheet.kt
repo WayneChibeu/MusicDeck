@@ -95,12 +95,12 @@ class SongActionBottomSheet : BottomSheetDialogFragment() {
         setupAction(view, R.id.actionRemoveFromPlaylist, "remove_from_playlist")
         setupAction(view, R.id.actionShare, "share")
         setupAction(view, R.id.actionRingtone, "ringtone")
-        // actionEdit removed - album art not shown in list view
+        setupAction(view, R.id.actionEdit, "edit")
         setupAction(view, R.id.actionDetails, "details")
         setupAction(view, R.id.actionDelete, "delete")
         
-        // Hide Edit option since album art is not visible in list
-        view.findViewById<View>(R.id.actionEdit)?.visibility = View.GONE
+        // Edit option is now enabled
+        // view.findViewById<View>(R.id.actionEdit)?.visibility = View.VISIBLE
     }
     
     private fun setupAction(view: View, viewId: Int, action: String) {
