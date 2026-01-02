@@ -529,41 +529,31 @@ class MainActivity : AppCompatActivity() {
     }
     
     private fun showCreatePlaylistDialog() {
-        val dialogView = layoutInflater.inflate(R.layout.dialog_create_playlist, null)
-        val etName = dialogView.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.etPlaylistName)
-        
-        androidx.appcompat.app.AlertDialog.Builder(this)
-            .setTitle("New Playlist")
-            .setView(dialogView)
-            .setPositiveButton("Create") { _, _ ->
-                val name = etName.text.toString().trim()
-                if (name.isNotEmpty()) {
-                    viewModel.createPlaylist(name)
-                    android.widget.Toast.makeText(this, "Created $name", android.widget.Toast.LENGTH_SHORT).show()
-                }
-            }
-            .setNegativeButton("Cancel", null)
-            .show()
+        val sheet = InputBottomSheetFragment.newInstance(
+            title = "New Playlist",
+            hint = "Playlist Name",
+            positiveButtonText = "Create"
+        )
+        sheet.onSaveListener = { name ->
+            viewModel.createPlaylist(name)
+            android.widget.Toast.makeText(this, "Created $name", android.widget.Toast.LENGTH_SHORT).show()
+        }
+        sheet.show(supportFragmentManager, "CreatePlaylistSheet")
     }
     
     private fun showRenamePlaylistDialog(playlist: com.wayne.musicdeck.data.Playlist) {
-        val dialogView = layoutInflater.inflate(R.layout.dialog_create_playlist, null)
-        val etName = dialogView.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.etPlaylistName)
-        etName.setText(playlist.name)
-        
-        androidx.appcompat.app.AlertDialog.Builder(this)
-            .setTitle("Rename Playlist")
-            .setView(dialogView)
-            .setPositiveButton("Save") { _, _ ->
-                val name = etName.text.toString().trim()
-                if (name.isNotEmpty()) {
-                    val updated = playlist.copy(name = name)
-                    viewModel.updatePlaylist(updated)
-                    android.widget.Toast.makeText(this, "Renamed to $name", android.widget.Toast.LENGTH_SHORT).show()
-                }
-            }
-            .setNegativeButton("Cancel", null)
-            .show()
+        val sheet = InputBottomSheetFragment.newInstance(
+            title = "Rename Playlist",
+            hint = "Playlist Name",
+            initialValue = playlist.name,
+            positiveButtonText = "Save"
+        )
+        sheet.onSaveListener = { name ->
+             val updated = playlist.copy(name = name)
+             viewModel.updatePlaylist(updated)
+             android.widget.Toast.makeText(this, "Renamed to $name", android.widget.Toast.LENGTH_SHORT).show()
+        }
+        sheet.show(supportFragmentManager, "RenamePlaylistSheet")
     }
 
     private var targetPlaylistForImage: com.wayne.musicdeck.data.Playlist? = null
@@ -861,28 +851,17 @@ class MainActivity : AppCompatActivity() {
     }
     
     private fun showNameDialog(prefs: android.content.SharedPreferences) {
-        val input = android.widget.EditText(this)
-        input.hint = "Enter your name"
-        input.inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_CAP_WORDS
-        input.setPadding(48, 32, 48, 32)
-        
-        com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
-            .setTitle("Welcome to MusicDeck!")
-            .setMessage("What should we call you?")
-            .setView(input)
-            .setCancelable(false)
-            .setPositiveButton("Let's Go!") { _, _ ->
-                val name = input.text.toString().trim()
-                if (name.isNotEmpty()) {
-                    prefs.edit().putString("user_name", name).apply()
-                    updateHeaderWithName(name)
-                    android.widget.Toast.makeText(this, "Welcome, $name!", android.widget.Toast.LENGTH_SHORT).show()
-                } else {
-                    // Default if empty
-                    updateHeaderWithName("My Music")
-                }
-            }
-            .show()
+        val sheet = InputBottomSheetFragment.newInstance(
+            title = "What's your name?",
+            hint = "Wayne",
+            positiveButtonText = "Let's Go!"
+        )
+        sheet.onSaveListener = { name ->
+            prefs.edit().putString("user_name", name).apply()
+            updateHeaderWithName(name)
+            android.widget.Toast.makeText(this, "Welcome, $name!", android.widget.Toast.LENGTH_SHORT).show()
+        }
+        sheet.show(supportFragmentManager, "NameInputSheet")
     }
     
     private fun updateHeaderWithName(name: String) {
