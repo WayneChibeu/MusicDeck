@@ -3,37 +3,26 @@
     android:height="24dp"
     android:viewportWidth="24"
     android:viewportHeight="24">
-    <!-- Flaticon-style Rounded Shuffle Off (Faded) -->
-    
-    <!-- Path 1: Top-Left to Bottom-Right -->
+    <!-- Hybrid Shuffle Off: Faded -->
     <path
         android:strokeColor="#66FFFFFF"
-        android:strokeWidth="3"
+        android:strokeWidth="2.5"
         android:strokeLineCap="round"
         android:strokeLineJoin="round"
         android:fillColor="#00000000"
-        android:pathData="M4,5 C10,5 14,19 20,19"/>
+        android:pathData="M4,5 C10,5 14,19 17,19"/>
     <path
-        android:strokeColor="#66FFFFFF"
-        android:strokeWidth="3"
-        android:strokeLineCap="round"
-        android:strokeLineJoin="round"
-        android:fillColor="#00000000"
-        android:pathData="M16,15 L20,19 L16,23"/>
+        android:fillColor="#66FFFFFF"
+        android:pathData="M16,16.5 L20.5,19 L16,21.5 Z"/>
         
-    <!-- Path 2: Bottom-Left to Top-Right -->
     <path
         android:strokeColor="#66FFFFFF"
-        android:strokeWidth="3"
+        android:strokeWidth="2.5"
         android:strokeLineCap="round"
         android:strokeLineJoin="round"
         android:fillColor="#00000000"
-        android:pathData="M4,19 C10,19 14,5 20,5"/>
+        android:pathData="M4,19 C10,19 14,5 17,5"/>
     <path
-        android:strokeColor="#66FFFFFF"
-        android:strokeWidth="3"
-        android:strokeLineCap="round"
-        android:strokeLineJoin="round"
-        android:fillColor="#00000000"
-        android:pathData="M16,9 L20,5 L16,1"/>
+        android:fillColor="#66FFFFFF"
+        android:pathData="M16,2.5 L20.5,5 L16,7.5 Z"/>
 </vector>
