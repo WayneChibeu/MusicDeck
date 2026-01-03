@@ -173,7 +173,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun addSongToPlaylist(playlistId: Long, song: Song) {
         viewModelScope.launch {
             playlistRepository.addSongToPlaylist(playlistId, song.id)
-            android.widget.Toast.makeText(getApplication(), "Added to playlist", android.widget.Toast.LENGTH_SHORT).show()
+            // Toast is now shown by the caller with playlist name
         }
     }
     
