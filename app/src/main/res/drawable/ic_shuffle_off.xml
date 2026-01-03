@@ -3,31 +3,31 @@
     android:height="24dp"
     android:viewportWidth="24"
     android:viewportHeight="24">
-    <!-- Modern stroke-based shuffle icon with rounded caps - faded -->
+    <!-- Notification-optimized shuffle icon - thinner strokes, faded -->
     <path
-        android:strokeColor="#66FFFFFF"
-        android:strokeWidth="2"
+        android:strokeColor="#80FFFFFF"
+        android:strokeWidth="1.5"
         android:strokeLineCap="round"
         android:strokeLineJoin="round"
         android:fillColor="#00000000"
         android:pathData="M16,3l4,4l-4,4"/>
     <path
-        android:strokeColor="#66FFFFFF"
-        android:strokeWidth="2"
+        android:strokeColor="#80FFFFFF"
+        android:strokeWidth="1.5"
         android:strokeLineCap="round"
         android:strokeLineJoin="round"
         android:fillColor="#00000000"
         android:pathData="M20,7H4"/>
     <path
-        android:strokeColor="#66FFFFFF"
-        android:strokeWidth="2"
+        android:strokeColor="#80FFFFFF"
+        android:strokeWidth="1.5"
         android:strokeLineCap="round"
         android:strokeLineJoin="round"
         android:fillColor="#00000000"
         android:pathData="M8,21l-4,-4l4,-4"/>
     <path
-        android:strokeColor="#66FFFFFF"
-        android:strokeWidth="2"
+        android:strokeColor="#80FFFFFF"
+        android:strokeWidth="1.5"
         android:strokeLineCap="round"
         android:strokeLineJoin="round"
         android:fillColor="#00000000"
