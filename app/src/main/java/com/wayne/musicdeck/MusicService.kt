@@ -147,14 +147,14 @@ class MusicService : MediaSessionService() {
                     // Send custom layout with shuffle/repeat buttons to all controllers
                     val shuffleButton = CommandButton.Builder()
                         .setDisplayName("Shuffle")
-                        .setIconResId(R.drawable.ic_shuffle)
+                        .setIconResId(R.drawable.ic_notif_shuffle_off)
                         .setSessionCommand(SessionCommand("SHUFFLE", android.os.Bundle.EMPTY))
                         .setEnabled(true)
                         .build()
                     
                     val repeatButton = CommandButton.Builder()
                         .setDisplayName("Repeat")
-                        .setIconResId(R.drawable.ic_repeat)
+                        .setIconResId(R.drawable.ic_notif_repeat_off)
                         .setSessionCommand(SessionCommand("REPEAT", android.os.Bundle.EMPTY))
                         .setEnabled(true)
                         .build()
@@ -422,17 +422,17 @@ class MusicService : MediaSessionService() {
         val shuffleOn = player.shuffleModeEnabled
         val repeatMode = player.repeatMode
         
-        // Use our custom modern icons
+        // Use our custom notification-optimized icons (scaled down)
         val shuffleIcon = if (shuffleOn) {
-            R.drawable.ic_shuffle_on
+            R.drawable.ic_notif_shuffle_on
         } else {
-            R.drawable.ic_shuffle_off
+            R.drawable.ic_notif_shuffle_off
         }
         
         val repeatIcon = when (repeatMode) {
-            Player.REPEAT_MODE_ONE -> R.drawable.ic_repeat_one
-            Player.REPEAT_MODE_ALL -> R.drawable.ic_repeat_all
-            else -> R.drawable.ic_repeat_off
+            Player.REPEAT_MODE_ONE -> R.drawable.ic_notif_repeat_one
+            Player.REPEAT_MODE_ALL -> R.drawable.ic_notif_repeat_all
+            else -> R.drawable.ic_notif_repeat_off
         }
         
         // Display names show current state

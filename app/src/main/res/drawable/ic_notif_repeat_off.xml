@@ -1,0 +1,16 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Scaled down (75%) repeat off icon -->
+    <group
+        android:pivotX="12"
+        android:pivotY="12"
+        android:scaleX="0.75"
+        android:scaleY="0.75">
+        <path
+            android:fillColor="#80FFFFFF"
+            android:pathData="M7,7h10v3l4,-4l-4,-4v3H5c-1.1,0 -2,0.9 -2,2v4h2V7zM17,17H7v-3l-4,4l4,4v-3h12c1.1,0 2,-0.9 2,-2v-4h-2V17z"/>
+    </group>
+</vector>
