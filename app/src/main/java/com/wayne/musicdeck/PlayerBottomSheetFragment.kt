@@ -468,10 +468,10 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         if (_binding == null) return
         
         val icon = when (playbackMode) {
-            1 -> androidx.media3.ui.R.drawable.exo_icon_repeat_one
-            2 -> androidx.media3.ui.R.drawable.exo_icon_shuffle_on
-            3 -> androidx.media3.ui.R.drawable.exo_icon_repeat_all
-            else -> androidx.media3.ui.R.drawable.exo_icon_repeat_off
+            1 -> R.drawable.ic_repeat_one
+            2 -> R.drawable.ic_shuffle_on
+            3 -> R.drawable.ic_repeat_all
+            else -> R.drawable.ic_repeat_off
         }
         binding.btnRepeat.setImageResource(icon)
         

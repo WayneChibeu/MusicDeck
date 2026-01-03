@@ -422,17 +422,17 @@ class MusicService : MediaSessionService() {
         val shuffleOn = player.shuffleModeEnabled
         val repeatMode = player.repeatMode
         
-        // Use ExoPlayer's built-in state-aware icons
+        // Use our custom modern icons
         val shuffleIcon = if (shuffleOn) {
-            androidx.media3.ui.R.drawable.exo_icon_shuffle_on
+            R.drawable.ic_shuffle_on
         } else {
-            androidx.media3.ui.R.drawable.exo_icon_shuffle_off
+            R.drawable.ic_shuffle_off
         }
         
         val repeatIcon = when (repeatMode) {
-            Player.REPEAT_MODE_ONE -> androidx.media3.ui.R.drawable.exo_icon_repeat_one
-            Player.REPEAT_MODE_ALL -> androidx.media3.ui.R.drawable.exo_icon_repeat_all
-            else -> androidx.media3.ui.R.drawable.exo_icon_repeat_off
+            Player.REPEAT_MODE_ONE -> R.drawable.ic_repeat_one
+            Player.REPEAT_MODE_ALL -> R.drawable.ic_repeat_all
+            else -> R.drawable.ic_repeat_off
         }
         
         // Display names show current state
