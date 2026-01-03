@@ -3,8 +3,33 @@
     android:height="24dp"
     android:viewportWidth="24"
     android:viewportHeight="24">
-    <!-- Modern filled repeat all icon - solid smooth arrows -->
+    <!-- Compact rounded repeat all icon - stroke based, solid -->
     <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M7,7h10v3l4,-4l-4,-4v3H5c-1.1,0 -2,0.9 -2,2v4h2V7zM17,17H7v-3l-4,4l4,4v-3h12c1.1,0 2,-0.9 2,-2v-4h-2V17z"/>
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:fillColor="#00000000"
+        android:pathData="M17,2l4,4l-4,4"/>
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:fillColor="#00000000"
+        android:pathData="M3,11v-1c0,-2.2 1.8,-4 4,-4h14"/>
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:fillColor="#00000000"
+        android:pathData="M7,22l-4,-4l4,-4"/>
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:fillColor="#00000000"
+        android:pathData="M21,13v1c0,2.2 -1.8,4 -4,4H3"/>
 </vector>
