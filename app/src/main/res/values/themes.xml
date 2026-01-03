@@ -5,8 +5,18 @@
         <item name="colorPrimary">@color/colorViolet</item>
         <item name="colorPrimaryVariant">@color/colorVioletDark</item>
         <item name="colorOnPrimary">@color/black</item>
+        
+        <!-- Pitch Black AMOLED Theme -->
+        <item name="colorSurface">@color/pitchBlack</item>
+        <item name="colorSurfaceVariant">@color/pitchBlackLight</item>
+        <item name="android:colorBackground">@color/pitchBlack</item>
+        <item name="colorSurfaceContainer">@color/pitchBlack</item>
+        <item name="colorSurfaceContainerHigh">@color/pitchBlackLight</item>
+        <item name="colorSurfaceContainerLow">@color/pitchBlack</item>
+        
         <!-- Status bar color. -->
-        <item name="android:statusBarColor">?attr/colorSurface</item>
+        <item name="android:statusBarColor">@color/pitchBlack</item>
+        <item name="android:navigationBarColor">@color/pitchBlack</item>
         <!-- Customize your theme here. -->
     </style>
 

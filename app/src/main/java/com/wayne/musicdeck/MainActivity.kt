@@ -1253,12 +1253,6 @@ class MainActivity : AppCompatActivity() {
         } else {
             removeView.visibility = android.view.View.GONE
         }
-        
-        // Set Custom Album Cover - HIDDEN since album art not shown in list view
-        view.findViewById<android.widget.TextView>(R.id.action_set_cover).visibility = android.view.View.GONE
-        
-        // Remove Custom Cover - HIDDEN since album art not shown in list view
-        view.findViewById<android.widget.TextView>(R.id.action_remove_cover).visibility = android.view.View.GONE
 
         dialog.show()
     }

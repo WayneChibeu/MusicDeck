@@ -23,4 +23,9 @@
     
     <!-- Unified Primary = Violet -->
     <color name="colorPrimaryUnified">#A78BFA</color>
+    
+    <!-- Pitch Black AMOLED Theme -->
+    <color name="pitchBlack">#000000</color>
+    <color name="pitchBlackLight">#0D0D0D</color>
+    <color name="pitchBlackMedium">#121212</color>
 </resources>

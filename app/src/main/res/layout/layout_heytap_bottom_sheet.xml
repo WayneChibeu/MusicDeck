@@ -123,33 +123,6 @@
         android:drawableTint="#FFFFFF"
         android:background="?attr/selectableItemBackground"
         android:gravity="center_vertical"/>
-    
-    <TextView
-        android:id="@+id/action_set_cover"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Set Album Cover"
-        android:textColor="#FFFFFF"
-        android:padding="16dp"
-        android:drawableStart="@drawable/ic_image"
-        android:drawablePadding="16dp"
-        android:drawableTint="#FFFFFF"
-        android:background="?attr/selectableItemBackground"
-        android:gravity="center_vertical"/>
-    
-    <TextView
-        android:id="@+id/action_remove_cover"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Remove Custom Cover"
-        android:textColor="#FFFFFF"
-        android:padding="16dp"
-        android:drawableStart="@drawable/ic_remove_modern"
-        android:drawablePadding="16dp"
-        android:drawableTint="#FFFFFF"
-        android:background="?attr/selectableItemBackground"
-        android:gravity="center_vertical"
-        android:visibility="gone"/>
         
     <TextView
         android:id="@+id/action_remove"
