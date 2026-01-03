@@ -162,8 +162,8 @@ class EqualizerBottomSheet : BottomSheetDialogFragment() {
         val spinner = view.findViewById<Spinner>(R.id.spinnerPresets)
         val presetNames = customPresets.keys.toList()
         
-        val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_item, presetNames)
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        val adapter = ArrayAdapter(requireContext(), R.layout.item_spinner_modern, presetNames)
+        adapter.setDropDownViewResource(R.layout.item_spinner_dropdown_modern)
         spinner.adapter = adapter
         
         // Restore saved preset selection
