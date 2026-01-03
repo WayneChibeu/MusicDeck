@@ -20,16 +20,36 @@
         android:paddingVertical="12dp"
         android:paddingHorizontal="16dp">
 
-        <com.google.android.material.imageview.ShapeableImageView
-            android:id="@+id/ivMiniArt"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:scaleType="centerCrop"
-            android:src="@mipmap/ic_launcher"
-            app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Full"
+        <!-- Album Art + Circular Progress Container -->
+        <FrameLayout
+            android:id="@+id/artContainer"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            app:layout_constraintTop_toTopOf="parent">
+            
+            <com.google.android.material.imageview.ShapeableImageView
+                android:id="@+id/ivMiniArt"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:layout_gravity="center"
+                android:scaleType="centerCrop"
+                android:src="@mipmap/ic_launcher"
+                app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Full" />
+
+            <com.google.android.material.progressindicator.CircularProgressIndicator
+                android:id="@+id/miniPlayerProgress"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_gravity="center"
+                android:max="100"
+                app:indicatorSize="54dp"
+                app:trackThickness="2dp"
+                app:indicatorColor="?attr/colorPrimary"
+                app:trackColor="#33FFFFFF"
+                app:trackCornerRadius="2dp" />
+        </FrameLayout>
 
         <LinearLayout
             android:layout_width="0dp"
@@ -40,7 +60,7 @@
             android:gravity="center_vertical"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toStartOf="@+id/btnMiniPlayPause"
-            app:layout_constraintStart_toEndOf="@+id/ivMiniArt"
+            app:layout_constraintStart_toEndOf="@+id/artContainer"
             app:layout_constraintTop_toTopOf="parent">
 
             <TextView
@@ -90,7 +110,7 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
-        <!-- Hidden elements to maintain ID compatibility but not shown in Pill -->
+        <!-- Hidden elements to maintain ID compatibility -->
         <ImageButton
             android:id="@+id/btnMiniFavorite"
             android:layout_width="0dp"
@@ -98,18 +118,6 @@
             android:visibility="gone"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintStart_toStartOf="parent"/>
-            
-        <ProgressBar
-            android:id="@+id/miniPlayerProgress"
-            style="?android:attr/progressBarStyleHorizontal"
-            android:layout_width="0dp"
-            android:layout_height="2dp"
-            android:progressTint="#7F58FF"
-            android:progressBackgroundTint="#33FFFFFF"
-            android:layout_marginTop="0dp"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent" />
             
     </androidx.constraintlayout.widget.ConstraintLayout>
 
