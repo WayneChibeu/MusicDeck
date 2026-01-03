@@ -1244,6 +1244,20 @@ class MainActivity : AppCompatActivity() {
             TagEditorFragment.newInstance(song.id).show(supportFragmentManager, "TagEditor")
             dialog.dismiss()
         }
+
+        // Delete (from device)
+        view.findViewById<android.widget.TextView>(R.id.action_delete).setOnClickListener {
+            // Confirm delete
+            androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("Delete Song?")
+                .setMessage("Are you sure you want to delete '${song.title}' from your device?")
+                .setPositiveButton("Delete") { _, _ ->
+                    deleteSong(song)
+                }
+                .setNegativeButton("Cancel", null)
+                .show()
+            dialog.dismiss()
+        }
                 
         // Remove from Playlist (only show when viewing a playlist)
         val removeView = view.findViewById<android.widget.TextView>(R.id.action_remove)
