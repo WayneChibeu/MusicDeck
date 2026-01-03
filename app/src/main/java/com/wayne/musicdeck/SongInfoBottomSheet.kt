@@ -26,17 +26,6 @@ class SongInfoBottomSheet : BottomSheetDialogFragment() {
             }
         }
     }
-    
-    // Custom cover picker
-    private val coverImagePicker = registerForActivityResult(
-        ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        uri?.let {
-            currentSong?.let { song ->
-                viewModel.setCustomCover(song, it)
-            }
-        }
-    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -96,10 +85,6 @@ class SongInfoBottomSheet : BottomSheetDialogFragment() {
         
         view.findViewById<View>(R.id.itemAlbum).setOnClickListener {
             android.widget.Toast.makeText(context, song.album, android.widget.Toast.LENGTH_SHORT).show()
-        }
-        
-        view.findViewById<View>(R.id.itemCustomCover).setOnClickListener {
-            coverImagePicker.launch("image/*")
         }
         
         view.findViewById<View>(R.id.itemLyricFile).setOnClickListener {
