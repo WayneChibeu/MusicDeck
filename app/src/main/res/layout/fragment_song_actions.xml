@@ -244,7 +244,7 @@
         <ImageView
             android:layout_width="24dp"
             android:layout_height="24dp"
-            android:src="@drawable/ic_delete"
+            android:src="@drawable/ic_trash_modern"
             app:tint="#FF6B6B" />
             
         <TextView

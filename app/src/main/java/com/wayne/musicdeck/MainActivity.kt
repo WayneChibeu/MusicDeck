@@ -1319,13 +1319,28 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun deleteSong(song: Song) {
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
-             val uriList = listOf(song.uri)
-             val pendingIntent = android.provider.MediaStore.createDeleteRequest(contentResolver, uriList)
-             val request = androidx.activity.result.IntentSenderRequest.Builder(pendingIntent.intentSender).build()
-             deleteRequestLauncher.launch(request)
-        } else {
-            android.widget.Toast.makeText(this, "Delete supported on Android 11+", android.widget.Toast.LENGTH_SHORT).show()
+        try {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                 val uriList = listOf(song.uri)
+                 val pendingIntent = android.provider.MediaStore.createDeleteRequest(contentResolver, uriList)
+                 val request = androidx.activity.result.IntentSenderRequest.Builder(pendingIntent.intentSender).build()
+                 deleteRequestLauncher.launch(request)
+            } else if (android.os.Build.VERSION.SDK_INT == android.os.Build.VERSION_CODES.Q) {
+                 try {
+                     contentResolver.delete(song.uri, null, null)
+                     android.widget.Toast.makeText(this, "Deleted ${song.title}", android.widget.Toast.LENGTH_SHORT).show()
+                     viewModel.loadSongs()
+                 } catch (e: android.app.RecoverableSecurityException) {
+                     val request = androidx.activity.result.IntentSenderRequest.Builder(e.userAction.actionIntent.intentSender).build()
+                     deleteRequestLauncher.launch(request)
+                 }
+            } else {
+                contentResolver.delete(song.uri, null, null)
+                android.widget.Toast.makeText(this, "Deleted ${song.title}", android.widget.Toast.LENGTH_SHORT).show()
+                viewModel.loadSongs()
+            }
+        } catch (e: Exception) {
+            android.widget.Toast.makeText(this, "Failed to delete: ${e.message}", android.widget.Toast.LENGTH_SHORT).show()
         }
     }
     
