@@ -1281,26 +1281,37 @@ class MainActivity : AppCompatActivity() {
         TagEditorFragment.newInstance(song.id).show(supportFragmentManager, "TagEditor")
     }
 
+    private var playlistDialogObserver: androidx.lifecycle.Observer<List<com.wayne.musicdeck.data.Playlist>>? = null
+    
     private fun showAddToPlaylistDialog(song: Song) {
-        // Simple list of playlists
+        // Remove any existing observer first to prevent accumulation
+        playlistDialogObserver?.let { viewModel.playlists.removeObserver(it) }
+        
         viewModel.loadPlaylists()
-        viewModel.playlists.observe(this) { playlists ->
+        
+        playlistDialogObserver = androidx.lifecycle.Observer { playlists ->
+            // Remove observer immediately after first callback to prevent repeated calls
+            playlistDialogObserver?.let { viewModel.playlists.removeObserver(it) }
+            playlistDialogObserver = null
+            
             val list = playlists ?: emptyList()
             if (list.isEmpty()) {
                 android.widget.Toast.makeText(this@MainActivity, "No playlists found", android.widget.Toast.LENGTH_SHORT).show()
-                // Don't remove observer here easily with lambda, but it's okay for one-shot if we handle logic
-                // Better to use LiveData extension or just let it update
-                return@observe
+                return@Observer
             }
             
             val names = list.map { it.name }.toTypedArray()
             com.google.android.material.dialog.MaterialAlertDialogBuilder(this@MainActivity)
                 .setTitle("Add to Playlist")
-                .setItems(names) { _, which ->
+                .setItems(names) { dialog, which ->
                     viewModel.addSongToPlaylist(list[which].id, song)
+                    android.widget.Toast.makeText(this, "Added to ${list[which].name}", android.widget.Toast.LENGTH_SHORT).show()
+                    dialog.dismiss()
                 }
                 .show()
         }
+        
+        viewModel.playlists.observe(this, playlistDialogObserver!!)
     }
 
     private fun deleteSong(song: Song) {
