@@ -1247,16 +1247,8 @@ class MainActivity : AppCompatActivity() {
 
         // Delete (from device)
         view.findViewById<android.widget.TextView>(R.id.action_delete).setOnClickListener {
-            // Confirm delete
-            androidx.appcompat.app.AlertDialog.Builder(this)
-                .setTitle("Delete Song?")
-                .setMessage("Are you sure you want to delete '${song.title}' from your device?")
-                .setPositiveButton("Delete") { _, _ ->
-                    deleteSong(song)
-                }
-                .setNegativeButton("Cancel", null)
-                .show()
             dialog.dismiss()
+            showDeleteConfirmationDialog(song)
         }
                 
         // Remove from Playlist (only show when viewing a playlist)
@@ -1330,6 +1322,30 @@ class MainActivity : AppCompatActivity() {
         }
         
         viewModel.playlists.observe(this, playlistDialogObserver!!)
+    }
+
+    private fun showDeleteConfirmationDialog(song: Song) {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_delete_confirmation, null)
+        val alert = androidx.appcompat.app.AlertDialog.Builder(this)
+            .setView(dialogView)
+            .create()
+        
+        // Transparent background for rounded corners
+        alert.window?.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT))
+        
+        dialogView.findViewById<android.widget.TextView>(R.id.dialogMessage).text = 
+            "Are you sure you want to delete '${song.title}' from your device?"
+            
+        dialogView.findViewById<android.view.View>(R.id.btnCancel).setOnClickListener {
+            alert.dismiss()
+        }
+        
+        dialogView.findViewById<android.view.View>(R.id.btnDelete).setOnClickListener {
+            deleteSong(song)
+            alert.dismiss()
+        }
+        
+        alert.show()
     }
 
     private fun deleteSong(song: Song) {
