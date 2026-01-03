@@ -79,6 +79,8 @@
             android:gravity="center_horizontal">
 
             <SeekBar
+                android:progressTint="?attr/colorPrimary"
+                android:thumbTint="?attr/colorPrimary"
                 android:id="@+id/seekBand1"
                 android:layout_width="150dp"
                 android:layout_height="0dp"
@@ -106,6 +108,8 @@
             android:gravity="center_horizontal">
 
             <SeekBar
+                android:progressTint="?attr/colorPrimary"
+                android:thumbTint="?attr/colorPrimary"
                 android:id="@+id/seekBand2"
                 android:layout_width="150dp"
                 android:layout_height="0dp"
@@ -133,6 +137,8 @@
             android:gravity="center_horizontal">
 
             <SeekBar
+                android:progressTint="?attr/colorPrimary"
+                android:thumbTint="?attr/colorPrimary"
                 android:id="@+id/seekBand3"
                 android:layout_width="150dp"
                 android:layout_height="0dp"
@@ -160,6 +166,8 @@
             android:gravity="center_horizontal">
 
             <SeekBar
+                android:progressTint="?attr/colorPrimary"
+                android:thumbTint="?attr/colorPrimary"
                 android:id="@+id/seekBand4"
                 android:layout_width="150dp"
                 android:layout_height="0dp"
@@ -187,6 +195,8 @@
             android:gravity="center_horizontal">
 
             <SeekBar
+                android:progressTint="?attr/colorPrimary"
+                android:thumbTint="?attr/colorPrimary"
                 android:id="@+id/seekBand5"
                 android:layout_width="150dp"
                 android:layout_height="0dp"
@@ -230,6 +240,8 @@
             android:layout_marginTop="8dp">
 
             <SeekBar
+                android:progressTint="?attr/colorPrimary"
+                android:thumbTint="?attr/colorPrimary"
                 android:id="@+id/seekBassBoost"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
