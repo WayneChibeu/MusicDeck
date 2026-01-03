@@ -42,6 +42,11 @@ class ToolsBottomSheetFragment : BottomSheetDialogFragment() {
              viewModel.importBackup()
         }
         
+        binding.btnTheme.setOnClickListener {
+            dismiss()
+            ThemeSelectionBottomSheet().show(parentFragmentManager, "theme")
+        }
+        
         // Observe backup result
         viewModel.backupResult.observe(viewLifecycleOwner) { result ->
             if (!result.isNullOrEmpty()) {

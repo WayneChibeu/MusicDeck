@@ -34,7 +34,7 @@
     </style>
     
     <style name="AlphabetLetterActive" parent="AlphabetLetter">
-        <item name="android:textColor">@color/colorViolet</item>
+        <item name="android:textColor">?attr/colorPrimary</item>
         <item name="android:textStyle">bold</item>
     </style>
     
@@ -71,5 +71,36 @@
         <item name="cornerSizeTopRight">32dp</item>
         <item name="cornerSizeBottomLeft">0dp</item>
         <item name="cornerSizeBottomRight">0dp</item>
+    </style>
+    
+    <!-- Theme Variants -->
+    <style name="Theme.Musicdeck.Violet" parent="Theme.Musicdeck">
+        <item name="colorPrimary">@color/colorViolet</item>
+        <item name="colorPrimaryVariant">@color/colorVioletDark</item>
+    </style>
+    
+    <style name="Theme.Musicdeck.Ocean" parent="Theme.Musicdeck">
+        <item name="colorPrimary">@color/colorOcean</item>
+        <item name="colorPrimaryVariant">@color/colorOceanDark</item>
+    </style>
+
+    <style name="Theme.Musicdeck.Rose" parent="Theme.Musicdeck">
+        <item name="colorPrimary">@color/colorRose</item>
+        <item name="colorPrimaryVariant">@color/colorRoseDark</item>
+    </style>
+
+    <style name="Theme.Musicdeck.Neon" parent="Theme.Musicdeck">
+        <item name="colorPrimary">@color/colorNeon</item>
+        <item name="colorPrimaryVariant">@color/colorNeonDark</item>
+    </style>
+    
+    <style name="Theme.Musicdeck.Amber" parent="Theme.Musicdeck">
+        <item name="colorPrimary">@color/colorAmber</item>
+        <item name="colorPrimaryVariant">@color/colorAmberDark</item>
+    </style>
+    
+    <style name="Theme.Musicdeck.Sky" parent="Theme.Musicdeck">
+        <item name="colorPrimary">@color/colorSky</item>
+        <item name="colorPrimaryVariant">@color/colorSkyDark</item>
     </style>
 </resources>

@@ -76,6 +76,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Apply Premium Theme Preference
+        val themeSlug = com.wayne.musicdeck.utils.ThemeHelper.getTheme(this)
+        setTheme(com.wayne.musicdeck.utils.ThemeHelper.getThemeResId(themeSlug))
+        
         super.onCreate(savedInstanceState)
         
         binding = ActivityMainBinding.inflate(layoutInflater)

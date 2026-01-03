@@ -13,11 +13,21 @@
     <color name="colorVioletDark">#7C3AED</color>       <!-- Darker variant -->
     <color name="colorVioletLight">#C4B5FD</color>      <!-- Light variant for pressed states -->
     
-    <!-- Secondary Action Colors -->
-    <color name="colorMint">#34D399</color>
+    <!-- Theme Palette -->
+    <color name="colorOcean">#22D3EE</color>
+    <color name="colorOceanDark">#0891B2</color>
+    
     <color name="colorRose">#FB7185</color>
-    <color name="colorCyan">#22D3EE</color>
+    <color name="colorRoseDark">#E11D48</color>
+    
+    <color name="colorNeon">#34D399</color>
+    <color name="colorNeonDark">#059669</color>
+    
     <color name="colorAmber">#FBBF24</color>
+    <color name="colorAmberDark">#D97706</color>
+    
+    <color name="colorSky">#38BDF8</color>
+    <color name="colorSkyDark">#0284C7</color>
     
     <color name="colorActionIcon">#FFFFFF</color>
     

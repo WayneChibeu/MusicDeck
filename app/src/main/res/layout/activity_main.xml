@@ -82,7 +82,7 @@
                 android:layout_weight="1"
                 android:layout_margin="4dp"
                 app:cardCornerRadius="20dp"
-                app:cardBackgroundColor="@color/colorViolet"
+                app:cardBackgroundColor="?attr/colorPrimary"
                 app:cardElevation="4dp"
                 android:clickable="true"
                 android:foreground="?attr/selectableItemBackground">
@@ -102,7 +102,7 @@
                 android:layout_weight="1"
                 android:layout_margin="4dp"
                 app:cardCornerRadius="20dp"
-                app:cardBackgroundColor="@color/colorMint"
+                app:cardBackgroundColor="@color/colorNeon"
                 app:cardElevation="4dp"
                 android:clickable="true"
                 android:foreground="?attr/selectableItemBackground">
@@ -142,7 +142,7 @@
                 android:layout_weight="1"
                 android:layout_margin="4dp"
                 app:cardCornerRadius="20dp"
-                app:cardBackgroundColor="@color/colorCyan"
+                app:cardBackgroundColor="@color/colorOcean"
                 app:cardElevation="4dp"
                 android:clickable="true"
                 android:foreground="?attr/selectableItemBackground">
