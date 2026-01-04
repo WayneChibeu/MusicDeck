@@ -20,6 +20,7 @@ import androidx.activity.addCallback
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
+    private lateinit var playerSheetManager: PlayerSheetManager
     private val viewModel: MainViewModel by viewModels()
     private val adapter = SongAdapter { song ->
         viewModel.playSong(song)
@@ -124,7 +125,7 @@ class MainActivity : AppCompatActivity() {
         
         viewModel.songs.observe(this) { songs ->
             adapter.submitList(processHeaders(songs))
-            restoreLastSong(songs)
+            // restoreLastSong(songs) removed - handled by PlayerSheetManager if needed
             // Update song count in header
             binding.tvSongCount.text = "${songs.size} songs"
         }
@@ -168,100 +169,46 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        // Initialize Player Sheet Manager (Handles Mini & Main Player)
+        playerSheetManager = PlayerSheetManager(
+            this,
+            com.wayne.musicdeck.databinding.LayoutPlayerSheetBinding.bind(binding.playerSheet),
+            viewModel,
+            this
+        )
+
         viewModel.mediaController.observe(this) { controller ->
             controller?.let { player ->
-                // binding.playerControlView.player = it // Removed legacy player
-
-                // Setup Mini Player Controls
-                binding.miniPlayer.btnMiniPlayPause.setOnClickListener {
-                    if (player.mediaItemCount == 0) {
-                        // No media loaded - try to play last song
-                        playLastSong()
-                    } else if (player.isPlaying) {
-                        player.pause()
-                    } else {
-                        player.play()
-                    }
-                }
-
-                binding.miniPlayer.root.setOnClickListener {
-                    if (player.mediaItemCount == 0) {
-                        playLastSong()
-                    }
-                    PlayerBottomSheetFragment().show(supportFragmentManager, "PlayerBottomSheet")
-                }
-                
-                binding.miniPlayer.btnMiniNext.setOnClickListener {
-                    if (player.mediaItemCount == 0) {
-                        playLastSong()
-                    } else {
-                        player.seekToNext()
-                    }
-                }
-
-                // Progress Update Runnable
-                val progressRunnable = object : Runnable {
-                    override fun run() {
-                        if (player.isPlaying) {
-                            val progress = if (player.duration > 0) {
-                                (player.currentPosition * 100 / player.duration).toInt()
-                            } else 0
-                            binding.miniPlayer.miniPlayerProgress.progress = progress
-                            binding.miniPlayer.miniPlayerProgress.postDelayed(this, 1000)
-                        }
-                    }
-                }
-
-                // Add Listener for updates
+                // Add Listener for Adapter updates (Highlighting)
                 player.addListener(object : Player.Listener {
                     override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
-                        updateMiniPlayer(mediaItem)
                         // Save new song ID when auto-advancing
                         mediaItem?.mediaId?.toLongOrNull()?.let { id ->
                             viewModel.lastPlayedSongId = id
-                            viewModel.lastPlayedPosition = 0 // Reset position for new song
-                            // Update adapter to highlight currently playing song
+                            viewModel.lastPlayedPosition = 0 
                             adapter.currentlyPlayingId = id
                         }
                     }
 
                     override fun onIsPlayingChanged(isPlaying: Boolean) {
-                        updatePlayPauseIcon(isPlaying)
-                        // Update adapter to animate/pause equalizer
                         adapter.isPlaying = isPlaying
-                        
-                        if (isPlaying) {
-                            binding.miniPlayer.miniPlayerProgress.post(progressRunnable)
-                        } else {
-                            binding.miniPlayer.miniPlayerProgress.removeCallbacks(progressRunnable)
+                        if (!isPlaying) {
                             viewModel.savePosition()
                         }
                     }
                     
                     override fun onPlaybackStateChanged(playbackState: Int) {
-                        if (playbackState == Player.STATE_READY && player.isPlaying) {
-                           updatePlayPauseIcon(true)
-                           updateMiniPlayer(player.currentMediaItem)
-                           binding.miniPlayer.miniPlayerProgress.post(progressRunnable)
-                        }
+                        // ...
                     }
                 })
                 
-                // Initial update
-                updateMiniPlayer(player.currentMediaItem)
-                updatePlayPauseIcon(player.isPlaying)
-                if (player.isPlaying) binding.miniPlayer.miniPlayerProgress.post(progressRunnable)
-                
-                // Sync currently playing song ID to adapter for highlight
+                // Initial Sync for Adapter precedence
                 val currentId = player.currentMediaItem?.mediaId?.toLongOrNull()
                 if (currentId != null) {
                     adapter.currentlyPlayingId = currentId
                 } else {
-                    // No active playback - highlight last played song
                     val lastId = viewModel.lastPlayedSongId
-                    if (lastId != -1L) {
-                        adapter.currentlyPlayingId = lastId
-                    }
+                    if (lastId != -1L) adapter.currentlyPlayingId = lastId
                 }
             }
         }
@@ -276,9 +223,7 @@ class MainActivity : AppCompatActivity() {
         setupPersonalizedHeader()
         // Removed Rescan and MoreMenu
         
-        viewModel.favorites.observe(this) {
-            updateMiniPlayerFavoriteIcon()
-        }
+        // viewModel.favorites observer handled by PlayerSheetManager now
     }
     
     private lateinit var artistAdapter: ArtistAdapter
@@ -609,13 +554,7 @@ class MainActivity : AppCompatActivity() {
             showCreatePlaylistDialog()
         }
         
-        // Mini Player Heart
-        binding.miniPlayer.btnMiniFavorite.setOnClickListener {
-            val song = viewModel.songs.value?.find { it.id == viewModel.lastPlayedSongId }
-            if (song != null) {
-                viewModel.toggleFavorite(song)
-            }
-        }
+        // Mini Player Heart handled by PlayerSheetManager
     }
     
     private fun showCreatePlaylistDialog() {
@@ -861,61 +800,7 @@ class MainActivity : AppCompatActivity() {
     
     private var hasRestored = false
     
-    private fun restoreLastSong(songs: List<Song>) {
-        if (hasRestored) return
-        val lastId = viewModel.lastPlayedSongId
-        if (lastId == -1L) return
-        
-        val lastSong = songs.find { it.id == lastId }
-        lastSong?.let { song ->
-            hasRestored = true
-            // Update mini player to show last song
-            binding.miniPlayer.tvMiniTitle.text = song.title
-            binding.miniPlayer.tvMiniArtist.text = song.artist
-            
-            var embeddedArt: ByteArray? = null
-            val uri = song.uri
-            
-            try {
-                val retriever = android.media.MediaMetadataRetriever()
-                retriever.setDataSource(this, uri)
-                embeddedArt = retriever.embeddedPicture
-                retriever.release()
-            } catch (e: Exception) {
-               // ignore
-            }
-            
-            if (embeddedArt != null) {
-                binding.miniPlayer.ivMiniArt.load(embeddedArt) {
-                    crossfade(true)
-                    transformations(RoundedCornersTransformation(12f))
-                    memoryCacheKey("embedded_art_mini_${song.id}")
-                    diskCacheKey("embedded_art_mini_${song.id}")
-                }
-            } else {
-                val albumArtUri = android.content.ContentUris.withAppendedId(
-                    android.net.Uri.parse("content://media/external/audio/albumart"),
-                    song.albumId
-                )
-                binding.miniPlayer.ivMiniArt.load(albumArtUri) {
-                    crossfade(true)
-                    placeholder(R.drawable.default_album_art)
-                    error(R.drawable.default_album_art)
-                    transformations(RoundedCornersTransformation(12f))
-                }
-            }
-        }
-    }
-    
-    private fun playLastSong() {
-        val lastId = viewModel.lastPlayedSongId
-        if (lastId == -1L) return
-        val items = adapter.currentList
-        val songItem = items.filterIsInstance<SongListItem.SongItem>().find { it.song.id == lastId }
-        val lastSong = songItem?.song ?: return
-        val lastPosition = viewModel.lastPlayedPosition
-        viewModel.playSongFromPosition(lastSong, lastPosition)
-    }
+    // restoreLastSong and playLastSong removed - legacy mini player logic
 
     private fun setupDevInfo() {
         // Moved to Rescan Long Click for now, or just unused
@@ -1040,84 +925,7 @@ class MainActivity : AppCompatActivity() {
     // Orphaned block removed
     }
 
-    private fun updateMiniPlayer(mediaItem: MediaItem?) {
-        if (mediaItem == null) {
-            // Don't reset if we have a last played song showing
-            if (hasRestored && viewModel.lastPlayedSongId != -1L) {
-                 updateMiniPlayerFavoriteIcon()
-                 return
-            }
-            binding.miniPlayer.tvMiniTitle.text = "Not Playing"
-            binding.miniPlayer.tvMiniArtist.text = "Select a song"
-            binding.miniPlayer.ivMiniArt.setImageResource(R.drawable.default_album_art)
-            return
-        }
-        
-        binding.miniPlayer.tvMiniTitle.text = mediaItem.mediaMetadata.title ?: "Unknown Title"
-        binding.miniPlayer.tvMiniArtist.text = mediaItem.mediaMetadata.artist ?: "Unknown Artist"
-        
-        binding.miniPlayer.tvMiniTitle.text = mediaItem.mediaMetadata.title ?: "Unknown Title"
-        binding.miniPlayer.tvMiniArtist.text = mediaItem.mediaMetadata.artist ?: "Unknown Artist"
-        
-        var embeddedArt: ByteArray? = null
-        val currentId = mediaItem.mediaId.toLongOrNull()
-        
-        if (currentId != null) {
-            val uri = android.content.ContentUris.withAppendedId(
-                android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
-                currentId
-            )
-            try {
-                val retriever = android.media.MediaMetadataRetriever()
-                retriever.setDataSource(this, uri)
-                embeddedArt = retriever.embeddedPicture
-                retriever.release()
-            } catch (e: Exception) {
-               // ignore
-            }
-        }
-        
-        if (embeddedArt != null) {
-            binding.miniPlayer.ivMiniArt.load(embeddedArt) {
-                crossfade(true)
-                transformations(RoundedCornersTransformation(12f))
-                memoryCacheKey("embedded_art_mini_${mediaItem.mediaId}")
-                diskCacheKey("embedded_art_mini_${mediaItem.mediaId}")
-            }
-        } else {
-            binding.miniPlayer.ivMiniArt.load(mediaItem.mediaMetadata.artworkUri) {
-                crossfade(true)
-                placeholder(R.drawable.default_album_art)
-                error(R.drawable.default_album_art)
-                transformations(RoundedCornersTransformation(12f))
-            }
-        }
-        updateMiniPlayerFavoriteIcon()
-    }
-    
-    private fun updateMiniPlayerFavoriteIcon() {
-        val currentId = viewModel.mediaController.value?.currentMediaItem?.mediaId?.toLongOrNull() 
-                       ?: viewModel.lastPlayedSongId
-        
-        val btnFav = binding.miniPlayer.btnMiniFavorite
-        
-        if (currentId == -1L) {
-            btnFav.setColorFilter(getColor(android.R.color.darker_gray))
-            btnFav.setImageResource(R.drawable.ic_favorite_border)
-            return
-        }
-
-        val isFav = viewModel.favorites.value?.any { it.id == currentId } == true
-        val icon = if (isFav) R.drawable.ic_favorite else R.drawable.ic_favorite_border
-        
-        btnFav.setImageResource(icon)
-        btnFav.setColorFilter(getColor(if (isFav) R.color.teal_200 else android.R.color.darker_gray))
-    }
-
-    private fun updatePlayPauseIcon(isPlaying: Boolean) {
-        val icon = if (isPlaying) androidx.media3.ui.R.drawable.exo_icon_pause else androidx.media3.ui.R.drawable.exo_icon_play
-        binding.miniPlayer.btnMiniPlayPause.setImageResource(icon)
-    }
+    // updateMiniPlayer and helpers removed
     
     private fun handleSongMenuAction(song: Song, action: String) {
         when (action) {

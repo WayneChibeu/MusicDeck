@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/playerSheetRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@android:color/transparent">
+
+    <FrameLayout
+        android:id="@+id/mainPlayerContainer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:alpha="0"
+        android:visibility="invisible">
+        <include 
+            android:id="@+id/mainPlayer"
+            layout="@layout/fragment_player_bottom_sheet" />
+    </FrameLayout>
+
+    <FrameLayout
+        android:id="@+id/miniPlayerContainer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:alpha="1">
+        <include 
+            android:id="@+id/miniPlayerContent"
+            layout="@layout/include_mini_player" />
+    </FrameLayout>
+
+</FrameLayout>
