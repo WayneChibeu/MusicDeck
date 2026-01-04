@@ -136,14 +136,16 @@
         <item name="iconPadding">0dp</item>
     </style>
     
-    <!-- Left button with pill shape on left side -->
+    <!-- Left button with pill shape -->
     <style name="Widget.App.ToggleButton.Left" parent="Widget.App.ToggleButton">
-        <item name="shapeAppearanceOverlay">@style/ShapeAppearance.Toggle.Left</item>
+        <item name="shapeAppearanceOverlay">@style/ShapeAppearance.Toggle.Pill</item>
+        <item name="android:layout_marginEnd">2dp</item> <!-- Slight gap -->
     </style>
     
-    <!-- Right button with pill shape on right side -->
+    <!-- Right button with pill shape -->
     <style name="Widget.App.ToggleButton.Right" parent="Widget.App.ToggleButton">
-        <item name="shapeAppearanceOverlay">@style/ShapeAppearance.Toggle.Right</item>
+        <item name="shapeAppearanceOverlay">@style/ShapeAppearance.Toggle.Pill</item>
+        <item name="android:layout_marginStart">2dp</item> <!-- Slight gap -->
     </style>
     
     <!-- Shape for left button (50% pill on left corners) -->
@@ -162,5 +164,11 @@
         <item name="cornerSizeBottomLeft">0dp</item>
         <item name="cornerSizeTopRight">50%</item>
         <item name="cornerSizeBottomRight">50%</item>
+    </style>
+    
+    <!-- Shape for full pill (50% on all corners) -->
+    <style name="ShapeAppearance.Toggle.Pill" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">50%</item>
     </style>
 </resources>
