@@ -208,21 +208,18 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         binding.rvLyrics.layoutManager?.startSmoothScroll(smoothScroller)
     }
     
+    
     private fun setupViewSwitching() {
-        // Initial state
-        binding.btnCover.isSelected = true
-        binding.btnLyric.isSelected = false
-        showCoverView() // default
+        // Initial state - Cover is checked by default via XML
+        showCoverView()
         
-        binding.btnCover.setOnClickListener {
-            if (!it.isSelected) {
-                showCoverView()
-            }
-        }
-        
-        binding.btnLyric.setOnClickListener {
-            if (!it.isSelected) {
-                showLyricsView()
+        // Use MaterialButtonToggleGroup's listener
+        binding.toggleContainer.addOnButtonCheckedListener { _, checkedId, isChecked ->
+            if (isChecked) {
+                when (checkedId) {
+                    R.id.btnCover -> showCoverView()
+                    R.id.btnLyric -> showLyricsView()
+                }
             }
         }
     }
@@ -251,9 +248,6 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
             }
         })
         
-        binding.btnCover.isSelected = false
-        binding.btnLyric.isSelected = true
-        
         loadLyrics()
     }
     
@@ -280,9 +274,6 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
                 binding.coverView.startAnimation(fadeIn)
             }
         })
-        
-        binding.btnCover.isSelected = true
-        binding.btnLyric.isSelected = false
     }
 
     override fun onStart() {

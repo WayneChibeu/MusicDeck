@@ -103,4 +103,27 @@
         <item name="colorPrimary">@color/colorSky</item>
         <item name="colorPrimaryVariant">@color/colorSkyDark</item>
     </style>
+    
+    <!-- Cover/Lyric Toggle Button Style -->
+    <style name="Widget.App.ToggleButton" parent="Widget.Material3.Button.OutlinedButton">
+        <!-- Pill shape -->
+        <item name="cornerRadius">24dp</item>
+        
+        <!-- Grey stroke border -->
+        <item name="strokeWidth">1dp</item>
+        <item name="strokeColor">@color/toggle_stroke</item>
+        
+        <!-- Background: transparent when not selected, charcoal when selected -->
+        <item name="backgroundTint">@color/toggle_button_bg</item>
+        
+        <!-- Text colors -->
+        <item name="android:textColor">@color/toggle_button_text</item>
+        
+        <!-- Remove inset -->
+        <item name="android:insetTop">0dp</item>
+        <item name="android:insetBottom">0dp</item>
+        
+        <!-- No icon tint -->
+        <item name="iconTint">@null</item>
+    </style>
 </resources>

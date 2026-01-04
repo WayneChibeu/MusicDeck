@@ -273,13 +273,13 @@
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent" />
 
-        <LinearLayout
+        <com.google.android.material.button.MaterialButtonToggleGroup
             android:id="@+id/toggleContainer"
             android:layout_width="wrap_content"
-            android:layout_height="36dp"
-            android:orientation="horizontal"
-            android:background="@drawable/bg_toggle_track"
-            android:padding="2dp"
+            android:layout_height="40dp"
+            app:singleSelection="true"
+            app:selectionRequired="true"
+            app:checkedButton="@id/btnCover"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent"
@@ -287,31 +287,21 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnCover"
-                style="@style/Widget.Material3.Button.TextButton"
-                android:layout_width="80dp"
+                style="@style/Widget.App.ToggleButton"
+                android:layout_width="88dp"
                 android:layout_height="match_parent"
                 android:text="COVER"
-                android:textSize="11sp"
-                android:textColor="@color/selector_toggle_text"
-                android:background="@drawable/bg_toggle_button"
-                android:insetTop="0dp"
-                android:insetBottom="0dp"
-                app:cornerRadius="17dp" />
+                android:textSize="12sp" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnLyric"
-                style="@style/Widget.Material3.Button.TextButton"
-                android:layout_width="80dp"
+                style="@style/Widget.App.ToggleButton"
+                android:layout_width="88dp"
                 android:layout_height="match_parent"
                 android:text="LYRIC"
-                android:textSize="11sp"
-                android:textColor="@color/selector_toggle_text"
-                android:background="@drawable/bg_toggle_button"
-                android:insetTop="0dp"
-                android:insetBottom="0dp"
-                app:cornerRadius="17dp" />
+                android:textSize="12sp" />
 
-        </LinearLayout>
+        </com.google.android.material.button.MaterialButtonToggleGroup>
 
         <ImageButton
             android:id="@+id/btnMenu"

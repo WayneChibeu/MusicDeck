@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Selected state: charcoal grey -->
+    <item android:color="#3A3A3A" android:state_checked="true" />
+    <!-- Default state: transparent -->
+    <item android:color="@android:color/transparent" />
+</selector>
