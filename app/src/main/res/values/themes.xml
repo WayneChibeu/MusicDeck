@@ -116,18 +116,26 @@
         <!-- Text colors -->
         <item name="android:textColor">@color/toggle_button_text</item>
         
-        <!-- Remove all insets -->
+        <!-- Remove all insets - CRITICAL to prevent text squashing -->
         <item name="android:insetTop">0dp</item>
         <item name="android:insetBottom">0dp</item>
         <item name="android:insetLeft">0dp</item>
         <item name="android:insetRight">0dp</item>
         
-        <!-- No icon tint -->
-        <item name="iconTint">@null</item>
+        <!-- Min height to prevent squashing -->
+        <item name="android:minHeight">0dp</item>
+        <item name="minHeight">0dp</item>
         
-        <!-- Padding for text -->
-        <item name="android:paddingStart">12dp</item>
-        <item name="android:paddingEnd">12dp</item>
+        <!-- Horizontal padding only -->
+        <item name="android:paddingLeft">14dp</item>
+        <item name="android:paddingRight">14dp</item>
+        <item name="android:paddingTop">0dp</item>
+        <item name="android:paddingBottom">0dp</item>
+        
+        <!-- No icon -->
+        <item name="iconTint">@null</item>
+        <item name="iconPadding">0dp</item>
+        <item name="iconGravity">textStart</item>
     </style>
     
     <!-- Left button with pill shape on left side -->
