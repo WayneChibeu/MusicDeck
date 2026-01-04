@@ -104,11 +104,8 @@
         <item name="colorPrimaryVariant">@color/colorSkyDark</item>
     </style>
     
-    <!-- Cover/Lyric Toggle Button Style -->
+    <!-- Cover/Lyric Toggle Button Base Style -->
     <style name="Widget.App.ToggleButton" parent="Widget.Material3.Button.OutlinedButton">
-        <!-- Pill shape -->
-        <item name="cornerRadius">24dp</item>
-        
         <!-- Grey stroke border -->
         <item name="strokeWidth">1dp</item>
         <item name="strokeColor">@color/toggle_stroke</item>
@@ -119,11 +116,45 @@
         <!-- Text colors -->
         <item name="android:textColor">@color/toggle_button_text</item>
         
-        <!-- Remove inset -->
+        <!-- Remove all insets -->
         <item name="android:insetTop">0dp</item>
         <item name="android:insetBottom">0dp</item>
+        <item name="android:insetLeft">0dp</item>
+        <item name="android:insetRight">0dp</item>
         
         <!-- No icon tint -->
         <item name="iconTint">@null</item>
+        
+        <!-- Padding for text -->
+        <item name="android:paddingStart">12dp</item>
+        <item name="android:paddingEnd">12dp</item>
+    </style>
+    
+    <!-- Left button with pill shape on left side -->
+    <style name="Widget.App.ToggleButton.Left" parent="Widget.App.ToggleButton">
+        <item name="shapeAppearanceOverlay">@style/ShapeAppearance.Toggle.Left</item>
+    </style>
+    
+    <!-- Right button with pill shape on right side -->
+    <style name="Widget.App.ToggleButton.Right" parent="Widget.App.ToggleButton">
+        <item name="shapeAppearanceOverlay">@style/ShapeAppearance.Toggle.Right</item>
+    </style>
+    
+    <!-- Shape for left button (50% pill on left corners) -->
+    <style name="ShapeAppearance.Toggle.Left" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSizeTopLeft">50%</item>
+        <item name="cornerSizeBottomLeft">50%</item>
+        <item name="cornerSizeTopRight">0dp</item>
+        <item name="cornerSizeBottomRight">0dp</item>
+    </style>
+    
+    <!-- Shape for right button (50% pill on right corners) -->
+    <style name="ShapeAppearance.Toggle.Right" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSizeTopLeft">0dp</item>
+        <item name="cornerSizeBottomLeft">0dp</item>
+        <item name="cornerSizeTopRight">50%</item>
+        <item name="cornerSizeBottomRight">50%</item>
     </style>
 </resources>
