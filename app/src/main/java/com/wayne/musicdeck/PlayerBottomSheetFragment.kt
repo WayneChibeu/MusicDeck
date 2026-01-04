@@ -229,8 +229,27 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
     
     private fun showLyricsView() {
         isLyricsViewActive = true
-        binding.coverView.visibility = View.GONE
-        binding.lyricView.visibility = View.VISIBLE
+        
+        // Crossfade animation
+        val fadeOut = android.view.animation.AlphaAnimation(1f, 0f).apply {
+            duration = 200
+            fillAfter = true
+        }
+        val fadeIn = android.view.animation.AlphaAnimation(0f, 1f).apply {
+            duration = 200
+            fillAfter = true
+        }
+        
+        binding.coverView.startAnimation(fadeOut)
+        fadeOut.setAnimationListener(object : android.view.animation.Animation.AnimationListener {
+            override fun onAnimationStart(animation: android.view.animation.Animation?) {}
+            override fun onAnimationRepeat(animation: android.view.animation.Animation?) {}
+            override fun onAnimationEnd(animation: android.view.animation.Animation?) {
+                binding.coverView.visibility = View.GONE
+                binding.lyricView.visibility = View.VISIBLE
+                binding.lyricView.startAnimation(fadeIn)
+            }
+        })
         
         binding.btnCover.isSelected = false
         binding.btnLyric.isSelected = true
@@ -240,8 +259,27 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
     
     private fun showCoverView() {
         isLyricsViewActive = false
-        binding.lyricView.visibility = View.GONE
-        binding.coverView.visibility = View.VISIBLE
+        
+        // Crossfade animation
+        val fadeOut = android.view.animation.AlphaAnimation(1f, 0f).apply {
+            duration = 200
+            fillAfter = true
+        }
+        val fadeIn = android.view.animation.AlphaAnimation(0f, 1f).apply {
+            duration = 200
+            fillAfter = true
+        }
+        
+        binding.lyricView.startAnimation(fadeOut)
+        fadeOut.setAnimationListener(object : android.view.animation.Animation.AnimationListener {
+            override fun onAnimationStart(animation: android.view.animation.Animation?) {}
+            override fun onAnimationRepeat(animation: android.view.animation.Animation?) {}
+            override fun onAnimationEnd(animation: android.view.animation.Animation?) {
+                binding.lyricView.visibility = View.GONE
+                binding.coverView.visibility = View.VISIBLE
+                binding.coverView.startAnimation(fadeIn)
+            }
+        })
         
         binding.btnCover.isSelected = true
         binding.btnLyric.isSelected = false
@@ -310,6 +348,26 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
                 }
             }
             updatePlaybackModeIcon()
+        }
+        
+        // Favorite button
+        binding.btnFavorite.setOnClickListener {
+            val currentId = player.currentMediaItem?.mediaId?.toLongOrNull()
+            if (currentId != null) {
+                val song = viewModel.songs.value?.find { it.id == currentId }
+                if (song != null) {
+                    val wasFavorite = viewModel.favorites.value?.any { it.id == currentId } == true
+                    viewModel.toggleFavorite(song)
+                    updateFavoriteIcon(!wasFavorite, animate = true)
+                }
+            }
+        }
+        
+        // Set initial favorite state
+        val initialId = player.currentMediaItem?.mediaId?.toLongOrNull()
+        if (initialId != null) {
+            val isFav = viewModel.favorites.value?.any { it.id == initialId } == true
+            updateFavoriteIcon(isFav)
         }
 
         // SeekBar listeners
@@ -426,16 +484,16 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         
         val currentId = mediaItem?.mediaId?.toLongOrNull()
         var embeddedArt: ByteArray? = null
-        val context = context
+        val ctx = context ?: return
         
-        if (currentId != null && context != null) {
+        if (currentId != null) {
             val uri = android.content.ContentUris.withAppendedId(
                 android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
                 currentId
             )
             try {
                 val retriever = android.media.MediaMetadataRetriever()
-                retriever.setDataSource(context, uri)
+                retriever.setDataSource(ctx, uri)
                 embeddedArt = retriever.embeddedPicture
                 retriever.release()
             } catch (e: Exception) {
@@ -443,19 +501,55 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
             }
         }
         
-        if (embeddedArt != null) {
-            binding.ivFullArt.load(embeddedArt) {
-                crossfade(true)
-                transformations(RoundedCornersTransformation(32f))
-            }
-        } else {
-            binding.ivFullArt.load(mediaItem?.mediaMetadata?.artworkUri) {
-                crossfade(true)
-                placeholder(R.drawable.default_album_art)
-                error(R.drawable.default_album_art)
-                transformations(RoundedCornersTransformation(32f))
-            }
-        }
+        // Load image with Palette extraction
+        val imageData: Any = embeddedArt ?: mediaItem?.mediaMetadata?.artworkUri ?: R.drawable.default_album_art
+        
+        val request = coil.request.ImageRequest.Builder(ctx)
+            .data(imageData)
+            .crossfade(true)
+            .allowHardware(false) // Required for Palette
+            .target(
+                onSuccess = { result ->
+                    binding.ivFullArt.setImageDrawable(result)
+                    // Extract colors for dynamic background
+                    val bitmap = (result as? android.graphics.drawable.BitmapDrawable)?.bitmap
+                    if (bitmap != null) {
+                        androidx.palette.graphics.Palette.from(bitmap).generate { palette ->
+                            applyDynamicBackground(palette)
+                        }
+                    }
+                },
+                onError = {
+                    binding.ivFullArt.setImageResource(R.drawable.default_album_art)
+                    applyDynamicBackground(null)
+                }
+            )
+            .transformations(RoundedCornersTransformation(32f))
+            .build()
+        coil.ImageLoader(ctx).enqueue(request)
+    }
+    
+    private fun applyDynamicBackground(palette: androidx.palette.graphics.Palette?) {
+        val ctx = context ?: return
+        val defaultColor = com.google.android.material.color.MaterialColors.getColor(
+            ctx, com.google.android.material.R.attr.colorSurface, android.graphics.Color.BLACK
+        )
+        
+        val dominantColor = palette?.getDominantColor(defaultColor) ?: defaultColor
+        val darkVibrant = palette?.getDarkVibrantColor(dominantColor) ?: dominantColor
+        val mutedDark = palette?.getDarkMutedColor(darkVibrant) ?: darkVibrant
+        
+        // Create gradient from album colors to surface
+        val gradient = android.graphics.drawable.GradientDrawable(
+            android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM,
+            intArrayOf(mutedDark, defaultColor)
+        )
+        
+        // Apply to root view
+        binding.root.background = gradient
+        
+        // Tint header to match
+        binding.headerView.backgroundTintList = android.content.res.ColorStateList.valueOf(mutedDark)
     }
 
     private fun updatePlayPauseIcon(isPlaying: Boolean) {
@@ -507,17 +601,13 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         _binding = null
     }
     
-    private fun updateFavoriteIcon(isFavorite: Boolean) {
+    private fun updateFavoriteIcon(isFavorite: Boolean, animate: Boolean = false) {
         if (_binding == null) return
         binding.btnFavorite.setImageResource(
             if (isFavorite) R.drawable.ic_favorite else R.drawable.ic_favorite_border
         )
         val tintColor = if (isFavorite) {
-            com.google.android.material.color.MaterialColors.getColor(
-                requireContext(),
-                com.google.android.material.R.attr.colorPrimary,
-                0
-            )
+            requireContext().getColor(R.color.colorRose)
         } else {
             com.google.android.material.color.MaterialColors.getColor(
                 requireContext(),
@@ -526,6 +616,43 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
             )
         }
         binding.btnFavorite.imageTintList = android.content.res.ColorStateList.valueOf(tintColor)
+        
+        // Heart explosion animation when favoriting
+        if (animate && isFavorite) {
+            playHeartExplosionAnimation()
+        }
+    }
+    
+    private fun playHeartExplosionAnimation() {
+        val btn = binding.btnFavorite
+        
+        // Scale up animation
+        val scaleUp = android.view.animation.ScaleAnimation(
+            1f, 1.4f, 1f, 1.4f,
+            android.view.animation.Animation.RELATIVE_TO_SELF, 0.5f,
+            android.view.animation.Animation.RELATIVE_TO_SELF, 0.5f
+        ).apply {
+            duration = 150
+            fillAfter = true
+        }
+        
+        // Scale down with bounce
+        val scaleDown = android.view.animation.ScaleAnimation(
+            1.4f, 1f, 1.4f, 1f,
+            android.view.animation.Animation.RELATIVE_TO_SELF, 0.5f,
+            android.view.animation.Animation.RELATIVE_TO_SELF, 0.5f
+        ).apply {
+            duration = 200
+            interpolator = android.view.animation.OvershootInterpolator(3f)
+            fillAfter = true
+        }
+        
+        val animSet = android.view.animation.AnimationSet(false)
+        scaleDown.startOffset = 150
+        animSet.addAnimation(scaleUp)
+        animSet.addAnimation(scaleDown)
+        
+        btn.startAnimation(animSet)
     }
     
     private fun loadLyrics() {
