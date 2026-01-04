@@ -273,45 +273,45 @@
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent" />
 
-        <com.google.android.material.button.MaterialButtonToggleGroup
-            android:id="@+id/toggleContainer"
+        <!-- Toggle Container with single stroke around entire pill -->
+        <FrameLayout
             android:layout_width="wrap_content"
-            android:layout_height="32dp"
-            app:singleSelection="true"
-            app:selectionRequired="true"
-            app:checkedButton="@id/btnCover"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_toggle_container"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent">
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnCover"
-                style="@style/Widget.App.ToggleButton.Left"
+            
+            <com.google.android.material.button.MaterialButtonToggleGroup
+                android:id="@+id/toggleContainer"
                 android:layout_width="wrap_content"
-                android:layout_height="match_parent"
-                android:minWidth="72dp"
-                android:text="COVER"
-                android:textSize="11sp"
-                android:insetTop="0dp"
-                android:insetBottom="0dp"
-                android:insetLeft="0dp"
-                android:insetRight="0dp" />
+                android:layout_height="32dp"
+                app:singleSelection="true"
+                app:selectionRequired="true"
+                app:checkedButton="@id/btnCover">
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnLyric"
-                style="@style/Widget.App.ToggleButton.Right"
-                android:layout_width="wrap_content"
-                android:layout_height="match_parent"
-                android:minWidth="72dp"
-                android:text="LYRIC"
-                android:textSize="11sp"
-                android:insetTop="0dp"
-                android:insetBottom="0dp"
-                android:insetLeft="0dp"
-                android:insetRight="0dp" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnCover"
+                    style="@style/Widget.App.ToggleButton.Left"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:minWidth="72dp"
+                    android:text="COVER"
+                    android:textSize="11sp" />
 
-        </com.google.android.material.button.MaterialButtonToggleGroup>
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnLyric"
+                    style="@style/Widget.App.ToggleButton.Right"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:minWidth="72dp"
+                    android:text="LYRIC"
+                    android:textSize="11sp" />
+
+            </com.google.android.material.button.MaterialButtonToggleGroup>
+            
+        </FrameLayout>
 
         <ImageButton
             android:id="@+id/btnMenu"

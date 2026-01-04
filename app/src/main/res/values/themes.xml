@@ -105,10 +105,9 @@
     </style>
     
     <!-- Cover/Lyric Toggle Button Base Style -->
-    <style name="Widget.App.ToggleButton" parent="Widget.Material3.Button.OutlinedButton">
-        <!-- Grey stroke border -->
-        <item name="strokeWidth">1dp</item>
-        <item name="strokeColor">@color/toggle_stroke</item>
+    <style name="Widget.App.ToggleButton" parent="Widget.Material3.Button.TextButton">
+        <!-- NO stroke on individual buttons - container has the stroke -->
+        <item name="strokeWidth">0dp</item>
         
         <!-- Background: transparent when not selected, charcoal when selected -->
         <item name="backgroundTint">@color/toggle_button_bg</item>
@@ -122,7 +121,7 @@
         <item name="android:insetLeft">0dp</item>
         <item name="android:insetRight">0dp</item>
         
-        <!-- Min height to prevent squashing -->
+        <!-- Min height -->
         <item name="android:minHeight">0dp</item>
         <item name="minHeight">0dp</item>
         
@@ -135,7 +134,6 @@
         <!-- No icon -->
         <item name="iconTint">@null</item>
         <item name="iconPadding">0dp</item>
-        <item name="iconGravity">textStart</item>
     </style>
     
     <!-- Left button with pill shape on left side -->

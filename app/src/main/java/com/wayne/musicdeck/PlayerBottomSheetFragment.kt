@@ -114,11 +114,11 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
                 if (Math.abs(diffX) > Math.abs(diffY)) { // Horizontal swipe
                     if (Math.abs(diffX) > 100 && Math.abs(velocityX) > 100) {
                         if (diffX > 0) {
-                            // Right Swipe -> Show Cover
-                            showCoverView()
+                            // Right Swipe -> Show Cover (sync toggle)
+                            binding.toggleContainer.check(R.id.btnCover)
                         } else {
-                            // Left Swipe -> Show Lyric
-                            showLyricsView()
+                            // Left Swipe -> Show Lyric (sync toggle)
+                            binding.toggleContainer.check(R.id.btnLyric)
                         }
                         return true
                     }
