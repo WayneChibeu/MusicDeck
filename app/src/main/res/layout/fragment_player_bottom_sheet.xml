@@ -13,6 +13,8 @@
         android:paddingHorizontal="20dp"
         android:paddingTop="104dp"
         android:paddingBottom="12dp"
+        android:clipChildren="false"
+        android:clipToPadding="false"
         android:visibility="visible">
 
         <!-- Album Art -->
@@ -51,8 +53,9 @@
 
         <ImageButton
             android:id="@+id/btnFavorite"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:padding="8dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="Favorite"
             android:src="@drawable/ic_favorite_border"
@@ -255,8 +258,7 @@
         android:id="@+id/headerView"
         android:layout_width="match_parent"
         android:layout_height="56dp"
-        android:background="?attr/colorSurface"
-        android:elevation="4dp"
+        android:background="@android:color/transparent"
         android:paddingHorizontal="16dp">
 
         <ImageButton
