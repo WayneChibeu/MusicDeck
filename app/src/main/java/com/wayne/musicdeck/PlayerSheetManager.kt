@@ -218,35 +218,86 @@ class PlayerSheetManager(
         binding.miniPlayerContent.tvMiniTitle.text = title
         binding.miniPlayerContent.tvMiniArtist.text = artist
         
-        // Load Art & Palette
+        // Load Art - Try embedded art first
         val currentId = mediaItem?.mediaId?.toLongOrNull()
-        val artworkUri = if (currentId != null) {
-            android.content.ContentUris.withAppendedId(android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, currentId)
-        } else mediaItem?.mediaMetadata?.artworkUri
+        var embeddedArt: ByteArray? = null
         
-        val request = coil.request.ImageRequest.Builder(activity)
-            .data(artworkUri)
-            .crossfade(true)
-            .allowHardware(false)
-            .target(
-                onSuccess = { result ->
-                     binding.mainPlayer.ivFullArt.setImageDrawable(result)
-                     binding.miniPlayerContent.ivMiniArt.setImageDrawable(result)
-                     val bitmap = (result as? android.graphics.drawable.BitmapDrawable)?.bitmap
-                     if (bitmap != null) {
-                         androidx.palette.graphics.Palette.from(bitmap).generate { p -> applyPalette(p) }
-                     }
-                },
-                onError = { 
-                     binding.mainPlayer.ivFullArt.setImageResource(R.drawable.default_album_art)
-                     binding.miniPlayerContent.ivMiniArt.setImageResource(R.mipmap.ic_launcher)
-                     applyPalette(null)
-                }
+        if (currentId != null) {
+            val uri = android.content.ContentUris.withAppendedId(
+                android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                currentId
             )
-            .build()
-        coil.ImageLoader(activity).enqueue(request)
+            try {
+                val retriever = android.media.MediaMetadataRetriever()
+                retriever.setDataSource(activity, uri)
+                embeddedArt = retriever.embeddedPicture
+                retriever.release()
+            } catch (e: Exception) {
+                // ignore
+            }
+        }
+        
+        if (embeddedArt != null) {
+            // Load embedded art with Coil for Palette extraction
+            val request = coil.request.ImageRequest.Builder(activity)
+                .data(embeddedArt)
+                .crossfade(true)
+                .allowHardware(false)
+                .target(
+                    onSuccess = { result ->
+                         binding.mainPlayer.ivFullArt.setImageDrawable(result)
+                         binding.miniPlayerContent.ivMiniArt.setImageDrawable(result)
+                         val bitmap = (result as? android.graphics.drawable.BitmapDrawable)?.bitmap
+                         if (bitmap != null) {
+                             androidx.palette.graphics.Palette.from(bitmap).generate { p -> applyPalette(p) }
+                         }
+                    },
+                    onError = { 
+                         loadFallbackArt(mediaItem)
+                    }
+                )
+                .build()
+            coil.ImageLoader(activity).enqueue(request)
+        } else {
+            loadFallbackArt(mediaItem)
+        }
         
         if (isLyricsViewActive) loadLyrics()
+    }
+    
+    private fun loadFallbackArt(mediaItem: MediaItem?) {
+        // Try artworkUri from metadata
+        val artworkUri = mediaItem?.mediaMetadata?.artworkUri
+        
+        if (artworkUri != null) {
+            val request = coil.request.ImageRequest.Builder(activity)
+                .data(artworkUri)
+                .crossfade(true)
+                .allowHardware(false)
+                .target(
+                    onSuccess = { result ->
+                        binding.mainPlayer.ivFullArt.setImageDrawable(result)
+                        binding.miniPlayerContent.ivMiniArt.setImageDrawable(result)
+                        val bitmap = (result as? android.graphics.drawable.BitmapDrawable)?.bitmap
+                        if (bitmap != null) {
+                            androidx.palette.graphics.Palette.from(bitmap).generate { p -> applyPalette(p) }
+                        }
+                    },
+                    onError = {
+                        setDefaultArt()
+                    }
+                )
+                .build()
+            coil.ImageLoader(activity).enqueue(request)
+        } else {
+            setDefaultArt()
+        }
+    }
+    
+    private fun setDefaultArt() {
+        binding.mainPlayer.ivFullArt.setImageResource(R.drawable.default_album_art)
+        binding.miniPlayerContent.ivMiniArt.setImageResource(R.drawable.default_album_art)
+        applyPalette(null)
     }
     
     private fun applyPalette(palette: androidx.palette.graphics.Palette?) {
