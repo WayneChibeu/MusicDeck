@@ -225,55 +225,71 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
     }
     
     private fun showLyricsView() {
+        if (isLyricsViewActive) return
         isLyricsViewActive = true
         
-        // Crossfade animation
-        val fadeOut = android.view.animation.AlphaAnimation(1f, 0f).apply {
-            duration = 200
-            fillAfter = true
-        }
-        val fadeIn = android.view.animation.AlphaAnimation(0f, 1f).apply {
-            duration = 200
-            fillAfter = true
+        // Prepare incoming view ONLY if not already visible to avoid snapping mid-animation
+        if (binding.lyricView.visibility != View.VISIBLE) {
+            binding.lyricView.translationX = 100f // Slide in from right
+            binding.lyricView.alpha = 0f
+            binding.lyricView.visibility = View.VISIBLE
         }
         
-        binding.coverView.startAnimation(fadeOut)
-        fadeOut.setAnimationListener(object : android.view.animation.Animation.AnimationListener {
-            override fun onAnimationStart(animation: android.view.animation.Animation?) {}
-            override fun onAnimationRepeat(animation: android.view.animation.Animation?) {}
-            override fun onAnimationEnd(animation: android.view.animation.Animation?) {
+        // Animate cover out (slide left + fade)
+        binding.coverView.animate()
+            .alpha(0f)
+            .translationX(-100f)
+            .setDuration(300)
+            .setInterpolator(android.view.animation.DecelerateInterpolator(2f)) // Smooth deceleration
+            .withEndAction {
                 binding.coverView.visibility = View.GONE
-                binding.lyricView.visibility = View.VISIBLE
-                binding.lyricView.startAnimation(fadeIn)
+                binding.coverView.translationX = 0f // Reset
             }
-        })
+            .start()
+        
+        // Animate lyrics in (slide to center + fade in)
+        binding.lyricView.animate()
+            .alpha(1f)
+            .translationX(0f)
+            .setDuration(300)
+            .setInterpolator(android.view.animation.DecelerateInterpolator(2f))
+            .withEndAction(null) // Ensure no GONE action persists
+            .start()
         
         loadLyrics()
     }
     
     private fun showCoverView() {
+        if (!isLyricsViewActive && binding.coverView.visibility == View.VISIBLE) return
         isLyricsViewActive = false
         
-        // Crossfade animation
-        val fadeOut = android.view.animation.AlphaAnimation(1f, 0f).apply {
-            duration = 200
-            fillAfter = true
-        }
-        val fadeIn = android.view.animation.AlphaAnimation(0f, 1f).apply {
-            duration = 200
-            fillAfter = true
+        // Prepare incoming view ONLY if not already visible
+        if (binding.coverView.visibility != View.VISIBLE) {
+            binding.coverView.translationX = -100f // Slide in from left
+            binding.coverView.alpha = 0f
+            binding.coverView.visibility = View.VISIBLE
         }
         
-        binding.lyricView.startAnimation(fadeOut)
-        fadeOut.setAnimationListener(object : android.view.animation.Animation.AnimationListener {
-            override fun onAnimationStart(animation: android.view.animation.Animation?) {}
-            override fun onAnimationRepeat(animation: android.view.animation.Animation?) {}
-            override fun onAnimationEnd(animation: android.view.animation.Animation?) {
+        // Animate lyrics out (slide right + fade)
+        binding.lyricView.animate()
+            .alpha(0f)
+            .translationX(100f)
+            .setDuration(300)
+            .setInterpolator(android.view.animation.DecelerateInterpolator(2f))
+            .withEndAction {
                 binding.lyricView.visibility = View.GONE
-                binding.coverView.visibility = View.VISIBLE
-                binding.coverView.startAnimation(fadeIn)
+                binding.lyricView.translationX = 0f // Reset
             }
-        })
+            .start()
+        
+        // Animate cover in (slide to center + fade in)
+        binding.coverView.animate()
+            .alpha(1f)
+            .translationX(0f)
+            .setDuration(300)
+            .setInterpolator(android.view.animation.DecelerateInterpolator(2f))
+            .withEndAction(null)
+            .start()
     }
 
     override fun onStart() {
