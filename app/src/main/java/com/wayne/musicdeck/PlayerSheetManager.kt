@@ -298,7 +298,7 @@ class PlayerSheetManager(
         val miniIcon = if (isPlaying) R.drawable.ic_widget_pause else R.drawable.ic_widget_play // assuming pause exists
         // Wait, check mini player icons
         // Just use built-in for now
-        binding.miniPlayerContent.btnMiniPlayPause.setImageResource(if (isPlaying) R.drawable.exo_icon_pause else R.drawable.ic_widget_play)
+        binding.miniPlayerContent.btnMiniPlayPause.setImageResource(if (isPlaying) androidx.media3.ui.R.drawable.exo_icon_pause else R.drawable.ic_widget_play)
     }
 
     private fun showCoverView() {

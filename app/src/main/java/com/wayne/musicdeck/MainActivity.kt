@@ -172,7 +172,7 @@ class MainActivity : AppCompatActivity() {
         // Initialize Player Sheet Manager (Handles Mini & Main Player)
         playerSheetManager = PlayerSheetManager(
             this,
-            com.wayne.musicdeck.databinding.LayoutPlayerSheetBinding.bind(binding.playerSheet),
+            binding.playerSheet,
             viewModel,
             this
         )
