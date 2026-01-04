@@ -283,13 +283,11 @@
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent">
             
-            <com.google.android.material.button.MaterialButtonToggleGroup
+            <LinearLayout
                 android:id="@+id/toggleContainer"
                 android:layout_width="wrap_content"
                 android:layout_height="32dp"
-                app:singleSelection="true"
-                app:selectionRequired="true"
-                app:checkedButton="@id/btnCover">
+                android:orientation="horizontal">
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnCover"
@@ -297,6 +295,8 @@
                     android:layout_width="wrap_content"
                     android:layout_height="match_parent"
                     android:minWidth="72dp"
+                    android:checkable="true"
+                    android:checked="true"
                     android:text="COVER"
                     android:textSize="11sp" />
 
@@ -306,10 +306,11 @@
                     android:layout_width="wrap_content"
                     android:layout_height="match_parent"
                     android:minWidth="72dp"
+                    android:checkable="true"
                     android:text="LYRIC"
                     android:textSize="11sp" />
 
-            </com.google.android.material.button.MaterialButtonToggleGroup>
+            </LinearLayout>
             
         </FrameLayout>
 

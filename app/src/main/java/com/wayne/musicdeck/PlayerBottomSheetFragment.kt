@@ -115,10 +115,10 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
                     if (Math.abs(diffX) > 100 && Math.abs(velocityX) > 100) {
                         if (diffX > 0) {
                             // Right Swipe -> Show Cover (sync toggle)
-                            binding.toggleContainer.check(R.id.btnCover)
+                            selectButton(true)
                         } else {
                             // Left Swipe -> Show Lyric (sync toggle)
-                            binding.toggleContainer.check(R.id.btnLyric)
+                            selectButton(false)
                         }
                         return true
                     }
@@ -210,17 +210,30 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
     
     
     private fun setupViewSwitching() {
-        // Initial state - Cover is checked by default via XML
-        showCoverView()
+        // Initial state - Cover is checked by default
+        selectButton(true)
         
-        // Use MaterialButtonToggleGroup's listener
-        binding.toggleContainer.addOnButtonCheckedListener { _, checkedId, isChecked ->
-            if (isChecked) {
-                when (checkedId) {
-                    R.id.btnCover -> showCoverView()
-                    R.id.btnLyric -> showLyricsView()
-                }
-            }
+        // Manual Click Listeners (Radio behavior)
+        binding.btnCover.setOnClickListener {
+            if (!binding.btnCover.isChecked) selectButton(true)
+            binding.btnCover.isChecked = true // Enforce checked state if clicked
+        }
+        
+        binding.btnLyric.setOnClickListener {
+            if (!binding.btnLyric.isChecked) selectButton(false)
+             binding.btnLyric.isChecked = true // Enforce checked state if clicked
+        }
+    }
+    
+    private fun selectButton(isCover: Boolean) {
+        // Enforce mutual exclusion for radio behavior
+        binding.btnCover.isChecked = isCover
+        binding.btnLyric.isChecked = !isCover
+        
+        if (isCover) {
+            showCoverView()
+        } else {
+            showLyricsView()
         }
     }
     
