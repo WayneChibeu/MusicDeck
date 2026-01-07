@@ -819,14 +819,8 @@ class MainActivity : AppCompatActivity() {
     private fun setupActionGrid() {
         // Equalizer Card (Violet)
         binding.cardEqualizer.setOnClickListener {
-             val controller = viewModel.mediaController.value
-             val sessionId = controller?.connectedToken?.extras?.getInt("AUDIO_SESSION_ID", 0) ?: 0
-             
-             if (sessionId != 0) {
-                 EqualizerBottomSheet.newInstance(sessionId).show(supportFragmentManager, "EqBottomSheet")
-             } else {
-                 android.widget.Toast.makeText(this, "Start playback to usage Equalizer", android.widget.Toast.LENGTH_SHORT).show()
-             }
+             // AudioEffectManager is already initialized by MusicService when playback starts
+             EqualizerBottomSheet.newInstance(0).show(supportFragmentManager, "EqBottomSheet")
         }
         
         // Sleep Timer Card (Mint)
@@ -1022,7 +1016,13 @@ class MainActivity : AppCompatActivity() {
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         
-    // Orphaned block removed
+        if (requestCode == 101 && grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            // Permission was just granted - load songs immediately
+            binding.permissionContainer.visibility = View.GONE
+            binding.recyclerView.visibility = View.VISIBLE
+            viewModel.loadSongs()
+            android.widget.Toast.makeText(this, "Loading your music...", android.widget.Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun updateMiniPlayer(mediaItem: MediaItem?) {

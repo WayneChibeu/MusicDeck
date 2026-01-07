@@ -45,7 +45,9 @@ class MusicService : MediaSessionService() {
 
         val exoPlayer: ExoPlayer = ExoPlayer.Builder(this)
             .setAudioAttributes(AudioAttributes.DEFAULT, true)
-            .setWakeMode(C.WAKE_MODE_LOCAL) 
+            .setWakeMode(C.WAKE_MODE_LOCAL)
+            .setSeekBackIncrementMs(5000)
+            .setSeekForwardIncrementMs(10000)
             .build()
             
         // Initialize Audio Effects Manager
@@ -623,7 +625,8 @@ class MusicService : MediaSessionService() {
             if (!isPlaying) play()
         }
         override fun seekToPrevious() {
-            super.seekToPrevious()
+            // Always go to previous track immediately (not rewind to start first)
+            super.seekToPreviousMediaItem()
             if (!isPlaying) play()
         }
         override fun seekToNextMediaItem() {

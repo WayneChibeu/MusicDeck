@@ -213,15 +213,15 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         // Initial state - Cover is checked by default
         selectButton(true)
         
-        // Manual Click Listeners (Radio behavior)
+        // Click listeners - always call selectButton to enforce mutual exclusion
+        // MaterialButton with checkable=true auto-toggles before onClick, so we must
+        // unconditionally set the correct state in selectButton()
         binding.btnCover.setOnClickListener {
-            if (!binding.btnCover.isChecked) selectButton(true)
-            binding.btnCover.isChecked = true // Enforce checked state if clicked
+            selectButton(true)
         }
         
         binding.btnLyric.setOnClickListener {
-            if (!binding.btnLyric.isChecked) selectButton(false)
-             binding.btnLyric.isChecked = true // Enforce checked state if clicked
+            selectButton(false)
         }
     }
     
