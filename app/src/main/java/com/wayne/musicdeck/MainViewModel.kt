@@ -37,6 +37,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     var lastPlayedPosition: Long
         get() = prefs.getLong("last_position", 0)
         set(value) = prefs.edit().putLong("last_position", value).apply()
+        
+    // Pending Delete State (survives Activity recreation)
+    var pendingDeleteSongId: Long? = null
 
     fun saveSearchQuery(query: String) {
         val history = getSearchHistory().toMutableList()

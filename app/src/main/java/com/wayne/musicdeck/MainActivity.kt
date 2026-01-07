@@ -26,18 +26,20 @@ class MainActivity : AppCompatActivity() {
     }
     
     // Modern ActivityResultLauncher for MediaStore delete requests (Android 11+)
-    private var pendingDeleteSongId: Long? = null
     
     private val deleteRequestLauncher = registerForActivityResult(
         androidx.activity.result.contract.ActivityResultContracts.StartIntentSenderForResult()
     ) { result ->
         if (result.resultCode == RESULT_OK) {
             viewModel.loadSongs()
-            pendingDeleteSongId?.let { viewModel.onSongDeleted(it) }
-            pendingDeleteSongId = null
+            viewModel.pendingDeleteSongId?.let { 
+                viewModel.onSongDeleted(it)
+                android.widget.Toast.makeText(this, "Queue updated!", android.widget.Toast.LENGTH_SHORT).show()
+            }
+            viewModel.pendingDeleteSongId = null
             android.widget.Toast.makeText(this, "Deleted!", android.widget.Toast.LENGTH_SHORT).show()
         } else {
-             pendingDeleteSongId = null
+             viewModel.pendingDeleteSongId = null
         }
     }
     
@@ -45,7 +47,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun deleteSong(song: Song) {
         try {
-            pendingDeleteSongId = song.id
+            viewModel.pendingDeleteSongId = song.id
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
                  val uriList = listOf(song.uri)
                  val pendingIntent = android.provider.MediaStore.createDeleteRequest(contentResolver, uriList)
@@ -57,7 +59,7 @@ class MainActivity : AppCompatActivity() {
                      android.widget.Toast.makeText(this, "Deleted ${song.title}", android.widget.Toast.LENGTH_SHORT).show()
                      viewModel.loadSongs()
                      viewModel.onSongDeleted(song.id)
-                     pendingDeleteSongId = null
+                     viewModel.pendingDeleteSongId = null
                  } catch (e: android.app.RecoverableSecurityException) {
                      val request = androidx.activity.result.IntentSenderRequest.Builder(e.userAction.actionIntent.intentSender).build()
                      deleteRequestLauncher.launch(request)
@@ -67,10 +69,10 @@ class MainActivity : AppCompatActivity() {
                 android.widget.Toast.makeText(this, "Deleted ${song.title}", android.widget.Toast.LENGTH_SHORT).show()
                 viewModel.loadSongs()
                 viewModel.onSongDeleted(song.id)
-                pendingDeleteSongId = null
+                viewModel.pendingDeleteSongId = null
             }
         } catch (e: Exception) {
-            pendingDeleteSongId = null
+            viewModel.pendingDeleteSongId = null
             android.widget.Toast.makeText(this, "Failed to delete: ${e.message}", android.widget.Toast.LENGTH_SHORT).show()
         }
     }
