@@ -817,6 +817,33 @@ class MainActivity : AppCompatActivity() {
     }
     
     private fun setupActionGrid() {
+        // Dynamic Card Coloring: Prevent visual clashes when theme matches card color
+        val currentTheme = com.wayne.musicdeck.utils.ThemeHelper.getTheme(this)
+        val violetColor = androidx.core.content.ContextCompat.getColor(this, R.color.colorViolet)
+        
+        // 1. Sleep Timer (Default: Neon/Green)
+        if (currentTheme == com.wayne.musicdeck.utils.ThemeHelper.THEME_NEON) {
+            // If theme is Neon, Sleep Timer card would blend in. Change it to Violet.
+            binding.cardSleepTimer.setCardBackgroundColor(violetColor)
+        } else {
+            // Otherwise keep its distinct Neon color
+            binding.cardSleepTimer.setCardBackgroundColor(androidx.core.content.ContextCompat.getColor(this, R.color.colorNeon))
+        }
+        
+        // 2. Favorites (Default: Rose/Pink)
+        if (currentTheme == com.wayne.musicdeck.utils.ThemeHelper.THEME_ROSE) {
+            binding.cardFavorites.setCardBackgroundColor(violetColor)
+        } else {
+            binding.cardFavorites.setCardBackgroundColor(androidx.core.content.ContextCompat.getColor(this, R.color.colorRose))
+        }
+        
+        // 3. Tools (Default: Ocean/Blue)
+        if (currentTheme == com.wayne.musicdeck.utils.ThemeHelper.THEME_OCEAN) {
+            binding.cardTools.setCardBackgroundColor(violetColor)
+        } else {
+            binding.cardTools.setCardBackgroundColor(androidx.core.content.ContextCompat.getColor(this, R.color.colorOcean))
+        }
+
         // Equalizer Card (Violet) - hide if device doesn't support it
         if (!AudioEffectManager.isSupported(this)) {
             binding.cardEqualizer.visibility = android.view.View.GONE

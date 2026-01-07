@@ -150,7 +150,7 @@
                     android:layout_width="28dp"
                     android:layout_height="28dp"
                     android:layout_gravity="center"
-                    android:src="@drawable/ic_drive"
+                    android:src="@drawable/ic_menu_grid"
                     app:tint="@color/colorActionIcon" />
             </com.google.android.material.card.MaterialCardView>
         </LinearLayout>
