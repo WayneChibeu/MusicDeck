@@ -45,17 +45,22 @@ class PlayerMenuBottomSheet : BottomSheetDialogFragment() {
             SleepTimerBottomSheet().show(parentFragmentManager, "SleepTimer")
         }
 
-        // Equalizer
-        view.findViewById<View>(R.id.menuEqualizer).setOnClickListener {
-            val player = viewModel.mediaController.value ?: return@setOnClickListener
-            val controller = player as? androidx.media3.session.MediaController
-            val sessionId = controller?.connectedToken?.extras?.getInt("AUDIO_SESSION_ID", 0) ?: 0
-            
-            if (sessionId != 0) {
-                dismiss()
-                EqualizerBottomSheet.newInstance(sessionId).show(parentFragmentManager, "Equalizer")
-            } else {
-                Toast.makeText(context, "No audio session available", Toast.LENGTH_SHORT).show()
+        // Equalizer - hide if device doesn't support it
+        val menuEqualizer = view.findViewById<View>(R.id.menuEqualizer)
+        if (!AudioEffectManager.isSupported(requireContext())) {
+            menuEqualizer.visibility = View.GONE
+        } else {
+            menuEqualizer.setOnClickListener {
+                val player = viewModel.mediaController.value ?: return@setOnClickListener
+                val controller = player as? androidx.media3.session.MediaController
+                val sessionId = controller?.connectedToken?.extras?.getInt("AUDIO_SESSION_ID", 0) ?: 0
+                
+                if (sessionId != 0) {
+                    dismiss()
+                    EqualizerBottomSheet.newInstance(sessionId).show(parentFragmentManager, "Equalizer")
+                } else {
+                    Toast.makeText(context, "No audio session available", Toast.LENGTH_SHORT).show()
+                }
             }
         }
 

@@ -41,7 +41,7 @@ object AudioEffectManager {
                 Log.d("AudioEffectManager", "Initialized with global session (fallback)")
             } catch (e2: Exception) {
                 Log.e("AudioEffectManager", "All audio effects unavailable", e2)
-                lastInitError = "Audio effects not supported: ${e2.message}"
+                lastInitError = "Audio effects not supported. Try restarting your phone."
                 equalizer = null
                 bassBoost = null
             }
@@ -59,7 +59,28 @@ object AudioEffectManager {
         bassBoost = null
         audioSessionId = 0
     }
-
+    
+    fun isInitialized(): Boolean = equalizer != null
+    
+    /**
+     * Check if the device supports audio effects (Equalizer).
+     * This attempts to create a test Equalizer with global session ID 0.
+     */
+    fun isSupported(context: Context): Boolean {
+        // If already initialized successfully, we know it's supported
+        if (equalizer != null) return true
+        
+        // Try to create a test equalizer with global session
+        return try {
+            val testEq = Equalizer(0, 0)
+            testEq.release()
+            true
+        } catch (e: Exception) {
+            Log.d("AudioEffectManager", "Device does not support Equalizer: ${e.message}")
+            false
+        }
+    }
+    
     fun getEqualizer(): Equalizer? = equalizer
     fun getBassBoost(): BassBoost? = bassBoost
 

@@ -817,16 +817,20 @@ class MainActivity : AppCompatActivity() {
     }
     
     private fun setupActionGrid() {
-        // Equalizer Card (Violet)
-        binding.cardEqualizer.setOnClickListener {
-             val controller = viewModel.mediaController.value
-             val sessionId = controller?.connectedToken?.extras?.getInt("AUDIO_SESSION_ID", 0) ?: 0
-             
-             if (sessionId != 0) {
-                 EqualizerBottomSheet.newInstance(sessionId).show(supportFragmentManager, "EqBottomSheet")
-             } else {
-                 android.widget.Toast.makeText(this, "Start playback to use Equalizer", android.widget.Toast.LENGTH_SHORT).show()
-             }
+        // Equalizer Card (Violet) - hide if device doesn't support it
+        if (!AudioEffectManager.isSupported(this)) {
+            binding.cardEqualizer.visibility = android.view.View.GONE
+        } else {
+            binding.cardEqualizer.setOnClickListener {
+                 val controller = viewModel.mediaController.value
+                 val sessionId = controller?.connectedToken?.extras?.getInt("AUDIO_SESSION_ID", 0) ?: 0
+                 
+                 if (sessionId != 0) {
+                     EqualizerBottomSheet.newInstance(sessionId).show(supportFragmentManager, "EqBottomSheet")
+                 } else {
+                     android.widget.Toast.makeText(this, "Start playback to use Equalizer", android.widget.Toast.LENGTH_SHORT).show()
+                 }
+            }
         }
         
         // Sleep Timer Card (Mint)
