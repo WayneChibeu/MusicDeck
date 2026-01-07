@@ -718,9 +718,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val timeline = controller.currentTimeline
         if (timeline.isEmpty) return
         
+        // 1. Update Metadata in Queue
+        var queueIndex = -1
         for (i in 0 until timeline.windowCount) {
             val mediaItem = controller.getMediaItemAt(i)
             if (mediaItem.mediaId == song.id.toString()) {
+                queueIndex = i
+                
                 // Construct new MediaItem with updated metadata
                 val customCoverPath = customCoverRepository.getCustomCover(song.id)
                 val artUri = if (customCoverPath != null) {
@@ -747,6 +751,20 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 
                 // Replace in queue (seamless)
                 controller.replaceMediaItem(i, newMediaItem)
+                break // optimize: usually only one instance
+            }
+        }
+        
+        // 2. Reorder if Playing "All Songs"
+        // We guess this by checking if Queue Size matches Library Size.
+        // It's a heuristic but covers the 90% common case.
+        val librarySongs = _songs.value ?: return
+        if (queueIndex != -1 && timeline.windowCount == librarySongs.size) {
+            // Find where this song SHOULD be in the library list
+            val sortedIndex = librarySongs.indexOfFirst { it.id == song.id }
+            
+            if (sortedIndex != -1 && sortedIndex != queueIndex) {
+                 controller.moveMediaItem(queueIndex, sortedIndex)
             }
         }
     }
