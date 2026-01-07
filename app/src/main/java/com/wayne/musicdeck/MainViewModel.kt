@@ -629,6 +629,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 loadSongs()
                 
                 withContext(Dispatchers.Main) {
+                    // Sync with active queue
+                    val updatedSong = song.copy(title = title, artist = artist, album = album)
+                    syncQueueOnUpdate(updatedSong)
+                    
                     android.widget.Toast.makeText(getApplication(), "Tags saved! (Changes visible in app only)", android.widget.Toast.LENGTH_SHORT).show()
                 }
             } catch (e: Exception) {
@@ -663,8 +667,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 val rowsUpdated = getApplication<Application>().contentResolver.update(uri, values, null, null)
                 
                 if (rowsUpdated > 0) {
+                    // Create updated song object for queue sync
+                    val updatedSong = song.copy(title = title, artist = artist, album = album)
+                    
                     loadSongs()
                     withContext(Dispatchers.Main) {
+                         // Sync Player Queue
+                         syncQueueOnUpdate(updatedSong)
                          android.widget.Toast.makeText(getApplication(), "Tags updated! Refresh may take a moment.", android.widget.Toast.LENGTH_SHORT).show()
                     }
                 } else {
@@ -676,6 +685,65 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 withContext(Dispatchers.Main) {
                     android.widget.Toast.makeText(getApplication(), "Failed to update: ${e.message}", android.widget.Toast.LENGTH_LONG).show()
                 }
+            }
+        }
+    }
+    
+    fun onSongDeleted(songId: Long) {
+        syncQueueOnDelete(songId)
+    }
+    
+    // --- Player Queue Synchronization ---
+    
+    private fun syncQueueOnDelete(songId: Long) {
+        val controller = mediaController.value ?: return
+        val timeline = controller.currentTimeline
+        if (timeline.isEmpty) return
+        
+        // Find all occurrences of the song in the queue
+        // We iterate backwards to avoid index shifting issues when removing multiple
+        for (i in timeline.windowCount - 1 downTo 0) {
+            val mediaItem = controller.getMediaItemAt(i)
+            if (mediaItem.mediaId == songId.toString()) {
+                controller.removeMediaItem(i)
+            }
+        }
+    }
+    
+    private fun syncQueueOnUpdate(song: Song) {
+        val controller = mediaController.value ?: return
+        val timeline = controller.currentTimeline
+        if (timeline.isEmpty) return
+        
+        for (i in 0 until timeline.windowCount) {
+            val mediaItem = controller.getMediaItemAt(i)
+            if (mediaItem.mediaId == song.id.toString()) {
+                // Construct new MediaItem with updated metadata
+                val customCoverPath = customCoverRepository.getCustomCover(song.id)
+                val artUri = if (customCoverPath != null) {
+                    Uri.fromFile(java.io.File(customCoverPath))
+                } else {
+                    ContentUris.withAppendedId(
+                        Uri.parse("content://media/external/audio/albumart"),
+                        song.albumId
+                    )
+                }
+
+                val newMediaItem = MediaItem.Builder()
+                    .setMediaId(song.id.toString())
+                    .setUri(song.uri)
+                    .setMediaMetadata(
+                        MediaMetadata.Builder()
+                            .setTitle(song.title)
+                            .setArtist(song.artist)
+                            .setAlbumTitle(song.album)
+                            .setArtworkUri(artUri)
+                            .build()
+                    )
+                    .build()
+                
+                // Replace in queue (seamless)
+                controller.replaceMediaItem(i, newMediaItem)
             }
         }
     }

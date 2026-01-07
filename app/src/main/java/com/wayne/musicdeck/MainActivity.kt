@@ -26,16 +26,54 @@ class MainActivity : AppCompatActivity() {
     }
     
     // Modern ActivityResultLauncher for MediaStore delete requests (Android 11+)
+    private var pendingDeleteSongId: Long? = null
+    
     private val deleteRequestLauncher = registerForActivityResult(
         androidx.activity.result.contract.ActivityResultContracts.StartIntentSenderForResult()
     ) { result ->
         if (result.resultCode == RESULT_OK) {
             viewModel.loadSongs()
+            pendingDeleteSongId?.let { viewModel.onSongDeleted(it) }
+            pendingDeleteSongId = null
             android.widget.Toast.makeText(this, "Deleted!", android.widget.Toast.LENGTH_SHORT).show()
+        } else {
+             pendingDeleteSongId = null
         }
     }
     
-    // For tag editing permission on Android 10+
+    // ...
+
+    private fun deleteSong(song: Song) {
+        try {
+            pendingDeleteSongId = song.id
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                 val uriList = listOf(song.uri)
+                 val pendingIntent = android.provider.MediaStore.createDeleteRequest(contentResolver, uriList)
+                 val request = androidx.activity.result.IntentSenderRequest.Builder(pendingIntent.intentSender).build()
+                 deleteRequestLauncher.launch(request)
+            } else if (android.os.Build.VERSION.SDK_INT == android.os.Build.VERSION_CODES.Q) {
+                 try {
+                     contentResolver.delete(song.uri, null, null)
+                     android.widget.Toast.makeText(this, "Deleted ${song.title}", android.widget.Toast.LENGTH_SHORT).show()
+                     viewModel.loadSongs()
+                     viewModel.onSongDeleted(song.id)
+                     pendingDeleteSongId = null
+                 } catch (e: android.app.RecoverableSecurityException) {
+                     val request = androidx.activity.result.IntentSenderRequest.Builder(e.userAction.actionIntent.intentSender).build()
+                     deleteRequestLauncher.launch(request)
+                 }
+            } else {
+                contentResolver.delete(song.uri, null, null)
+                android.widget.Toast.makeText(this, "Deleted ${song.title}", android.widget.Toast.LENGTH_SHORT).show()
+                viewModel.loadSongs()
+                viewModel.onSongDeleted(song.id)
+                pendingDeleteSongId = null
+            }
+        } catch (e: Exception) {
+            pendingDeleteSongId = null
+            android.widget.Toast.makeText(this, "Failed to delete: ${e.message}", android.widget.Toast.LENGTH_SHORT).show()
+        }
+    }
     private var pendingTagEdit: PendingTagEdit? = null
     private data class PendingTagEdit(val song: Song, val title: String, val artist: String, val album: String)
     
@@ -1364,31 +1402,7 @@ class MainActivity : AppCompatActivity() {
         alert.show()
     }
 
-    private fun deleteSong(song: Song) {
-        try {
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
-                 val uriList = listOf(song.uri)
-                 val pendingIntent = android.provider.MediaStore.createDeleteRequest(contentResolver, uriList)
-                 val request = androidx.activity.result.IntentSenderRequest.Builder(pendingIntent.intentSender).build()
-                 deleteRequestLauncher.launch(request)
-            } else if (android.os.Build.VERSION.SDK_INT == android.os.Build.VERSION_CODES.Q) {
-                 try {
-                     contentResolver.delete(song.uri, null, null)
-                     android.widget.Toast.makeText(this, "Deleted ${song.title}", android.widget.Toast.LENGTH_SHORT).show()
-                     viewModel.loadSongs()
-                 } catch (e: android.app.RecoverableSecurityException) {
-                     val request = androidx.activity.result.IntentSenderRequest.Builder(e.userAction.actionIntent.intentSender).build()
-                     deleteRequestLauncher.launch(request)
-                 }
-            } else {
-                contentResolver.delete(song.uri, null, null)
-                android.widget.Toast.makeText(this, "Deleted ${song.title}", android.widget.Toast.LENGTH_SHORT).show()
-                viewModel.loadSongs()
-            }
-        } catch (e: Exception) {
-            android.widget.Toast.makeText(this, "Failed to delete: ${e.message}", android.widget.Toast.LENGTH_SHORT).show()
-        }
-    }
+    // deleteSong moved to top of class near ActivityResultLauncher
     
     private fun setAsRingtone(song: Song) {
         if (!android.provider.Settings.System.canWrite(this)) {
