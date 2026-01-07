@@ -819,8 +819,14 @@ class MainActivity : AppCompatActivity() {
     private fun setupActionGrid() {
         // Equalizer Card (Violet)
         binding.cardEqualizer.setOnClickListener {
-             // AudioEffectManager is already initialized by MusicService when playback starts
-             EqualizerBottomSheet.newInstance(0).show(supportFragmentManager, "EqBottomSheet")
+             val controller = viewModel.mediaController.value
+             val sessionId = controller?.connectedToken?.extras?.getInt("AUDIO_SESSION_ID", 0) ?: 0
+             
+             if (sessionId != 0) {
+                 EqualizerBottomSheet.newInstance(sessionId).show(supportFragmentManager, "EqBottomSheet")
+             } else {
+                 android.widget.Toast.makeText(this, "Start playback to use Equalizer", android.widget.Toast.LENGTH_SHORT).show()
+             }
         }
         
         // Sleep Timer Card (Mint)

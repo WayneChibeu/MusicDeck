@@ -43,40 +43,13 @@ class EqualizerBottomSheet : BottomSheetDialogFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         
-        // Try to get the equalizer - if null, try to reinitialize with stored session ID
-        var eq = AudioEffectManager.getEqualizer()
+        val eq = AudioEffectManager.getEqualizer()
         
         if (eq == null) {
-            // Try to reinitialize using the stored session ID
-            val storedSessionId = AudioEffectManager.currentAudioSessionId
-            if (storedSessionId != 0) {
-                AudioEffectManager.initialize(storedSessionId, requireContext())
-                eq = AudioEffectManager.getEqualizer()
-            }
-        }
-        
-        if (eq == null) {
-            // Fallback: Try to open system equalizer
-            val sessionId = AudioEffectManager.currentAudioSessionId
-            if (sessionId != 0) {
-                try {
-                    val intent = android.content.Intent(android.media.audiofx.AudioEffect.ACTION_DISPLAY_AUDIO_EFFECT_CONTROL_PANEL)
-                    intent.putExtra(android.media.audiofx.AudioEffect.EXTRA_AUDIO_SESSION, sessionId)
-                    intent.putExtra(android.media.audiofx.AudioEffect.EXTRA_PACKAGE_NAME, requireContext().packageName)
-                    intent.putExtra(android.media.audiofx.AudioEffect.EXTRA_CONTENT_TYPE, android.media.audiofx.AudioEffect.CONTENT_TYPE_MUSIC)
-                    startActivity(intent)
-                    dismiss()
-                    return
-                } catch (e: Exception) {
-                    Toast.makeText(context, "Equalizer not supported on this device", Toast.LENGTH_LONG).show()
-                    dismiss()
-                    return
-                }
-            } else {
-                Toast.makeText(context, "Play a song first to use the Equalizer", Toast.LENGTH_SHORT).show()
-                dismiss()
-                return
-            }
+            val errorMsg = AudioEffectManager.lastInitError ?: "Equalizer not available on this device"
+            Toast.makeText(context, errorMsg, Toast.LENGTH_LONG).show()
+            dismiss()
+            return
         }
         
         try {

@@ -47,9 +47,16 @@ class PlayerMenuBottomSheet : BottomSheetDialogFragment() {
 
         // Equalizer
         view.findViewById<View>(R.id.menuEqualizer).setOnClickListener {
-            dismiss()
-            // AudioEffectManager is already initialized by MusicService when playback starts
-            EqualizerBottomSheet.newInstance(0).show(parentFragmentManager, "Equalizer")
+            val player = viewModel.mediaController.value ?: return@setOnClickListener
+            val controller = player as? androidx.media3.session.MediaController
+            val sessionId = controller?.connectedToken?.extras?.getInt("AUDIO_SESSION_ID", 0) ?: 0
+            
+            if (sessionId != 0) {
+                dismiss()
+                EqualizerBottomSheet.newInstance(sessionId).show(parentFragmentManager, "Equalizer")
+            } else {
+                Toast.makeText(context, "No audio session available", Toast.LENGTH_SHORT).show()
+            }
         }
 
         // Add to Playlist

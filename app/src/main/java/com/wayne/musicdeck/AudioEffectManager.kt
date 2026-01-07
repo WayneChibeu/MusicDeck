@@ -12,45 +12,39 @@ object AudioEffectManager {
     private var audioSessionId: Int = 0
     private const val PREFS_NAME = "eq_prefs"
     
-    // Store the session ID so it can be accessed from EqualizerBottomSheet
-    var currentAudioSessionId: Int = 0
+    // Store last error for user feedback
+    var lastInitError: String? = null
         private set
 
     fun initialize(sessionId: Int, context: Context) {
-        currentAudioSessionId = sessionId // Always store the session ID
-        
-        if (sessionId == 0) {
-            Log.w("AudioEffectManager", "Cannot initialize with session ID 0")
-            return
-        }
-        
-        if (audioSessionId == sessionId && equalizer != null) {
-            Log.d("AudioEffectManager", "Already initialized with session $sessionId")
-            return
-        }
+        if (audioSessionId == sessionId && equalizer != null) return // Already initialized
 
         release()
         audioSessionId = sessionId
+        lastInitError = null
 
         try {
-            // Initialize Equalizer
-            equalizer = Equalizer(0, sessionId).apply {
-                enabled = true
-            }
-            Log.d("AudioEffectManager", "Equalizer initialized successfully for session $sessionId")
-
-            // Initialize BassBoost
-            bassBoost = BassBoost(0, sessionId).apply {
-                enabled = true
-            }
-
-            // Restore settings immediately
+            // Try with specific audio session ID first
+            equalizer = Equalizer(0, sessionId).apply { enabled = true }
+            bassBoost = BassBoost(0, sessionId).apply { enabled = true }
             restoreSettings(context)
-
+            Log.d("AudioEffectManager", "Initialized with session $sessionId")
         } catch (e: Exception) {
-            Log.e("AudioEffectManager", "Failed to initialize audio effects for session $sessionId", e)
-            equalizer = null
-            bassBoost = null
+            Log.w("AudioEffectManager", "Session $sessionId failed, trying global", e)
+            
+            // Fallback: try global audio output (session ID 0)
+            try {
+                equalizer = Equalizer(0, 0).apply { enabled = true }
+                bassBoost = BassBoost(0, 0).apply { enabled = true }
+                audioSessionId = 0
+                restoreSettings(context)
+                Log.d("AudioEffectManager", "Initialized with global session (fallback)")
+            } catch (e2: Exception) {
+                Log.e("AudioEffectManager", "All audio effects unavailable", e2)
+                lastInitError = "Audio effects not supported: ${e2.message}"
+                equalizer = null
+                bassBoost = null
+            }
         }
     }
 
