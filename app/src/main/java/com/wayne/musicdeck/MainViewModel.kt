@@ -751,20 +751,40 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 
                 // Replace in queue (seamless)
                 controller.replaceMediaItem(i, newMediaItem)
-                break // optimize: usually only one instance
+                break 
             }
         }
         
         // 2. Reorder if Playing "All Songs"
-        // We guess this by checking if Queue Size matches Library Size.
-        // It's a heuristic but covers the 90% common case.
-        val librarySongs = _songs.value ?: return
-        if (queueIndex != -1 && timeline.windowCount == librarySongs.size) {
-            // Find where this song SHOULD be in the library list
-            val sortedIndex = librarySongs.indexOfFirst { it.id == song.id }
+        // Use synchronous calculation to avoid race condition with loadSongs()
+        val currentList = _songs.value ?: return
+        if (queueIndex != -1 && timeline.windowCount == currentList.size) {
             
-            if (sortedIndex != -1 && sortedIndex != queueIndex) {
-                 controller.moveMediaItem(queueIndex, sortedIndex)
+            // Create a temporary list with the UPDATED song
+            // We must use the updated 'song' object, not the old one from currentList
+            val updatedList = currentList.map { if (it.id == song.id) song else it }
+            
+            // Sort this list using the Title comparator (default sort)
+            val sortedList = updatedList.sortedWith(Comparator { s1, s2 ->
+                val t1 = s1.title
+                val t2 = s2.title
+                val c1 = t1.firstOrNull()?.uppercaseChar() ?: ' '
+                val c2 = t2.firstOrNull()?.uppercaseChar() ?: ' '
+                
+                val isL1 = c1.isLetter()
+                val isL2 = c2.isLetter()
+                
+                if (isL1 && !isL2) -1 
+                else if (!isL1 && isL2) 1 
+                else t1.compareTo(t2, ignoreCase = true)
+            })
+            
+            // Find new index
+            val newIndex = sortedList.indexOfFirst { it.id == song.id }
+            
+            if (newIndex != -1 && newIndex != queueIndex) {
+                 controller.moveMediaItem(queueIndex, newIndex)
+                 android.widget.Toast.makeText(getApplication(), "Moved to position ${newIndex + 1}", android.widget.Toast.LENGTH_SHORT).show()
             }
         }
     }
