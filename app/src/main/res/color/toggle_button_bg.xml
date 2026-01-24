@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Selected state: slightly darker, more refined -->
-    <item android:color="#4D4D4D" android:state_checked="true" />
-    <!-- Default state: fully transparent -->
+    <!-- Selected state: soft lighter pill to indicate selection -->
+    <item android:color="#59FFFFFF" android:state_checked="true" />
+    <!-- Default state: transparent -->
     <item android:color="@android:color/transparent" />
 </selector>

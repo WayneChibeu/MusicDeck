@@ -333,6 +333,11 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         window.statusBarColor = android.graphics.Color.TRANSPARENT
         window.navigationBarColor = android.graphics.Color.TRANSPARENT
         
+        // Disable contrast enforcement to prevent system scrims (Android 10+)
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+            window.isNavigationBarContrastEnforced = false
+        }
+        
         // Request edge-to-edge layout
         androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
         
@@ -615,15 +620,11 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         // Create a 'whole' gradient: Primary Color -> Slightly Darker Primary Color
         // This avoids fading to black and keeps the color strong throughout
         
-        // darken the bottom slightly for text readability, but keep it colored
-        val hsv = FloatArray(3)
-        android.graphics.Color.colorToHSV(primaryColor, hsv)
-        hsv[2] *= 0.6f // Reduce brightness by 40% for bottom
-        val darkerColor = android.graphics.Color.HSVToColor(hsv)
-        
+        // Use the primary color for both start and end to create a solid look
+        // Or a very subtle shift if desired, but user asked for "whole"
         val gradient = android.graphics.drawable.GradientDrawable(
             android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM,
-            intArrayOf(primaryColor, darkerColor)
+            intArrayOf(primaryColor, primaryColor)
         )
         
         // Apply to root view
@@ -633,6 +634,8 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         // Use semi-transparent version or just transparent since root handles likely
         binding.headerView.backgroundTintList = android.content.res.ColorStateList.valueOf(android.graphics.Color.TRANSPARENT)
     }
+    
+
 
     private fun updatePlayPauseIcon(isPlaying: Boolean) {
         if (_binding == null) return
