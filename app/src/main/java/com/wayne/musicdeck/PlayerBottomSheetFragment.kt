@@ -652,6 +652,7 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
                 onError = {
                     binding.ivFullArt.setImageResource(R.drawable.default_album_art)
                     applyDynamicBackground(null)
+                    updateSeekBarColor(android.graphics.Color.WHITE)
                 }
             )
             .transformations(RoundedCornersTransformation(32f))
@@ -667,6 +668,7 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         
         if (palette == null) {
             applyBackgroundColor(defaultColor)
+            updateSeekBarColor(android.graphics.Color.WHITE)
             return
         }
 
@@ -688,6 +690,7 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         val darkMuted = palette.getDarkMutedColor(android.graphics.Color.TRANSPARENT)
         val vibrant = palette.getVibrantColor(android.graphics.Color.TRANSPARENT)
         val muted = palette.getMutedColor(android.graphics.Color.TRANSPARENT)
+        val lightVibrant = palette.getLightVibrantColor(android.graphics.Color.TRANSPARENT)
         
         val selectedColor = when {
             dominant != android.graphics.Color.TRANSPARENT && isColorDark(dominant) -> dominant
@@ -701,6 +704,16 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         }
         
         applyBackgroundColor(selectedColor)
+        
+        // Select Accent Color for Seek Bar (prefer Light/Vibrant for contrast against dark BG)
+        // If background is dark, we want a bright bar.
+        val accentColor = when {
+            lightVibrant != android.graphics.Color.TRANSPARENT -> lightVibrant
+            vibrant != android.graphics.Color.TRANSPARENT -> vibrant
+            else -> android.graphics.Color.WHITE // Fallback to white which always works on dark
+        }
+        
+        updateSeekBarColor(accentColor)
     }
     
     private fun applyBackgroundColor(color: Int) {
@@ -710,6 +723,21 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         )
         binding.root.background = gradient
         binding.headerView.backgroundTintList = android.content.res.ColorStateList.valueOf(android.graphics.Color.TRANSPARENT)
+    }
+    
+    private fun updateSeekBarColor(color: Int) {
+        // Tint thumb
+        binding.seekBar.thumb.setTint(color)
+        
+        // Tint progress layer only (keep background track grey)
+        val progressDrawable = binding.seekBar.progressDrawable
+        if (progressDrawable is android.graphics.drawable.LayerDrawable) {
+            val progressLayer = progressDrawable.findDrawableByLayerId(android.R.id.progress)
+            progressLayer?.setTint(color)
+        } else {
+            // Fallback if not a LayerDrawable (shouldn't happen with our XML)
+            progressDrawable.setTint(color)
+        }
     }
     
 
