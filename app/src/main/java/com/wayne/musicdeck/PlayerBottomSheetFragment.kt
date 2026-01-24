@@ -609,29 +609,50 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
             ctx, com.google.android.material.R.attr.colorSurface, android.graphics.Color.BLACK
         )
         
-        // Get the most dominant/prominent color
-        // Priority: Dominant -> DarkVibrant -> Vibrant -> Default
-        val primaryColor = palette?.getDominantColor(
-            palette.getDarkVibrantColor(
-                palette.getVibrantColor(defaultColor)
-            )
-        ) ?: defaultColor
+        if (palette == null) {
+            applyBackgroundColor(defaultColor)
+            return
+        }
+
+        // Helper to check if a color is dark enough for white text/UI
+        // Luminance 0.0 is black, 1.0 is white. We want dark, so < 0.5
+        fun isColorDark(color: Int): Boolean {
+            return androidx.core.graphics.ColorUtils.calculateLuminance(color) < 0.5
+        }
         
-        // Create a 'whole' gradient: Primary Color -> Slightly Darker Primary Color
-        // This avoids fading to black and keeps the color strong throughout
+        // Smart Selection Priority:
+        // 1. Dominant (if dark) - Best match for cover
+        // 2. Dark Vibrant - Usually the best colored fallback
+        // 3. Dark Muted - Good fallback if vibrant is missing
+        // 4. Vibrant (if dark)
+        // 5. Muted (if dark)
         
-        // Use the primary color for both start and end to create a solid look
-        // Or a very subtle shift if desired, but user asked for "whole"
-        val gradient = android.graphics.drawable.GradientDrawable(
+        val dominant = palette.getDominantColor(android.graphics.Color.TRANSPARENT)
+        val darkVibrant = palette.getDarkVibrantColor(android.graphics.Color.TRANSPARENT)
+        val darkMuted = palette.getDarkMutedColor(android.graphics.Color.TRANSPARENT)
+        val vibrant = palette.getVibrantColor(android.graphics.Color.TRANSPARENT)
+        val muted = palette.getMutedColor(android.graphics.Color.TRANSPARENT)
+        
+        val selectedColor = when {
+            dominant != android.graphics.Color.TRANSPARENT && isColorDark(dominant) -> dominant
+            darkVibrant != android.graphics.Color.TRANSPARENT && isColorDark(darkVibrant) -> darkVibrant
+            darkMuted != android.graphics.Color.TRANSPARENT && isColorDark(darkMuted) -> darkMuted
+            vibrant != android.graphics.Color.TRANSPARENT && isColorDark(vibrant) -> vibrant
+            muted != android.graphics.Color.TRANSPARENT && isColorDark(muted) -> muted
+            // Fallbacks if EVERYTHING is light (e.g. white album art)
+            darkVibrant != android.graphics.Color.TRANSPARENT -> darkVibrant // Try dark vibrant regardless
+            else -> defaultColor // Give up and use default dark theme surface
+        }
+        
+        applyBackgroundColor(selectedColor)
+    }
+    
+    private fun applyBackgroundColor(color: Int) {
+         val gradient = android.graphics.drawable.GradientDrawable(
             android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM,
-            intArrayOf(primaryColor, primaryColor)
+            intArrayOf(color, color)
         )
-        
-        // Apply to root view
         binding.root.background = gradient
-        
-        // Tint header to match logic matches root top color
-        // Use semi-transparent version or just transparent since root handles likely
         binding.headerView.backgroundTintList = android.content.res.ColorStateList.valueOf(android.graphics.Color.TRANSPARENT)
     }
     
