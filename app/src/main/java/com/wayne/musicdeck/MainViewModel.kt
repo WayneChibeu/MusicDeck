@@ -273,110 +273,137 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun loadSongs() {
         viewModelScope.launch {
-            val songList = withContext(Dispatchers.IO) {
-                val songs = mutableListOf<Song>()
-                
-                // Get all volume names for Android 10+ to ensure SD card is included
-                val volumeNames = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
-                    try {
-                        MediaStore.getExternalVolumeNames(getApplication())
-                    } catch (e: Exception) {
-                        setOf(MediaStore.VOLUME_EXTERNAL)
-                    }
+            loadSongsInternal()
+        }
+    }
+    
+    // Suspend version that can be awaited
+    private suspend fun loadSongsInternal(): List<Song> {
+        val songList = withContext(Dispatchers.IO) {
+            val songs = mutableListOf<Song>()
+            
+            // Get all volume names for Android 10+ to ensure SD card is included
+            val volumeNames = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                try {
+                    MediaStore.getExternalVolumeNames(getApplication())
+                } catch (e: Exception) {
+                    setOf(MediaStore.VOLUME_EXTERNAL)
+                }
+            } else {
+                setOf("external")
+            }
+
+            val projection = arrayOf(
+                MediaStore.Audio.Media._ID,
+                MediaStore.Audio.Media.TITLE,
+                MediaStore.Audio.Media.ARTIST,
+                MediaStore.Audio.Media.ALBUM,
+                MediaStore.Audio.Media.ALBUM_ID,
+                MediaStore.Audio.Media.DURATION,
+                MediaStore.Audio.Media.DATA,
+                MediaStore.Audio.Media.DATE_ADDED
+            )
+
+            // Relaxed selection: Get all audio files
+            val selection = "${MediaStore.Audio.Media.DURATION} > 10000" // At least 10 seconds
+            val sortOrder = "${MediaStore.Audio.Media.TITLE} ASC"
+
+            for (volumeName in volumeNames) {
+                val collection = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                    MediaStore.Audio.Media.getContentUri(volumeName)
                 } else {
-                    setOf("external")
+                    MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
                 }
 
-                val projection = arrayOf(
-                    MediaStore.Audio.Media._ID,
-                    MediaStore.Audio.Media.TITLE,
-                    MediaStore.Audio.Media.ARTIST,
-                    MediaStore.Audio.Media.ALBUM,
-                    MediaStore.Audio.Media.ALBUM_ID,
-                    MediaStore.Audio.Media.DURATION,
-                    MediaStore.Audio.Media.DATA,
-                    MediaStore.Audio.Media.DATE_ADDED
-                )
+                getApplication<Application>().contentResolver.query(
+                    collection,
+                    projection,
+                    selection,
+                    null,
+                    sortOrder
+                )?.use { cursor ->
+                    val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID)
+                    val titleColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE)
+                    val artistColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST)
+                    val albumColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM) // Added albumColumn
+                    val albumIdColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM_ID)
+                    val durationColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION)
+                    val dataColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA)
+                    val dateAddedColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATE_ADDED)
 
-                // Relaxed selection: Get all audio files
-                val selection = "${MediaStore.Audio.Media.DURATION} > 10000" // At least 10 seconds
-                val sortOrder = "${MediaStore.Audio.Media.TITLE} ASC"
+                    while (cursor.moveToNext()) {
+                        val id = cursor.getLong(idColumn)
+                        val title = cursor.getString(titleColumn)
+                        val artist = cursor.getString(artistColumn) ?: "Unknown Artist"
+                        val album = cursor.getString(albumColumn) ?: "Unknown Album" // Added album
+                        val albumId = cursor.getLong(albumIdColumn)
+                        val duration = cursor.getLong(durationColumn)
+                        val data = cursor.getString(dataColumn) ?: ""
+                        val dateAdded = cursor.getLong(dateAddedColumn)
 
-                for (volumeName in volumeNames) {
-                    val collection = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
-                        MediaStore.Audio.Media.getContentUri(volumeName)
-                    } else {
-                        MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
-                    }
-
-                    getApplication<Application>().contentResolver.query(
-                        collection,
-                        projection,
-                        selection,
-                        null,
-                        sortOrder
-                    )?.use { cursor ->
-                        val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID)
-                        val titleColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE)
-                        val artistColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST)
-                        val albumColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM) // Added albumColumn
-                        val albumIdColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM_ID)
-                        val durationColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION)
-                        val dataColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA)
-                        val dateAddedColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATE_ADDED)
-
-                        while (cursor.moveToNext()) {
-                            val id = cursor.getLong(idColumn)
-                            val title = cursor.getString(titleColumn)
-                            val artist = cursor.getString(artistColumn) ?: "Unknown Artist"
-                            val album = cursor.getString(albumColumn) ?: "Unknown Album" // Added album
-                            val albumId = cursor.getLong(albumIdColumn)
-                            val duration = cursor.getLong(durationColumn)
-                            val data = cursor.getString(dataColumn) ?: ""
-                            val dateAdded = cursor.getLong(dateAddedColumn)
-
-                            val contentUri = ContentUris.withAppendedId(
-                                MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
-                                id
-                            )
-                            
-                            // Avoid duplicates (same ID from multiple volumes)
-                            if (songs.none { it.id == id }) {
-                                songs.add(Song(id, title, artist, album, albumId, contentUri, duration, data, dateAdded))
-                            }
+                        val contentUri = ContentUris.withAppendedId(
+                            MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                            id
+                        )
+                        
+                        // Avoid duplicates (same ID from multiple volumes)
+                        if (songs.none { it.id == id }) {
+                            songs.add(Song(id, title, artist, album, albumId, contentUri, duration, data, dateAdded))
                         }
                     }
                 }
-                songs
             }
-            
-            // Apply custom metadata overrides from local database
-            val customMetadataMap = customMetadataDao.getAllCustomMetadata().associateBy { it.songId }
-            val songsWithOverrides = songList.map { song ->
-                val override = customMetadataMap[song.id]
-                if (override != null) {
-                    song.copy(
-                        title = override.customTitle ?: song.title,
-                        artist = override.customArtist ?: song.artist,
-                        album = override.customAlbum ?: song.album
-                    )
-                } else {
-                    song
-                }
-            }
-            
-            originalSongs = songsWithOverrides
-            _songs.postValue(songsWithOverrides)
-            
-            // Refresh favorites now that songs are loaded
-            if (favoritesPlaylistId != -1L) {
-                refreshFavoritesList()
-            }
-            
-            // Generate artists and albums lists
-            generateArtistsList(songsWithOverrides)
-            generateAlbumsList(songsWithOverrides)
+            songs
         }
+        
+        // Apply custom metadata overrides from local database
+        val customMetadataMap = withContext(Dispatchers.IO) {
+            customMetadataDao.getAllCustomMetadata().associateBy { it.songId }
+        }
+        val songsWithOverrides = songList.map { song ->
+            val override = customMetadataMap[song.id]
+            if (override != null) {
+                song.copy(
+                    title = override.customTitle ?: song.title,
+                    artist = override.customArtist ?: song.artist,
+                    album = override.customAlbum ?: song.album
+                )
+            } else {
+                song
+            }
+        }
+        
+        // Apply default title sort
+        val sortedSongs = songsWithOverrides.sortedWith(titleComparator)
+        
+        originalSongs = sortedSongs
+        _songs.postValue(sortedSongs)
+        
+        // Refresh favorites now that songs are loaded
+        if (favoritesPlaylistId != -1L) {
+            refreshFavoritesList()
+        }
+        
+        // Generate artists and albums lists
+        generateArtistsList(sortedSongs)
+        generateAlbumsList(sortedSongs)
+        
+        return sortedSongs
+    }
+    
+    // Shared title comparator for consistent sorting
+    private val titleComparator = Comparator<Song> { s1, s2 ->
+        val t1 = s1.title
+        val t2 = s2.title
+        val c1 = t1.firstOrNull()?.uppercaseChar() ?: ' '
+        val c2 = t2.firstOrNull()?.uppercaseChar() ?: ' '
+        
+        val isL1 = c1.isLetter()
+        val isL2 = c2.isLetter()
+        
+        if (isL1 && !isL2) -1 // Letter comes before Non-Letter
+        else if (!isL1 && isL2) 1 // Non-Letter comes after Letter
+        else t1.compareTo(t2, ignoreCase = true)
     }
     
     private fun generateArtistsList(songs: List<Song>) {
@@ -419,20 +446,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     
     fun sortSongs(option: SortOption) {
         val list = _songs.value ?: return
-        
-        val titleComparator = Comparator<Song> { s1, s2 ->
-            val t1 = s1.title
-            val t2 = s2.title
-            val c1 = t1.firstOrNull()?.uppercaseChar() ?: ' '
-            val c2 = t2.firstOrNull()?.uppercaseChar() ?: ' '
-            
-            val isL1 = c1.isLetter()
-            val isL2 = c2.isLetter()
-            
-            if (isL1 && !isL2) -1 // Letter comes before Non-Letter
-            else if (!isL1 && isL2) 1 // Non-Letter comes after Letter
-            else t1.compareTo(t2, ignoreCase = true)
-        }
         
         val sorted = when (option) {
             SortOption.TITLE -> list.sortedWith(titleComparator)
@@ -616,25 +629,27 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
     
     fun updateSongTags(song: Song, title: String, artist: String, album: String) {
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch {
             try {
                 // Save to local database instead of trying to modify MediaStore
                 // This works around Android 10+ restrictions
-                val customMetadata = com.wayne.musicdeck.data.CustomMetadata(
-                    songId = song.id,
-                    customTitle = title,
-                    customArtist = artist,
-                    customAlbum = album
-                )
-                customMetadataDao.insertOrUpdate(customMetadata)
+                withContext(Dispatchers.IO) {
+                    val customMetadata = com.wayne.musicdeck.data.CustomMetadata(
+                        songId = song.id,
+                        customTitle = title,
+                        customArtist = artist,
+                        customAlbum = album
+                    )
+                    customMetadataDao.insertOrUpdate(customMetadata)
+                }
                 
-                // Reload songs to apply the new override
-                loadSongs()
+                // Reload songs and WAIT for completion - this returns the fresh sorted list
+                val freshSortedList = loadSongsInternal()
                 
+                // Now sync with active queue using the FRESH sorted list
                 withContext(Dispatchers.Main) {
-                    // Sync with active queue
                     val updatedSong = song.copy(title = title, artist = artist, album = album)
-                    syncQueueOnUpdate(updatedSong)
+                    syncQueueOnUpdate(updatedSong, freshSortedList)
                     
                     android.widget.Toast.makeText(getApplication(), "Tags saved! (Changes visible in app only)", android.widget.Toast.LENGTH_SHORT).show()
                 }
@@ -658,26 +673,27 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     
     // Force update after permission granted
     fun updateSongTagsForce(song: Song, title: String, artist: String, album: String) {
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch {
             try {
-                val uri = ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, song.id)
-                val values = android.content.ContentValues().apply {
-                    put(MediaStore.Audio.Media.TITLE, title)
-                    put(MediaStore.Audio.Media.ARTIST, artist)
-                    put(MediaStore.Audio.Media.ALBUM, album)
+                val rowsUpdated = withContext(Dispatchers.IO) {
+                    val uri = ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, song.id)
+                    val values = android.content.ContentValues().apply {
+                        put(MediaStore.Audio.Media.TITLE, title)
+                        put(MediaStore.Audio.Media.ARTIST, artist)
+                        put(MediaStore.Audio.Media.ALBUM, album)
+                    }
+                    getApplication<Application>().contentResolver.update(uri, values, null, null)
                 }
                 
-                val rowsUpdated = getApplication<Application>().contentResolver.update(uri, values, null, null)
-                
                 if (rowsUpdated > 0) {
-                    // Create updated song object for queue sync
-                    val updatedSong = song.copy(title = title, artist = artist, album = album)
+                    // Reload songs and WAIT for completion
+                    val freshSortedList = loadSongsInternal()
                     
-                    loadSongs()
+                    // Now sync with active queue using the FRESH sorted list
                     withContext(Dispatchers.Main) {
-                         // Sync Player Queue
-                         syncQueueOnUpdate(updatedSong)
-                         android.widget.Toast.makeText(getApplication(), "Tags updated! Refresh may take a moment.", android.widget.Toast.LENGTH_SHORT).show()
+                        val updatedSong = song.copy(title = title, artist = artist, album = album)
+                        syncQueueOnUpdate(updatedSong, freshSortedList)
+                        android.widget.Toast.makeText(getApplication(), "Tags updated! Refresh may take a moment.", android.widget.Toast.LENGTH_SHORT).show()
                     }
                 } else {
                     withContext(Dispatchers.Main) {
@@ -713,78 +729,98 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
     
-    private fun syncQueueOnUpdate(song: Song) {
+    /**
+     * Sync the player queue after a song's metadata is updated.
+     * 
+     * @param song The song with updated metadata
+     * @param freshSortedList The freshly loaded and sorted song list (from loadSongsInternal)
+     */
+    private fun syncQueueOnUpdate(song: Song, freshSortedList: List<Song>) {
         val controller = mediaController.value ?: return
         val timeline = controller.currentTimeline
         if (timeline.isEmpty) return
         
-        // 1. Update Metadata in Queue
-        var queueIndex = -1
-        for (i in 0 until timeline.windowCount) {
-            val mediaItem = controller.getMediaItemAt(i)
-            if (mediaItem.mediaId == song.id.toString()) {
-                queueIndex = i
-                
-                // Construct new MediaItem with updated metadata
-                val customCoverPath = customCoverRepository.getCustomCover(song.id)
+        // Check if we're playing the full "All Songs" list (queue size matches song count)
+        val isPlayingAllSongs = timeline.windowCount == freshSortedList.size
+        
+        if (isPlayingAllSongs) {
+            // REBUILD the entire queue to match the new sorted order
+            // This is the most reliable way to ensure the queue order is correct
+            
+            // 1. Remember the current song and position
+            val currentMediaId = controller.currentMediaItem?.mediaId
+            val currentPosition = controller.currentPosition
+            val wasPlaying = controller.isPlaying
+            
+            // 2. Build new MediaItems list in the correct sorted order
+            val newMediaItems = freshSortedList.map { s ->
+                val customCoverPath = customCoverRepository.getCustomCover(s.id)
                 val artUri = if (customCoverPath != null) {
                     Uri.fromFile(java.io.File(customCoverPath))
                 } else {
                     ContentUris.withAppendedId(
                         Uri.parse("content://media/external/audio/albumart"),
-                        song.albumId
+                        s.albumId
                     )
                 }
-
-                val newMediaItem = MediaItem.Builder()
-                    .setMediaId(song.id.toString())
-                    .setUri(song.uri)
+                
+                MediaItem.Builder()
+                    .setMediaId(s.id.toString())
+                    .setUri(s.uri)
                     .setMediaMetadata(
                         MediaMetadata.Builder()
-                            .setTitle(song.title)
-                            .setArtist(song.artist)
-                            .setAlbumTitle(song.album)
+                            .setTitle(s.title)
+                            .setArtist(s.artist)
+                            .setAlbumTitle(s.album)
                             .setArtworkUri(artUri)
                             .build()
                     )
                     .build()
-                
-                // Replace in queue (seamless)
-                controller.replaceMediaItem(i, newMediaItem)
-                break 
             }
-        }
-        
-        // 2. Reorder if Playing "All Songs"
-        // Use synchronous calculation to avoid race condition with loadSongs()
-        val currentList = _songs.value ?: return
-        if (queueIndex != -1 && timeline.windowCount == currentList.size) {
             
-            // Create a temporary list with the UPDATED song
-            // We must use the updated 'song' object, not the old one from currentList
-            val updatedList = currentList.map { if (it.id == song.id) song else it }
+            // 3. Find the new index of the currently playing song
+            val newIndex = if (currentMediaId != null) {
+                freshSortedList.indexOfFirst { it.id.toString() == currentMediaId }
+            } else -1
             
-            // Sort this list using the Title comparator (default sort)
-            val sortedList = updatedList.sortedWith(Comparator { s1, s2 ->
-                val t1 = s1.title
-                val t2 = s2.title
-                val c1 = t1.firstOrNull()?.uppercaseChar() ?: ' '
-                val c2 = t2.firstOrNull()?.uppercaseChar() ?: ' '
-                
-                val isL1 = c1.isLetter()
-                val isL2 = c2.isLetter()
-                
-                if (isL1 && !isL2) -1 
-                else if (!isL1 && isL2) 1 
-                else t1.compareTo(t2, ignoreCase = true)
-            })
+            // 4. Replace the entire queue
+            controller.setMediaItems(newMediaItems, newIndex.coerceAtLeast(0), currentPosition)
             
-            // Find new index
-            val newIndex = sortedList.indexOfFirst { it.id == song.id }
-            
-            if (newIndex != -1 && newIndex != queueIndex) {
-                 controller.moveMediaItem(queueIndex, newIndex)
-                 android.widget.Toast.makeText(getApplication(), "Moved to position ${newIndex + 1}", android.widget.Toast.LENGTH_SHORT).show()
+            // 5. Resume playback if it was playing
+            if (wasPlaying) {
+                controller.play()
+            }
+        } else {
+            // Playing a playlist or subset - just update the metadata in-place
+            for (i in 0 until timeline.windowCount) {
+                val mediaItem = controller.getMediaItemAt(i)
+                if (mediaItem.mediaId == song.id.toString()) {
+                    val customCoverPath = customCoverRepository.getCustomCover(song.id)
+                    val artUri = if (customCoverPath != null) {
+                        Uri.fromFile(java.io.File(customCoverPath))
+                    } else {
+                        ContentUris.withAppendedId(
+                            Uri.parse("content://media/external/audio/albumart"),
+                            song.albumId
+                        )
+                    }
+
+                    val newMediaItem = MediaItem.Builder()
+                        .setMediaId(song.id.toString())
+                        .setUri(song.uri)
+                        .setMediaMetadata(
+                            MediaMetadata.Builder()
+                                .setTitle(song.title)
+                                .setArtist(song.artist)
+                                .setAlbumTitle(song.album)
+                                .setArtworkUri(artUri)
+                                .build()
+                        )
+                        .build()
+                    
+                    controller.replaceMediaItem(i, newMediaItem)
+                    break
+                }
             }
         }
     }
