@@ -18,7 +18,8 @@ class LyricsApiService {
     companion object {
         private const val TAG = "LyricsApiService"
         private const val BASE_URL = "https://lrclib.net/api"
-        private const val USER_AGENT = "MusicDeck/2.4.6 (https://github.com/WayneChibeu/MusicDeck)"
+        private const val USER_AGENT = "MusicDeck/2.5.0 (https://github.com/WayneChibeu/MusicDeck)"
+        private const val MAX_RETRIES = 3
     }
     
     /**
@@ -31,27 +32,54 @@ class LyricsApiService {
         albumName: String? = null,
         durationSeconds: Int? = null
     ): LyricsResult = withContext(Dispatchers.IO) {
-        try {
-            // Clean up messy metadata (e.g., "Artist - Song (feat. X)" with unknown artist)
-            val (cleanTrack, cleanArtist) = cleanupMetadata(trackName, artistName)
-            
-            Log.d(TAG, "Original: track='$trackName', artist='$artistName'")
-            Log.d(TAG, "Cleaned: track='$cleanTrack', artist='$cleanArtist'")
-            
-            // First try the GET endpoint for exact match (faster)
-            val exactResult = tryExactMatch(cleanTrack, cleanArtist, albumName, durationSeconds)
-            if (exactResult is LyricsResult.Success) {
-                return@withContext exactResult
+        // Clean up messy metadata (e.g., "Artist - Song (feat. X)" with unknown artist)
+        val (cleanTrack, cleanArtist) = cleanupMetadata(trackName, artistName)
+        
+        Log.d(TAG, "Original: track='$trackName', artist='$artistName'")
+        Log.d(TAG, "Cleaned: track='$cleanTrack', artist='$cleanArtist'")
+        
+        // Retry logic for network errors
+        var lastError: Exception? = null
+        for (attempt in 1..MAX_RETRIES) {
+            try {
+                // First try the GET endpoint for exact match (faster)
+                val exactResult = tryExactMatch(cleanTrack, cleanArtist, albumName, durationSeconds)
+                if (exactResult is LyricsResult.Success) {
+                    return@withContext exactResult
+                }
+                
+                // Fallback to search endpoint
+                val searchResult = trySearch(cleanTrack, cleanArtist)
+                if (searchResult !is LyricsResult.Error) {
+                    return@withContext searchResult
+                }
+                
+                // If search returned an error, save it and retry
+                lastError = Exception((searchResult as LyricsResult.Error).message)
+                
+            } catch (e: Exception) {
+                Log.w(TAG, "Attempt $attempt failed: ${e.message}")
+                lastError = e
+                
+                // Wait a bit before retry (exponential backoff)
+                if (attempt < MAX_RETRIES) {
+                    try {
+                        Thread.sleep((attempt * 500).toLong())
+                    } catch (_: InterruptedException) {}
+                }
             }
-            
-            // Fallback to search endpoint
-            val searchResult = trySearch(cleanTrack, cleanArtist)
-            return@withContext searchResult
-            
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to fetch lyrics", e)
-            LyricsResult.Error(e.message ?: "Unknown error")
         }
+        
+        // All retries failed
+        Log.e(TAG, "All $MAX_RETRIES attempts failed", lastError)
+        val errorMsg = when {
+            lastError?.message?.contains("end of stream", ignoreCase = true) == true -> 
+                "Network error - please check your connection"
+            lastError?.message?.contains("timeout", ignoreCase = true) == true -> 
+                "Connection timed out - try again"
+            else -> lastError?.message ?: "Network error"
+        }
+        LyricsResult.Error(errorMsg)
     }
     
     /**
