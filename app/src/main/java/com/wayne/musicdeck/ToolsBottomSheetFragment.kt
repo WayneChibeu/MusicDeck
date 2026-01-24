@@ -47,12 +47,43 @@ class ToolsBottomSheetFragment : BottomSheetDialogFragment() {
             ThemeSelectionBottomSheet().show(parentFragmentManager, "theme")
         }
         
+        binding.btnAbout.setOnClickListener {
+            showAboutDialog()
+        }
+        
         // Observe backup result
         viewModel.backupResult.observe(viewLifecycleOwner) { result ->
             if (!result.isNullOrEmpty()) {
                 android.widget.Toast.makeText(context, result, android.widget.Toast.LENGTH_SHORT).show()
             }
         }
+    }
+    
+    private fun showAboutDialog() {
+        val ctx = context ?: return
+        val version = try {
+            ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName
+        } catch (e: Exception) {
+            "2.5.0"
+        }
+        
+        val message = """
+            |Version: $version
+            |
+            |🎵 Lyrics Service
+            |Powered by Lrclib.net - A free, open lyrics database.
+            |
+            |🔒 Privacy
+            |MusicDeck plays your local music files. We do not collect, store, or transmit any personal data. Lyrics are fetched from Lrclib using only song metadata (title, artist).
+            |
+            |Made with ❤️ by Wayne Chibeu
+        """.trimMargin()
+        
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(ctx)
+            .setTitle("About MusicDeck")
+            .setMessage(message)
+            .setPositiveButton("Got it!", null)
+            .show()
     }
 
     override fun onDestroyView() {
