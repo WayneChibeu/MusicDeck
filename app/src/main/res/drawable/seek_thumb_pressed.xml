@@ -1,17 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Halo/Glow Effect (Large Semi-transparent circle) -->
-    <item>
-        <shape android:shape="oval">
-            <size android:width="32dp" android:height="32dp" />
-            <solid android:color="#4DFFFFFF" /> <!-- 30% White halo -->
-        </shape>
-    </item>
-    <!-- Solid Thumb (Centered) -->
-    <item android:gravity="center">
-        <shape android:shape="oval">
-            <size android:width="16dp" android:height="16dp" />
-            <solid android:color="?attr/colorOnSurface" />
-        </shape>
-    </item>
-</layer-list>
+<!-- Pressed state: slightly larger solid circle, no halo to avoid deformation -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+    <size
+        android:width="20dp"
+        android:height="20dp" />
+    <solid android:color="?attr/colorOnSurface" />
+</shape>

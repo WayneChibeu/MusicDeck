@@ -477,7 +477,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         val controller = controllerFuture?.get()
                         mediaController.postValue(controller)
                         if (controller != null) {
-                            startLyricsSync(controller)
+                            initLyricsSystem(controller)
                         }
                     } catch (e: Exception) {
                         e.printStackTrace()
@@ -997,67 +997,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         return lyricsRepository.getLyricPath(songId)
     }
     
-    fun hasLyrics(songId: Long): Boolean {
-        return lyricsRepository.hasLyrics(songId)
-    }
-    
-    fun parseLyrics(songId: Long): List<com.wayne.musicdeck.data.LyricLine> {
-        val path = lyricsRepository.getLyricPath(songId) ?: return emptyList()
-        return lyricsRepository.parseLrcFile(path)
-    }
-    
-    // Lyrics Fetching
-    private val _lyricsFetchResult = MutableLiveData<LyricsFetchStatus?>()
-    val lyricsFetchResult: LiveData<LyricsFetchStatus?> = _lyricsFetchResult
-    
-    /**
-     * Fetch lyrics from LRCLIB for the given song
-     */
-    fun fetchLyrics(song: Song) {
-        _lyricsFetchResult.value = LyricsFetchStatus.Loading
-        
-        viewModelScope.launch(Dispatchers.IO) {
-            val result = lyricsRepository.fetchAndSaveLyrics(
-                songId = song.id,
-                trackName = song.title,
-                artistName = song.artist,
-                albumName = song.album,
-                durationMs = song.duration
-            )
-            
-            withContext(Dispatchers.Main) {
-                _lyricsFetchResult.value = when (result) {
-                    is com.wayne.musicdeck.data.FetchResult.Success -> {
-                        if (result.isSynced) {
-                            LyricsFetchStatus.Success("Synced lyrics found!")
-                        } else {
-                            LyricsFetchStatus.Success("Lyrics found (not synced)")
-                        }
-                    }
-                    is com.wayne.musicdeck.data.FetchResult.NotFound -> {
-                        LyricsFetchStatus.NotFound
-                    }
-                    is com.wayne.musicdeck.data.FetchResult.Error -> {
-                        LyricsFetchStatus.Error(result.message)
-                    }
-                }
-            }
-        }
-    }
-    
-    /**
-     * Auto-fetch lyrics if not available locally
-     * Call this when a new song starts playing
-     */
-    fun autoFetchLyricsIfNeeded(song: Song) {
-        if (!hasLyrics(song.id)) {
-            fetchLyrics(song)
-        }
-    }
-    
-    fun clearLyricsFetchResult() {
-        _lyricsFetchResult.value = null
-    }
+
     
     /**
      * Remove lyrics for a song
@@ -1074,12 +1014,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         lyricsRepository.removeLyricPath(songId)
     }
     
-    sealed class LyricsFetchStatus {
-        object Loading : LyricsFetchStatus()
-        data class Success(val message: String) : LyricsFetchStatus()
-        object NotFound : LyricsFetchStatus()
-        data class Error(val message: String) : LyricsFetchStatus()
-    }
+
     
     // Get file size for a song
     fun getSongFileSize(song: Song): String {
@@ -1120,97 +1055,133 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _lyricsStatus = MutableLiveData<LyricsStatus>()
     val lyricsStatus: LiveData<LyricsStatus> = _lyricsStatus
     
-    private fun startLyricsSync(controller: MediaController) {
-        // Initial load
-        val currentItem = controller.currentMediaItem
-        if (currentItem != null) {
-            loadOrFetchLyrics(currentItem)
-        }
+    private var lyricsJob: kotlinx.coroutines.Job? = null
+    
+    // Called once when MediaController is ready
+    fun initLyricsSystem(controller: MediaController) {
+        android.util.Log.d("LyricsSys", "Initializing Lyrics System")
         
-        // Listener for changes
         controller.addListener(object : androidx.media3.common.Player.Listener {
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+                android.util.Log.d("LyricsSys", "Transition: ${mediaItem?.mediaId}")
                 if (mediaItem != null) {
-                    loadOrFetchLyrics(mediaItem)
+                    loadLyricsForMediaItem(mediaItem)
                 } else {
                     _lyrics.postValue(emptyList())
                     _lyricsStatus.postValue(LyricsStatus.None)
                 }
             }
         })
+        
+        // Initial load
+        controller.currentMediaItem?.let { loadLyricsForMediaItem(it) }
     }
     
-    fun loadOrFetchLyrics(mediaItem: MediaItem) {
+    fun loadLyricsForMediaItem(mediaItem: MediaItem, forceRefetch: Boolean = false) {
         val songId = mediaItem.mediaId.toLongOrNull() ?: return
         
-        viewModelScope.launch {
-            // 1. Check if we already have lyrics locally
-            if (lyricsRepository.hasLyrics(songId)) {
-                loadLocalLyrics(songId)
-                return@launch
-            }
-            
-            // 2. Not found locally, fetch from API
-            _lyrics.postValue(emptyList())
-            _lyricsStatus.postValue(LyricsStatus.Loading)
-            
-            val title = mediaItem.mediaMetadata.title?.toString() ?: "Unknown"
-            val artist = mediaItem.mediaMetadata.artist?.toString() ?: "Unknown"
-            val album = mediaItem.mediaMetadata.albumTitle?.toString()
-            val duration = mediaController.value?.duration ?: 0L
-            
-            if (title == "Unknown") {
-                _lyricsStatus.postValue(LyricsStatus.Error("Unknown Title"))
-                return@launch
-            }
-            
-            // Optimization: Skip fetching for very long tracks (> 15 mins) likely to be mixes/podcasts
-            if (duration > 15 * 60 * 1000) {
-                 _lyricsStatus.postValue(LyricsStatus.NotFound)
-                 return@launch
-            }
-            
-            val result = lyricsRepository.fetchAndSaveLyrics(
-                songId = songId,
-                trackName = title,
-                artistName = artist,
-                albumName = album,
-                durationMs = if (duration > 0) duration else null
-            )
-            
-            when (result) {
-                is com.wayne.musicdeck.data.FetchResult.Success -> {
-                    // Load the newly saved file
-                    loadLocalLyrics(songId)
+        // CANCEL any previous loading job immediately.
+        // This prevents race conditions where multiple fetches overlap.
+        lyricsJob?.cancel()
+        
+        _lyricsStatus.postValue(LyricsStatus.Loading)
+        _lyrics.postValue(emptyList())
+        
+        lyricsJob = viewModelScope.launch {
+            try {
+                android.util.Log.d("LyricsSys", "Job started for $songId (force=$forceRefetch)")
+                
+                // 1. Check local storage (unless forcing refetch)
+                if (!forceRefetch && lyricsRepository.hasLyrics(songId)) {
+                    val path = lyricsRepository.getLyricPath(songId)
+                    if (path != null) {
+                        val lines = lyricsRepository.parseLrcFile(path)
+                        if (lines.isNotEmpty()) {
+                            android.util.Log.d("LyricsSys", "Loaded local lyrics")
+                            _lyrics.postValue(lines)
+                            val isSynced = lines.any { it.timeMs > 0 }
+                            _lyricsStatus.postValue(LyricsStatus.Success(isSynced))
+                            return@launch
+                        } else {
+                            // File exist but empty/corrupt? Remove it.
+                           lyricsRepository.removeLyricPath(songId) 
+                        }
+                    }
                 }
-                is com.wayne.musicdeck.data.FetchResult.NotFound -> {
-                    _lyricsStatus.postValue(LyricsStatus.NotFound)
+                
+                // 2. Fetch from API
+                val title = mediaItem.mediaMetadata.title?.toString() ?: "Unknown"
+                val artist = mediaItem.mediaMetadata.artist?.toString() ?: "Unknown"
+                val album = mediaItem.mediaMetadata.albumTitle?.toString()
+                val duration = mediaController.value?.duration ?: 0L
+                
+                if (title == "Unknown") {
+                    _lyricsStatus.postValue(LyricsStatus.Error("Unknown Title"))
+                    return@launch
                 }
-                is com.wayne.musicdeck.data.FetchResult.Error -> {
-                    _lyricsStatus.postValue(LyricsStatus.Error(result.message))
+                
+                // Skip very long tracks (likely mixes)
+                if (duration > 15 * 60 * 1000) {
+                     _lyricsStatus.postValue(LyricsStatus.NotFound)
+                     return@launch
                 }
+                
+                android.util.Log.d("LyricsSys", "Fetching API: $title")
+                val result = lyricsRepository.fetchAndSaveLyrics(
+                    songId = songId,
+                    trackName = title,
+                    artistName = artist,
+                    albumName = album,
+                    durationMs = if (duration > 0) duration else null
+                )
+                
+                when (result) {
+                    is com.wayne.musicdeck.data.FetchResult.Success -> {
+                        android.util.Log.d("LyricsSys", "API Success")
+                        val path = lyricsRepository.getLyricPath(songId)
+                        if (path != null) {
+                             val lines = lyricsRepository.parseLrcFile(path)
+                             _lyrics.postValue(lines)
+                             _lyricsStatus.postValue(LyricsStatus.Success(result.isSynced))
+                        } else {
+                            _lyricsStatus.postValue(LyricsStatus.Error("Save failed"))
+                        }
+                    }
+                    is com.wayne.musicdeck.data.FetchResult.NotFound -> {
+                        android.util.Log.d("LyricsSys", "API NotFound")
+                        _lyricsStatus.postValue(LyricsStatus.NotFound)
+                    }
+                    is com.wayne.musicdeck.data.FetchResult.Error -> {
+                        android.util.Log.d("LyricsSys", "API Error: ${result.message}")
+                        _lyricsStatus.postValue(LyricsStatus.Error(result.message))
+                    }
+                }
+                
+            } catch (e: Exception) {
+               if (e is kotlinx.coroutines.CancellationException) throw e
+               e.printStackTrace()
+               _lyricsStatus.postValue(LyricsStatus.Error("Error: ${e.message}"))
             }
         }
     }
     
-    private fun loadLocalLyrics(songId: Long) {
-        val path = lyricsRepository.getLyricPath(songId)
-        if (path != null) {
-            val lines = lyricsRepository.parseLrcFile(path)
-            _lyrics.postValue(lines)
-            
-            val isSynced = lines.any { it.timeMs > 0 }
-            _lyricsStatus.postValue(LyricsStatus.Success(isSynced = isSynced))
-        } else {
-            _lyricsStatus.postValue(LyricsStatus.NotFound)
+    // --- Helpers for Menu / Manual Fetch ---
+    
+    fun hasLyrics(songId: Long): Boolean {
+        return lyricsRepository.hasLyrics(songId)
+    }
+    
+    fun fetchLyrics(song: Song) {
+        val controller = mediaController.value ?: return
+        // Only fetch if it's the current song (simplification)
+        if (controller.currentMediaItem?.mediaId == song.id.toString()) {
+            loadLyricsForMediaItem(controller.currentMediaItem!!, forceRefetch = true)
         }
     }
     
-    // Manual trigger for current song
     fun retryFetchLyrics() {
         val controller = mediaController.value ?: return
         val item = controller.currentMediaItem ?: return
-        loadOrFetchLyrics(item)
+        loadLyricsForMediaItem(item, forceRefetch = true)
     }
-
 }

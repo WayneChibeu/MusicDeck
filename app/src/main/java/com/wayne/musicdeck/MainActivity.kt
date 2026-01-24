@@ -1017,6 +1017,34 @@ class MainActivity : AppCompatActivity() {
     private fun setupRecyclerView() {
         binding.recyclerView.layoutManager = LinearLayoutManager(this)
         binding.recyclerView.adapter = adapter
+        
+        // Restore scroll position from SharedPreferences
+        restoreScrollPosition()
+    }
+    
+    private var hasRestoredScrollOnce = false
+    
+    private fun restoreScrollPosition() {
+        val prefs = getSharedPreferences("ui_state", MODE_PRIVATE)
+        val savedPosition = prefs.getInt("tracks_scroll_position", 0)
+        if (savedPosition > 0 && !hasRestoredScrollOnce) {
+            binding.recyclerView.post {
+                (binding.recyclerView.layoutManager as? LinearLayoutManager)?.scrollToPosition(savedPosition)
+                hasRestoredScrollOnce = true
+            }
+        }
+    }
+    
+    override fun onPause() {
+        super.onPause()
+        // Save scroll position for Tracks tab
+        val layoutManager = binding.recyclerView.layoutManager as? LinearLayoutManager
+        val position = layoutManager?.findFirstVisibleItemPosition() ?: 0
+        
+        getSharedPreferences("ui_state", MODE_PRIVATE)
+            .edit()
+            .putInt("tracks_scroll_position", position)
+            .apply()
     }
     
     // scrollToLetter removed - unused

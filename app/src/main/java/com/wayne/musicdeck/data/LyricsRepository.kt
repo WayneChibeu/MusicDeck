@@ -114,9 +114,12 @@ class LyricsRepository(private val context: Context) {
         val lyrics = mutableListOf<LyricLine>()
         
         try {
-            file.readLines().forEach { line ->
-                // Parse [mm:ss.xx] or [mm:ss.xxx] format
-                val regex = "\\[(\\d{2}):(\\d{2})\\.(\\d{2,3})\\](.*)".toRegex()
+            val fileLines = file.readLines()
+            
+            fileLines.forEach { line ->
+                // More flexible regex to handle various LRC formats:
+                // [m:ss.xx], [mm:ss.xx], [mm:ss.xxx], [m:ss:xx], etc.
+                val regex = "\\[(\\d{1,2}):(\\d{2})[.:](\\d{2,3})\\](.*)".toRegex()
                 val match = regex.find(line)
                 
                 if (match != null) {
@@ -136,6 +139,16 @@ class LyricsRepository(private val context: Context) {
                     lyrics.add(LyricLine(timeMs, text))
                 }
             }
+            
+            // If no timed lyrics found, try to load as plain text
+            if (lyrics.isEmpty() && fileLines.isNotEmpty()) {
+                var timeOffset = 0L
+                fileLines.filter { it.isNotBlank() && !it.startsWith("[") }.forEach { text ->
+                    lyrics.add(LyricLine(timeOffset, text.trim()))
+                    timeOffset += 3000 // 3 seconds per line as fallback
+                }
+            }
+            
         } catch (e: Exception) {
             e.printStackTrace()
         }

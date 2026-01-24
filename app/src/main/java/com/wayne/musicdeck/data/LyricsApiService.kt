@@ -112,10 +112,11 @@ class LyricsApiService {
                 return@withContext LyricsResult.NotFound
                 
             } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
                 lastError = e
                 Log.w(TAG, "Attempt ${attempt + 1} failed: ${e.message}")
                 if (attempt < MAX_RETRIES) {
-                    Thread.sleep(500L * (attempt + 1))
+                    kotlinx.coroutines.delay(500L * (attempt + 1))
                 }
             }
         }

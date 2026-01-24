@@ -48,7 +48,9 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
             }
             currentSong?.let { song ->
                 viewModel.setLyricFile(song, it)
-                loadLyrics()
+                viewModel.mediaController.value?.currentMediaItem?.let { item ->
+                     viewModel.loadLyricsForMediaItem(item, forceRefetch = false)
+                }
             }
         }
     }
@@ -251,6 +253,42 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         }
     }
     
+    /**
+     * Manually syncs lyrics UI visibility based on current ViewModel status.
+     * Needed because LiveData observer only fires on VALUE CHANGE, not on re-read.
+     * Call this when switching to lyrics tab to ensure UI is correct.
+     */
+    private fun syncLyricsUI() {
+        val status = viewModel.lyricsStatus.value ?: MainViewModel.LyricsStatus.None
+        
+        when (status) {
+            is MainViewModel.LyricsStatus.Loading -> {
+                binding.lyricsLoadingContainer.visibility = View.VISIBLE
+                binding.rvLyrics.visibility = View.GONE
+                binding.noLyricPlaceholder.visibility = View.GONE
+            }
+            
+            is MainViewModel.LyricsStatus.Success -> {
+                binding.lyricsLoadingContainer.visibility = View.GONE
+                binding.rvLyrics.visibility = View.VISIBLE
+                binding.noLyricPlaceholder.visibility = View.GONE
+                
+                // Re-submit lyrics to adapter in case it's stale
+                viewModel.lyrics.value?.let { lines ->
+                    lyricsAdapter.submitList(lines)
+                }
+            }
+            
+            is MainViewModel.LyricsStatus.NotFound,
+            is MainViewModel.LyricsStatus.Error,
+            is MainViewModel.LyricsStatus.None -> {
+                binding.lyricsLoadingContainer.visibility = View.GONE
+                binding.rvLyrics.visibility = View.GONE
+                binding.noLyricPlaceholder.visibility = View.VISIBLE
+            }
+        }
+    }
+    
     private fun smoothScrollToCenter(position: Int) {
         val smoothScroller = object : LinearSmoothScroller(context) {
             override fun calculateDtToFit(viewStart: Int, viewEnd: Int, boxStart: Int, boxEnd: Int, snapPreference: Int): Int {
@@ -322,7 +360,17 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
             .withEndAction(null) // Ensure no GONE action persists
             .start()
         
-        loadLyrics()
+        // Hide toggle when in lyrics view to avoid visual clutter
+        binding.toggleWrapper.animate()
+            .alpha(0f)
+            .setDuration(200)
+            .withEndAction {
+                binding.toggleWrapper.visibility = View.INVISIBLE
+            }
+            .start()
+        
+        // Sync lyrics UI based on current status (observer only fires on CHANGE)
+        syncLyricsUI()
     }
     
     private fun showCoverView() {
@@ -355,6 +403,13 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
             .setDuration(300)
             .setInterpolator(android.view.animation.DecelerateInterpolator(2f))
             .withEndAction(null)
+            .start()
+        
+        // Show toggle when returning to cover view
+        binding.toggleWrapper.visibility = View.VISIBLE
+        binding.toggleWrapper.animate()
+            .alpha(1f)
+            .setDuration(200)
             .start()
     }
 
@@ -504,9 +559,6 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         }
 
         // SeekBar listeners
-        val visibleThumb = androidx.core.content.ContextCompat.getDrawable(requireContext(), R.drawable.seek_thumb)
-        val transparentThumb = android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT)
-        
         binding.seekBar.setOnSeekBarChangeListener(object : android.widget.SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: android.widget.SeekBar?, progress: Int, fromUser: Boolean) {
                 if (fromUser) {
@@ -519,18 +571,13 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
 
             override fun onStartTrackingTouch(seekBar: android.widget.SeekBar?) {
                 isTracking = true
-                // Phantom Animation: Show thumb
-                if (seekBar != null) {
-                    seekBar.thumb = visibleThumb
-                }
+                // Thumb stays visible - no more phantom animation to preserve dynamic coloring
             }
 
             override fun onStopTrackingTouch(seekBar: android.widget.SeekBar?) {
                 isTracking = false
-                // Phantom Animation: Hide thumb
+                
                 if (seekBar != null) {
-                    seekBar.thumb = transparentThumb
-                    
                     val duration = player.duration
                     if (duration > 0) {
                         val seekPos = (seekBar.progress / 1000f * duration).toLong()
@@ -673,9 +720,17 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         }
 
         // Helper to check if a color is dark enough for white text/UI
-        // Luminance 0.0 is black, 1.0 is white. We want dark, so < 0.5
+        // Luminance 0.0 is black, 1.0 is white. We want dark, so < 0.4 (stricter threshold)
         fun isColorDark(color: Int): Boolean {
-            return androidx.core.graphics.ColorUtils.calculateLuminance(color) < 0.5
+            return androidx.core.graphics.ColorUtils.calculateLuminance(color) < 0.4
+        }
+        
+        // Helper to darken a light color
+        fun darkenColor(color: Int, factor: Float = 0.5f): Int {
+            val hsv = FloatArray(3)
+            android.graphics.Color.colorToHSV(color, hsv)
+            hsv[2] *= factor // Reduce brightness
+            return android.graphics.Color.HSVToColor(hsv)
         }
         
         // Smart Selection Priority:
@@ -684,6 +739,7 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         // 3. Dark Muted - Good fallback if vibrant is missing
         // 4. Vibrant (if dark)
         // 5. Muted (if dark)
+        // 6. Darken the dominant color if nothing else works
         
         val dominant = palette.getDominantColor(android.graphics.Color.TRANSPARENT)
         val darkVibrant = palette.getDarkVibrantColor(android.graphics.Color.TRANSPARENT)
@@ -698,22 +754,64 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
             darkMuted != android.graphics.Color.TRANSPARENT && isColorDark(darkMuted) -> darkMuted
             vibrant != android.graphics.Color.TRANSPARENT && isColorDark(vibrant) -> vibrant
             muted != android.graphics.Color.TRANSPARENT && isColorDark(muted) -> muted
-            // Fallbacks if EVERYTHING is light (e.g. white album art)
-            darkVibrant != android.graphics.Color.TRANSPARENT -> darkVibrant // Try dark vibrant regardless
+            // Fallbacks if EVERYTHING is light (e.g. pink/lavender album art)
+            darkVibrant != android.graphics.Color.TRANSPARENT -> darkVibrant
+            darkMuted != android.graphics.Color.TRANSPARENT -> darkMuted
+            // LAST RESORT: Darken the dominant color to make it usable
+            dominant != android.graphics.Color.TRANSPARENT -> darkenColor(dominant, 0.4f)
             else -> defaultColor // Give up and use default dark theme surface
         }
         
         applyBackgroundColor(selectedColor)
         
-        // Select Accent Color for Seek Bar (prefer Light/Vibrant for contrast against dark BG)
-        // If background is dark, we want a bright bar.
-        val accentColor = when {
-            lightVibrant != android.graphics.Color.TRANSPARENT -> lightVibrant
-            vibrant != android.graphics.Color.TRANSPARENT -> vibrant
-            else -> android.graphics.Color.WHITE // Fallback to white which always works on dark
+        // Select Accent Color for Seek Bar
+        // For dark backgrounds, use WHITE to ensure high contrast against colored backgrounds.
+        // User requested white controls to avoid "Pink on Pink" obscurity.
+        // Helper to choose accent color with good contrast (WCAG >= 3.0 for graphical objects)
+        fun getHighContrastAccent(bg: Int, candidates: List<Int>, fallback: Int): Int {
+            for (color in candidates) {
+                if (color == android.graphics.Color.TRANSPARENT) continue
+                if (androidx.core.graphics.ColorUtils.calculateContrast(color, bg) >= 3.0) return color
+            }
+            return fallback
+        }
+
+        val bgIsDark = isColorDark(selectedColor)
+        val accentColor = if (bgIsDark) {
+             // For Dark BG: Try LightVibrant, then Vibrant, else White
+             getHighContrastAccent(selectedColor, listOf(lightVibrant, vibrant), android.graphics.Color.WHITE)
+        } else {
+             // For Light BG: Try DarkVibrant, then Vibrant (darkened), else Dark Gray
+             val darkVib = if (vibrant != android.graphics.Color.TRANSPARENT) darkenColor(vibrant, 0.6f) else android.graphics.Color.TRANSPARENT
+             getHighContrastAccent(selectedColor, listOf(darkVibrant, darkVib), android.graphics.Color.DKGRAY)
         }
         
         updateSeekBarColor(accentColor)
+        updateTextColors(bgIsDark)
+    }
+    
+    private fun updateTextColors(useLightText: Boolean) {
+        val textColor = if (useLightText) android.graphics.Color.WHITE else android.graphics.Color.BLACK
+        val secondaryColor = if (useLightText) 0xB3FFFFFF.toInt() else 0xB3000000.toInt() // 70% opacity
+        
+        // Update title and artist
+        binding.tvFullTitle.setTextColor(textColor)
+        binding.tvFullArtist.setTextColor(secondaryColor)
+        
+        // Update time labels
+        binding.tvCurrentTime.setTextColor(secondaryColor)
+        binding.tvTotalTime.setTextColor(secondaryColor)
+        
+        // Update header icons
+        val iconTint = android.content.res.ColorStateList.valueOf(textColor)
+        binding.btnCollapse.imageTintList = iconTint
+        binding.btnMenu.imageTintList = iconTint
+        binding.btnFavorite.imageTintList = iconTint
+        binding.btnPlayPause.imageTintList = iconTint
+        binding.btnPrev.imageTintList = iconTint
+        binding.btnNext.imageTintList = iconTint
+        binding.btnRepeat.imageTintList = iconTint
+        binding.btnQueue.imageTintList = iconTint
     }
     
     private fun applyBackgroundColor(color: Int) {
@@ -848,41 +946,5 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         btn.startAnimation(animSet)
     }
     
-    private fun loadLyrics() {
-        val currentId = viewModel.mediaController.value?.currentMediaItem?.mediaId?.toLongOrNull()
-        val song = currentId?.let { id -> viewModel.songs.value?.find { it.id == id } }
-        
-        if (song == null) {
-            binding.noLyricPlaceholder.visibility = View.VISIBLE
-            binding.rvLyrics.visibility = View.GONE
-            return
-        }
-        
-        // Check if lyrics exist
-        if (viewModel.hasLyrics(song.id)) {
-            // Load and parse lyrics
-            val lyrics = viewModel.parseLyrics(song.id)
-            if (lyrics.isNotEmpty()) {
-                lyricsAdapter.submitList(lyrics)
-                binding.noLyricPlaceholder.visibility = View.GONE
-                binding.rvLyrics.visibility = View.VISIBLE
-                
-                // Seek to current
-                val player = viewModel.mediaController.value
-                if (player != null) {
-                    val index = lyricsAdapter.updateTime(player.currentPosition)
-                    if (index != -1) {
-                        smoothScrollToCenter(index)
-                    }
-                }
-            } else {
-                binding.noLyricPlaceholder.visibility = View.VISIBLE
-                binding.rvLyrics.visibility = View.GONE
-            }
-        } else {
-            // No lyrics - show placeholder
-            binding.noLyricPlaceholder.visibility = View.VISIBLE
-            binding.rvLyrics.visibility = View.GONE
-        }
-    }
+
 }

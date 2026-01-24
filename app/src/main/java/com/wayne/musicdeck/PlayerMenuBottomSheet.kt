@@ -89,34 +89,33 @@ class PlayerMenuBottomSheet : BottomSheetDialogFragment() {
         }
         
         // Observe fetch result
-        viewModel.lyricsFetchResult.observe(viewLifecycleOwner) { status ->
+        viewModel.lyricsStatus.observe(viewLifecycleOwner) { status ->
             when (status) {
-                is MainViewModel.LyricsFetchStatus.Loading -> {
+                is MainViewModel.LyricsStatus.Loading -> {
                     progressFetchLyrics.visibility = View.VISIBLE
                     tvFetchLyricsLabel.text = "Fetching..."
                 }
-                is MainViewModel.LyricsFetchStatus.Success -> {
+                is MainViewModel.LyricsStatus.Success -> {
                     progressFetchLyrics.visibility = View.GONE
-                    tvFetchLyricsLabel.text = "Fetch Lyrics"
-                    Toast.makeText(context, status.message, Toast.LENGTH_SHORT).show()
-                    viewModel.clearLyricsFetchResult()
-                    dismiss()
+                    tvFetchLyricsLabel.text = "Re-fetch Lyrics"
+                    // Don't auto-dismiss as it might strict immediately on load
                 }
-                is MainViewModel.LyricsFetchStatus.NotFound -> {
+                is MainViewModel.LyricsStatus.NotFound -> {
                     progressFetchLyrics.visibility = View.GONE
                     tvFetchLyricsLabel.text = "Fetch Lyrics"
                     Toast.makeText(context, "Lyrics not found online", Toast.LENGTH_SHORT).show()
-                    viewModel.clearLyricsFetchResult()
                 }
-                is MainViewModel.LyricsFetchStatus.Error -> {
+                is MainViewModel.LyricsStatus.Error -> {
                     progressFetchLyrics.visibility = View.GONE
                     tvFetchLyricsLabel.text = "Fetch Lyrics"
-                    Toast.makeText(context, "Error: ${status.message}", Toast.LENGTH_SHORT).show()
-                    viewModel.clearLyricsFetchResult()
+                    Toast.makeText(context, status.message, Toast.LENGTH_SHORT).show()
                 }
-                null -> { /* Initial state, do nothing */ }
+                else -> {
+                    progressFetchLyrics.visibility = View.GONE
+                }
             }
         }
+
 
         // Add to Playlist
         view.findViewById<View>(R.id.menuAddToPlaylist).setOnClickListener {
