@@ -1003,6 +1003,81 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         return lyricsRepository.parseLrcFile(path)
     }
     
+    // Lyrics Fetching
+    private val _lyricsFetchResult = MutableLiveData<LyricsFetchStatus?>()
+    val lyricsFetchResult: LiveData<LyricsFetchStatus?> = _lyricsFetchResult
+    
+    /**
+     * Fetch lyrics from LRCLIB for the given song
+     */
+    fun fetchLyrics(song: Song) {
+        _lyricsFetchResult.value = LyricsFetchStatus.Loading
+        
+        viewModelScope.launch(Dispatchers.IO) {
+            val result = lyricsRepository.fetchAndSaveLyrics(
+                songId = song.id,
+                trackName = song.title,
+                artistName = song.artist,
+                albumName = song.album,
+                durationMs = song.duration
+            )
+            
+            withContext(Dispatchers.Main) {
+                _lyricsFetchResult.value = when (result) {
+                    is com.wayne.musicdeck.data.FetchResult.Success -> {
+                        if (result.isSynced) {
+                            LyricsFetchStatus.Success("Synced lyrics found!")
+                        } else {
+                            LyricsFetchStatus.Success("Lyrics found (not synced)")
+                        }
+                    }
+                    is com.wayne.musicdeck.data.FetchResult.NotFound -> {
+                        LyricsFetchStatus.NotFound
+                    }
+                    is com.wayne.musicdeck.data.FetchResult.Error -> {
+                        LyricsFetchStatus.Error(result.message)
+                    }
+                }
+            }
+        }
+    }
+    
+    /**
+     * Auto-fetch lyrics if not available locally
+     * Call this when a new song starts playing
+     */
+    fun autoFetchLyricsIfNeeded(song: Song) {
+        if (!hasLyrics(song.id)) {
+            fetchLyrics(song)
+        }
+    }
+    
+    fun clearLyricsFetchResult() {
+        _lyricsFetchResult.value = null
+    }
+    
+    /**
+     * Remove lyrics for a song
+     */
+    fun removeLyrics(songId: Long) {
+        val path = lyricsRepository.getLyricPath(songId)
+        if (path != null) {
+            try {
+                java.io.File(path).delete()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+        lyricsRepository.removeLyricPath(songId)
+    }
+    
+    sealed class LyricsFetchStatus {
+        object Loading : LyricsFetchStatus()
+        data class Success(val message: String) : LyricsFetchStatus()
+        object NotFound : LyricsFetchStatus()
+        data class Error(val message: String) : LyricsFetchStatus()
+    }
+    
     // Get file size for a song
     fun getSongFileSize(song: Song): String {
         return try {

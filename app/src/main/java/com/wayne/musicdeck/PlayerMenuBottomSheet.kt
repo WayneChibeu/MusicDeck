@@ -64,6 +64,60 @@ class PlayerMenuBottomSheet : BottomSheetDialogFragment() {
             }
         }
 
+        // Fetch Lyrics
+        val menuFetchLyrics = view.findViewById<View>(R.id.menuFetchLyrics)
+        val progressFetchLyrics = view.findViewById<View>(R.id.progressFetchLyrics)
+        val tvFetchLyricsLabel = view.findViewById<TextView>(R.id.tvFetchLyricsLabel)
+        
+        // Update label based on whether song already has lyrics
+        val currentId = viewModel.mediaController.value?.currentMediaItem?.mediaId?.toLongOrNull()
+        val hasLyrics = currentId?.let { viewModel.hasLyrics(it) } ?: false
+        if (hasLyrics) {
+            tvFetchLyricsLabel.text = "Re-fetch Lyrics"
+        }
+        
+        menuFetchLyrics.setOnClickListener {
+            val songId = viewModel.mediaController.value?.currentMediaItem?.mediaId?.toLongOrNull()
+            val song = viewModel.songs.value?.find { it.id == songId }
+            if (song != null) {
+                progressFetchLyrics.visibility = View.VISIBLE
+                tvFetchLyricsLabel.text = "Fetching..."
+                viewModel.fetchLyrics(song)
+            } else {
+                Toast.makeText(context, "No song playing", Toast.LENGTH_SHORT).show()
+            }
+        }
+        
+        // Observe fetch result
+        viewModel.lyricsFetchResult.observe(viewLifecycleOwner) { status ->
+            when (status) {
+                is MainViewModel.LyricsFetchStatus.Loading -> {
+                    progressFetchLyrics.visibility = View.VISIBLE
+                    tvFetchLyricsLabel.text = "Fetching..."
+                }
+                is MainViewModel.LyricsFetchStatus.Success -> {
+                    progressFetchLyrics.visibility = View.GONE
+                    tvFetchLyricsLabel.text = "Fetch Lyrics"
+                    Toast.makeText(context, status.message, Toast.LENGTH_SHORT).show()
+                    viewModel.clearLyricsFetchResult()
+                    dismiss()
+                }
+                is MainViewModel.LyricsFetchStatus.NotFound -> {
+                    progressFetchLyrics.visibility = View.GONE
+                    tvFetchLyricsLabel.text = "Fetch Lyrics"
+                    Toast.makeText(context, "Lyrics not found online", Toast.LENGTH_SHORT).show()
+                    viewModel.clearLyricsFetchResult()
+                }
+                is MainViewModel.LyricsFetchStatus.Error -> {
+                    progressFetchLyrics.visibility = View.GONE
+                    tvFetchLyricsLabel.text = "Fetch Lyrics"
+                    Toast.makeText(context, "Error: ${status.message}", Toast.LENGTH_SHORT).show()
+                    viewModel.clearLyricsFetchResult()
+                }
+                null -> { /* Initial state, do nothing */ }
+            }
+        }
+
         // Add to Playlist
         view.findViewById<View>(R.id.menuAddToPlaylist).setOnClickListener {
             val currentId = viewModel.mediaController.value?.currentMediaItem?.mediaId?.toLongOrNull()
