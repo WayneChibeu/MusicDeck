@@ -32,20 +32,71 @@ class LyricsApiService {
         durationSeconds: Int? = null
     ): LyricsResult = withContext(Dispatchers.IO) {
         try {
+            // Clean up messy metadata (e.g., "Artist - Song (feat. X)" with unknown artist)
+            val (cleanTrack, cleanArtist) = cleanupMetadata(trackName, artistName)
+            
+            Log.d(TAG, "Original: track='$trackName', artist='$artistName'")
+            Log.d(TAG, "Cleaned: track='$cleanTrack', artist='$cleanArtist'")
+            
             // First try the GET endpoint for exact match (faster)
-            val exactResult = tryExactMatch(trackName, artistName, albumName, durationSeconds)
+            val exactResult = tryExactMatch(cleanTrack, cleanArtist, albumName, durationSeconds)
             if (exactResult is LyricsResult.Success) {
                 return@withContext exactResult
             }
             
             // Fallback to search endpoint
-            val searchResult = trySearch(trackName, artistName)
+            val searchResult = trySearch(cleanTrack, cleanArtist)
             return@withContext searchResult
             
         } catch (e: Exception) {
             Log.e(TAG, "Failed to fetch lyrics", e)
             LyricsResult.Error(e.message ?: "Unknown error")
         }
+    }
+    
+    /**
+     * Clean up messy metadata for better search results.
+     * Handles cases like:
+     * - Title: "Alan Walker - Darkside (feat Au-Ra)" with Artist: "<unknown>"
+     * - Extracts actual track name and artist from the title
+     */
+    private fun cleanupMetadata(rawTitle: String, rawArtist: String): Pair<String, String> {
+        var title = rawTitle.trim()
+        var artist = rawArtist.trim()
+        
+        // Check if artist is unknown/empty
+        val isArtistUnknown = artist.isBlank() || 
+            artist.equals("<unknown>", ignoreCase = true) ||
+            artist.equals("unknown", ignoreCase = true) ||
+            artist.equals("unknown artist", ignoreCase = true)
+        
+        // Try to extract artist from title if format is "Artist - Song"
+        if (title.contains(" - ")) {
+            val parts = title.split(" - ", limit = 2)
+            if (parts.size == 2) {
+                val potentialArtist = parts[0].trim()
+                val potentialTitle = parts[1].trim()
+                
+                // If artist is unknown, use the extracted artist
+                if (isArtistUnknown && potentialArtist.isNotBlank()) {
+                    artist = potentialArtist
+                    title = potentialTitle
+                }
+            }
+        }
+        
+        // Remove featuring info from title for cleaner search
+        // Matches: (feat. X), (feat X), (ft. X), (ft X), [feat. X], etc.
+        title = title.replace(Regex("\\s*[\\(\\[]\\s*(feat\\.?|ft\\.?)\\s*.+[\\)\\]]", RegexOption.IGNORE_CASE), "")
+        
+        // Also remove featuring at the end without parentheses
+        title = title.replace(Regex("\\s+(feat\\.?|ft\\.?)\\s+.+$", RegexOption.IGNORE_CASE), "")
+        
+        // Clean up any double spaces
+        title = title.replace(Regex("\\s+"), " ").trim()
+        artist = artist.replace(Regex("\\s+"), " ").trim()
+        
+        return Pair(title, artist)
     }
     
     /**
