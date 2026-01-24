@@ -310,10 +310,11 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         val dialog = dialog as? BottomSheetDialog ?: return
         val bottomSheet = dialog.findViewById<View>(com.google.android.material.R.id.design_bottom_sheet) ?: return
         
+        // Force full screen height
         val displayMetrics = resources.displayMetrics
         val height = displayMetrics.heightPixels
         
-        bottomSheet.layoutParams?.height = height
+        bottomSheet.layoutParams?.height = ViewGroup.LayoutParams.MATCH_PARENT
         bottomSheet.requestLayout()
         
         val behavior = BottomSheetBehavior.from(bottomSheet)
@@ -321,7 +322,55 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         behavior.state = BottomSheetBehavior.STATE_EXPANDED
         behavior.skipCollapsed = true
         behavior.isDraggable = false // Restrict swipe-down dismissal
+        
+        setupEdgeToEdge(dialog)
     }
+    
+    private fun setupEdgeToEdge(dialog: BottomSheetDialog) {
+        val window = dialog.window ?: return
+        
+        // Make navigation, status bars transparent
+        window.statusBarColor = android.graphics.Color.TRANSPARENT
+        window.navigationBarColor = android.graphics.Color.TRANSPARENT
+        
+        // Request edge-to-edge layout
+        androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
+        
+        // Handle insets (padding for status bar/nav bar)
+        androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(binding.root) { view, windowInsets ->
+            val insets = windowInsets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+            
+            // Add top padding for status bar (so header isn't hidden)
+            // Add bottom padding for nav bar (so controls aren't hidden)
+            view.setPadding(0, 0, 0, 0)
+            binding.headerView.setPadding(
+                binding.headerView.paddingLeft,
+                insets.top, // Only pad the header top
+                binding.headerView.paddingRight,
+                binding.headerView.paddingBottom
+            )
+            
+            // Add bottom padding to container to avoid nav bar overlap
+            // We apply this to the containers inside the root, not the root itself (which has background)
+            binding.coverView.setPadding(
+                binding.coverView.paddingLeft,
+                binding.coverView.paddingTop,
+                binding.coverView.paddingRight,
+                insets.bottom + 16.dpToPx() // Original 16dp + nav bar height
+            )
+            
+            binding.lyricView.setPadding(
+                binding.lyricView.paddingLeft,
+                binding.lyricView.paddingTop,
+                binding.lyricView.paddingRight,
+                insets.bottom + 16.dpToPx()
+            )
+            
+            androidx.core.view.WindowInsetsCompat.CONSUMED
+        }
+    }
+    
+    private fun Int.dpToPx(): Int = (this * resources.displayMetrics.density).toInt()
 
     private fun setupPlayer(player: Player) {
         if (_binding == null) return
@@ -555,21 +604,34 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
             ctx, com.google.android.material.R.attr.colorSurface, android.graphics.Color.BLACK
         )
         
-        val dominantColor = palette?.getDominantColor(defaultColor) ?: defaultColor
-        val darkVibrant = palette?.getDarkVibrantColor(dominantColor) ?: dominantColor
-        val mutedDark = palette?.getDarkMutedColor(darkVibrant) ?: darkVibrant
+        // Get the most dominant/prominent color
+        // Priority: Dominant -> DarkVibrant -> Vibrant -> Default
+        val primaryColor = palette?.getDominantColor(
+            palette.getDarkVibrantColor(
+                palette.getVibrantColor(defaultColor)
+            )
+        ) ?: defaultColor
         
-        // Create gradient from album colors to surface
+        // Create a 'whole' gradient: Primary Color -> Slightly Darker Primary Color
+        // This avoids fading to black and keeps the color strong throughout
+        
+        // darken the bottom slightly for text readability, but keep it colored
+        val hsv = FloatArray(3)
+        android.graphics.Color.colorToHSV(primaryColor, hsv)
+        hsv[2] *= 0.6f // Reduce brightness by 40% for bottom
+        val darkerColor = android.graphics.Color.HSVToColor(hsv)
+        
         val gradient = android.graphics.drawable.GradientDrawable(
             android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM,
-            intArrayOf(mutedDark, defaultColor)
+            intArrayOf(primaryColor, darkerColor)
         )
         
         // Apply to root view
         binding.root.background = gradient
         
-        // Tint header to match
-        binding.headerView.backgroundTintList = android.content.res.ColorStateList.valueOf(mutedDark)
+        // Tint header to match logic matches root top color
+        // Use semi-transparent version or just transparent since root handles likely
+        binding.headerView.backgroundTintList = android.content.res.ColorStateList.valueOf(android.graphics.Color.TRANSPARENT)
     }
 
     private fun updatePlayPauseIcon(isPlaying: Boolean) {
