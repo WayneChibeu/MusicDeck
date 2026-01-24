@@ -1164,6 +1164,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 return@launch
             }
             
+            // Optimization: Skip fetching for very long tracks (> 15 mins) likely to be mixes/podcasts
+            if (duration > 15 * 60 * 1000) {
+                 _lyricsStatus.postValue(LyricsStatus.NotFound)
+                 return@launch
+            }
+            
             val result = lyricsRepository.fetchAndSaveLyrics(
                 songId = songId,
                 trackName = title,
