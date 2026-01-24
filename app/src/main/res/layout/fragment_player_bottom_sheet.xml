@@ -272,6 +272,7 @@
             android:id="@+id/btnCollapse"
             android:layout_width="40dp"
             android:layout_height="40dp"
+            android:layout_marginTop="16dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@drawable/ic_chevron_down"
             app:tint="?attr/colorOnSurface"
@@ -284,6 +285,7 @@
         <FrameLayout
             android:layout_width="wrap_content"
             android:layout_height="36dp"
+            android:layout_marginTop="16dp"
             android:background="@drawable/bg_toggle_container"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
@@ -325,6 +327,7 @@
             android:id="@+id/btnMenu"
             android:layout_width="40dp"
             android:layout_height="40dp"
+            android:layout_marginTop="16dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@drawable/ic_more_vert"
             app:tint="?attr/colorOnSurface"
