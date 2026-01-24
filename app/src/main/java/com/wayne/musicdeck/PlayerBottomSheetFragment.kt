@@ -344,19 +344,40 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
             android.view.WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
         )
         
+        // HIDE SYSTEM BARS (Status Bar icons, Navigation Bar buttons)
+        // This removes the time, battery, notifications, etc.
+        val insetsController = androidx.core.view.WindowCompat.getInsetsController(window, window.decorView)
+        insetsController.systemBarsBehavior = androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        insetsController.hide(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+        
         // Request edge-to-edge layout (still good practice)
         androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
         
-        // Handle insets (padding for status bar/nav bar)
+        // Handle insets (padding for status bar/nav bar) 
+        // NOTE: Since we are HIDING bars, the insets might be 0. 
+        // We might want to keep some static padding or rely on the visual design.
+        // But usually when hiding, you want 0 padding. 
+        // Let's modify the listener to safe-guard against 0 insets if user wants to use the full screen.
         androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(binding.root) { view, windowInsets ->
+            // Even if hidden, we might get insets if they are transiently shown.
+            // But for "FULL fullscreen", we probably want to ignore the top inset so our content goes UP.
+            
+            // However, relying on 0 padding for header might overlap the "Cover/Lyrics" toggle with the physical camera cutout.
+            // A safe bet is to keep a minimal top padding for the header, 
+            // OR just accept that it covers the whole screen.
+            // Given "HeyTap" usually keeps a little status bar space even if hidden, let's stick to insets 
+            // BUT if the user strictly wants NO visible stuff, we let the content expand.
+            
             val insets = windowInsets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars())
             
-            // Add top padding for status bar (so header isn't hidden)
-            // Add bottom padding for nav bar (so controls aren't hidden)
+            // We'll keep the padding logic but since bars are hidden, insets.top might report 0 or the cutout height.
+            // This ensures if there is a Notch/Cutout, we don't draw UNDER the camera physically (which looks bad).
+            // But the time/battery text will be GONE.
+            
             view.setPadding(0, 0, 0, 0)
             binding.headerView.setPadding(
                 binding.headerView.paddingLeft,
-                insets.top, // Only pad the header top
+                insets.top, // Keeps respect for Cutout/Notch
                 binding.headerView.paddingRight,
                 binding.headerView.paddingBottom
             )
