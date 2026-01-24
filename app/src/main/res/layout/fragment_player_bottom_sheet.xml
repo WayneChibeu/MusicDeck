@@ -103,6 +103,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="32dp"
             android:layout_marginBottom="24dp"
+            android:layout_marginHorizontal="16dp"
             android:max="1000"
             android:progress="0"
             android:paddingStart="0dp"
