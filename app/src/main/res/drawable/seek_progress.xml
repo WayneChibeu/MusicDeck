@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Background Track (Dark Grey) -->
+    <item android:id="@android:id/background">
+        <shape android:shape="rectangle">
+            <corners android:radius="4dp" />
+            <solid android:color="#26FFFFFF" /> <!-- 15% White for subtle dark grey look on dark bg -->
+        </shape>
+    </item>
+    
+    <!-- Secondary Progress (Buffering) - Optional, making transparent or same as bg -->
+    <item android:id="@android:id/secondaryProgress">
+        <scale android:scaleWidth="100%">
+            <shape android:shape="rectangle">
+                <corners android:radius="4dp" />
+                <solid android:color="#00000000" />
+            </shape>
+        </scale>
+    </item>
+    
+    <!-- Primary Progress (Active - White/OnSurface) -->
+    <item android:id="@android:id/progress">
+        <scale android:scaleWidth="100%">
+            <shape android:shape="rectangle">
+                <corners android:radius="4dp" />
+                <solid android:color="?attr/colorOnSurface" />
+            </shape>
+        </scale>
+    </item>
+</layer-list>
