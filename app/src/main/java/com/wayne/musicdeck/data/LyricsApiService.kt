@@ -131,7 +131,21 @@ class LyricsApiService {
             
             if (responseCode == 200) {
                 val response = connection.inputStream.bufferedReader().use { it.readText() }
-                val json = JSONObject(response)
+                
+                // Validate JSON before parsing
+                if (!response.trimStart().startsWith("{")) {
+                    Log.w(TAG, "Exact match returned non-JSON response")
+                    connection.disconnect()
+                    return LyricsResult.NotFound
+                }
+                
+                val json = try {
+                    JSONObject(response)
+                } catch (e: Exception) {
+                    Log.w(TAG, "Failed to parse exact match JSON", e)
+                    connection.disconnect()
+                    return LyricsResult.NotFound
+                }
                 
                 // Prefer synced lyrics, fallback to plain
                 val syncedLyrics = json.optString("syncedLyrics", "")
@@ -179,7 +193,21 @@ class LyricsApiService {
             
             if (responseCode == 200) {
                 val response = connection.inputStream.bufferedReader().use { it.readText() }
-                val results = JSONArray(response)
+                
+                // Validate JSON array before parsing
+                if (!response.trimStart().startsWith("[")) {
+                    Log.w(TAG, "Search returned non-JSON response")
+                    connection.disconnect()
+                    return LyricsResult.NotFound
+                }
+                
+                val results = try {
+                    JSONArray(response)
+                } catch (e: Exception) {
+                    Log.w(TAG, "Failed to parse search JSON", e)
+                    connection.disconnect()
+                    return LyricsResult.NotFound
+                }
                 
                 if (results.length() > 0) {
                     // Find best match with synced lyrics
