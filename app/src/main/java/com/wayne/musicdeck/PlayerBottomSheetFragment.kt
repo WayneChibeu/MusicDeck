@@ -189,6 +189,59 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         binding.btnManuallySpecifyLyric.setOnClickListener {
             lyricFilePicker.launch("*/*")
         }
+        
+        // Lyrics Observers
+        viewModel.lyrics.observe(viewLifecycleOwner) { lines ->
+            lyricsAdapter.submitList(lines)
+            
+            // Auto-scroll to current position if we just loaded lyrics
+            val player = viewModel.mediaController.value
+            if (player != null && lines.isNotEmpty()) {
+                val index = lyricsAdapter.updateTime(player.currentPosition)
+                if (index != -1) {
+                    smoothScrollToCenter(index)
+                }
+            }
+        }
+        
+        viewModel.lyricsStatus.observe(viewLifecycleOwner) { status ->
+            // Reset visibilities first to avoid flickering/overlapping
+            // But we do it carefully based on status
+            
+            when (status) {
+                is MainViewModel.LyricsStatus.Loading -> {
+                    binding.lyricsLoadingContainer.visibility = View.VISIBLE
+                    binding.rvLyrics.visibility = View.GONE
+                    binding.noLyricPlaceholder.visibility = View.GONE
+                }
+                
+                is MainViewModel.LyricsStatus.Success -> {
+                    binding.lyricsLoadingContainer.visibility = View.GONE
+                    binding.rvLyrics.visibility = View.VISIBLE
+                    binding.noLyricPlaceholder.visibility = View.GONE
+                }
+                
+                is MainViewModel.LyricsStatus.NotFound -> {
+                    binding.lyricsLoadingContainer.visibility = View.GONE
+                    binding.rvLyrics.visibility = View.GONE
+                    binding.noLyricPlaceholder.visibility = View.VISIBLE
+                    // Reset error text if needed?
+                }
+                
+                is MainViewModel.LyricsStatus.Error -> {
+                    binding.lyricsLoadingContainer.visibility = View.GONE
+                    binding.rvLyrics.visibility = View.GONE
+                    binding.noLyricPlaceholder.visibility = View.VISIBLE
+                    android.widget.Toast.makeText(context, "Lyrics error: ${status.message}", android.widget.Toast.LENGTH_SHORT).show()
+                }
+                
+                is MainViewModel.LyricsStatus.None -> {
+                     binding.lyricsLoadingContainer.visibility = View.GONE
+                     binding.rvLyrics.visibility = View.GONE
+                     binding.noLyricPlaceholder.visibility = View.VISIBLE
+                }
+            }
+        }
     }
     
     private fun setupLyricsRecyclerView() {
@@ -513,10 +566,7 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
                 val isFav = viewModel.favorites.value?.any { it.id == currentId } == true
                 updateFavoriteIcon(isFav)
             }
-            
-            if (isLyricsViewActive) {
-                loadLyrics()
-            }
+            // Lyrics are now observed automatically via viewModel.lyrics logic
         }
         override fun onIsPlayingChanged(isPlaying: Boolean) {
             if (_binding == null) return

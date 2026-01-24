@@ -208,6 +208,27 @@
         android:paddingBottom="12dp"
         android:visibility="gone">
 
+        <!-- Loading Indicator -->
+        <LinearLayout
+            android:id="@+id/lyricsLoadingContainer"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:visibility="gone">
+            <ProgressBar
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:indeterminateTint="?attr/colorSecondary" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="Fetching lyrics..."
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:alpha="0.7" />
+        </LinearLayout>
+
         <!-- No Lyric Placeholder -->
         <LinearLayout
             android:id="@+id/noLyricPlaceholder"
