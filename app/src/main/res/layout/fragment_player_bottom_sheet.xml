@@ -261,9 +261,12 @@
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/headerView"
         android:layout_width="match_parent"
-        android:layout_height="56dp"
+        android:layout_height="wrap_content"
+        android:minHeight="56dp"
         android:background="@android:color/transparent"
-        android:paddingHorizontal="16dp">
+        android:paddingHorizontal="16dp"
+        android:clipChildren="false"
+        android:clipToPadding="false">
 
         <ImageButton
             android:id="@+id/btnCollapse"
@@ -280,7 +283,7 @@
         <!-- Toggle Container with single stroke around entire pill -->
         <FrameLayout
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_height="36dp"
             android:background="@drawable/bg_toggle_container"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
@@ -290,7 +293,7 @@
             <LinearLayout
                 android:id="@+id/toggleContainer"
                 android:layout_width="wrap_content"
-                android:layout_height="32dp"
+                android:layout_height="match_parent"
                 android:orientation="horizontal">
 
                 <com.google.android.material.button.MaterialButton

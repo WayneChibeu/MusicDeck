@@ -337,8 +337,14 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
             window.isNavigationBarContrastEnforced = false
         }
+
+        // AGGRESSIVE IMMERSIVE MODE: Force layout behind system bars
+        window.setFlags(
+            android.view.WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+            android.view.WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
+        )
         
-        // Request edge-to-edge layout
+        // Request edge-to-edge layout (still good practice)
         androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
         
         // Handle insets (padding for status bar/nav bar)
