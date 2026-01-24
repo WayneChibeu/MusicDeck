@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Selected state: white -->
+    <!-- Selected state: bright white -->
     <item android:color="#FFFFFF" android:state_checked="true" />
-    <!-- Default state: grey -->
-    <item android:color="#AAAAAA" />
+    <!-- Default state: muted grey (more subtle) -->
+    <item android:color="#888888" />
 </selector>
