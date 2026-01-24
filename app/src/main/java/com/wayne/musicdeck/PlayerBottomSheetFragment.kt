@@ -738,6 +738,9 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
             // Fallback if not a LayerDrawable (shouldn't happen with our XML)
             progressDrawable.setTint(color)
         }
+        
+        // Tint Play/Pause Ring
+        binding.playPauseContainer.background?.setTint(color)
     }
     
 

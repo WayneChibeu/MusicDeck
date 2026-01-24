@@ -113,6 +113,7 @@
             android:progressDrawable="@drawable/seek_progress"
             android:minHeight="4dp"
             android:maxHeight="4dp"
+            android:paddingVertical="16dp"
             app:layout_constraintTop_toBottomOf="@+id/tvFullArtist"
             app:layout_constraintStart_toEndOf="@+id/tvCurrentTime"
             app:layout_constraintEnd_toStartOf="@+id/tvTotalTime" />
@@ -161,6 +162,7 @@
                 android:contentDescription="Previous" />
 
             <FrameLayout
+                android:id="@+id/playPauseContainer"
                 android:layout_width="72dp"
                 android:layout_height="72dp"
                 android:background="@drawable/bg_play_button_ring">
