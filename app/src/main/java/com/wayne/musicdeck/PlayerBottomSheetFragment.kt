@@ -803,10 +803,11 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         binding.tvTotalTime.setTextColor(secondaryColor)
         
         // Update header icons
+        // Update header icons (exclude Favorite, it manages its own color)
         val iconTint = android.content.res.ColorStateList.valueOf(textColor)
         binding.btnCollapse.imageTintList = iconTint
         binding.btnMenu.imageTintList = iconTint
-        binding.btnFavorite.imageTintList = iconTint
+        // binding.btnFavorite.imageTintList = iconTint // Don't override favorite color
         binding.btnPlayPause.imageTintList = iconTint
         binding.btnPrev.imageTintList = iconTint
         binding.btnNext.imageTintList = iconTint

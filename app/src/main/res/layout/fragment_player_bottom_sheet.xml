@@ -275,7 +275,8 @@
             android:layout_height="match_parent"
             android:visibility="gone"
             android:paddingHorizontal="20dp"
-            android:paddingVertical="16dp"
+            android:paddingTop="16dp"
+            android:paddingBottom="160dp"
             android:clipToPadding="false"
             android:scrollbars="vertical" />
 

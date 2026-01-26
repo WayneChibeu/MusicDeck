@@ -45,7 +45,7 @@ class MainActivity : AppCompatActivity() {
     
     // ...
 
-    private fun deleteSong(song: Song) {
+    fun deleteSong(song: Song) {
         try {
             viewModel.pendingDeleteSongId = song.id
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
@@ -158,6 +158,31 @@ class MainActivity : AppCompatActivity() {
                         // Fallback logic for sections without exact match?
                         // Just scroll to approximate? Simplified for now.
                     }
+                }
+            }
+        })
+        
+        // Sync List Scroll -> FastScroller Sidebar
+        binding.recyclerView.addOnScrollListener(object : androidx.recyclerview.widget.RecyclerView.OnScrollListener() {
+            override fun onScrolled(recyclerView: androidx.recyclerview.widget.RecyclerView, dx: Int, dy: Int) {
+                super.onScrolled(recyclerView, dx, dy)
+                val layoutManager = recyclerView.layoutManager as? androidx.recyclerview.widget.LinearLayoutManager ?: return
+                val firstPos = layoutManager.findFirstVisibleItemPosition()
+                
+                if (firstPos != androidx.recyclerview.widget.RecyclerView.NO_POSITION) {
+                    val item = adapter.currentList.getOrNull(firstPos) ?: return
+                    val letter = when (item) {
+                        is com.wayne.musicdeck.SongListItem.Header -> item.letter
+                        is com.wayne.musicdeck.SongListItem.SongItem -> {
+                            val firstChar = item.song.title.firstOrNull()?.uppercaseChar()
+                            if (firstChar != null && firstChar.isLetter()) firstChar.toString() else "#"
+                        }
+                        is com.wayne.musicdeck.SongListItem.FolderItem -> {
+                             val firstChar = item.name.firstOrNull()?.uppercaseChar()
+                             if (firstChar != null && firstChar.isLetter()) firstChar.toString() else "#"
+                        }
+                    }
+                    binding.fastScroller.setActiveLetter(letter)
                 }
             }
         })
@@ -1352,7 +1377,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     // Fix: Add missing dialog methods
-    private fun showSongDetailsDialog(song: Song) {
+    fun showSongDetailsDialog(song: Song) {
         val fileSize = viewModel.getSongFileSize(song)
         val details = """
             Title: ${song.title}
@@ -1377,7 +1402,7 @@ class MainActivity : AppCompatActivity() {
 
     private var playlistDialogObserver: androidx.lifecycle.Observer<List<com.wayne.musicdeck.data.Playlist>>? = null
     
-    private fun showAddToPlaylistDialog(song: Song) {
+    fun showAddToPlaylistDialog(song: Song) {
         // Remove any existing observer first to prevent accumulation
         playlistDialogObserver?.let { viewModel.playlists.removeObserver(it) }
         
@@ -1468,7 +1493,7 @@ class MainActivity : AppCompatActivity() {
             java.util.concurrent.TimeUnit.MINUTES.toSeconds(java.util.concurrent.TimeUnit.MILLISECONDS.toMinutes(ms)))
     }
 
-    private fun shareSong(song: Song) {
+    fun shareSong(song: Song) {
         val shareIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
             type = "audio/*"
             putExtra(android.content.Intent.EXTRA_STREAM, song.uri)

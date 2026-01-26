@@ -104,4 +104,12 @@ class FastScrollerView @JvmOverloads constructor(
         paint.color = color
         invalidate()
     }
+    
+    fun setActiveLetter(letter: String) {
+        val index = letters.indexOfFirst { it.equals(letter, ignoreCase = true) }
+        if (index != -1 && index != selectedIndex) {
+            selectedIndex = index
+            invalidate()
+        }
+    }
 }

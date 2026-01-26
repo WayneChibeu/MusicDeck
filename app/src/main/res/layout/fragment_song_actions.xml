@@ -82,7 +82,7 @@
             android:layout_width="24dp"
             android:layout_height="24dp"
             android:src="@drawable/ic_playlist_add"
-            app:tint="?attr/colorPrimary" />
+            app:tint="@android:color/white" />
             
         <TextView
             android:layout_width="wrap_content"
@@ -137,7 +137,7 @@
             android:layout_width="24dp"
             android:layout_height="24dp"
             android:src="@drawable/ic_share"
-            app:tint="?attr/colorPrimary" />
+            app:tint="@android:color/white" />
             
         <TextView
             android:layout_width="wrap_content"
@@ -164,7 +164,7 @@
             android:layout_width="24dp"
             android:layout_height="24dp"
             android:src="@drawable/ic_ringtone"
-            app:tint="?attr/colorPrimary" />
+            app:tint="@android:color/white" />
             
         <TextView
             android:layout_width="wrap_content"
@@ -191,7 +191,7 @@
             android:layout_width="24dp"
             android:layout_height="24dp"
             android:src="@drawable/ic_edit"
-            app:tint="?attr/colorPrimary" />
+            app:tint="@android:color/white" />
             
         <TextView
             android:layout_width="wrap_content"
@@ -218,7 +218,7 @@
             android:layout_width="24dp"
             android:layout_height="24dp"
             android:src="@drawable/ic_info"
-            app:tint="?attr/colorPrimary" />
+            app:tint="@android:color/white" />
             
         <TextView
             android:layout_width="wrap_content"
