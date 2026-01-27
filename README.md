@@ -28,6 +28,27 @@ A modern, ad-free Android music player built with Kotlin and Jetpack Media3.
 | Image Loading | Coil |
 | Architecture | MVVM with ViewModel and LiveData |
 
+## Technical Challenges & Solutions
+
+ 1. Background Service & MediaSession Lifecycle
+
+Challenge: Managing the transition between a foreground activity and a background MediaSessionService was a major hurdle. Ensuring that playback continued seamlessly when the app was minimized—while adhering to Android’s strict foreground service limitations—required deep dives into service lifecycles.
+
+
+Solution: I implemented a dedicated MediaSessionService using Jetpack Media3 to decouple playback logic from the UI. This involved configuring the MediaSession to persist even when the Activity was destroyed, ensuring the notification controls remained responsive.
+
+2. UI State Synchronization (MVVM)
+
+Challenge: Syncing the real-time playback state (position, shuffle mode, favorite status) across multiple UI components—like the Mini Player and the Full Player—without causing UI lag or memory leaks.
+
+Solution: I utilized LiveData and ViewModels to create a single source of truth for the playback state. By observing the Player.Listener events within the ViewModel, I ensured that UI updates were reactive and that data remained consistent across different navigation tabs.
+
+3. Dynamic Theming & Performance
+
+Challenge: Implementing Material 3 dynamic theming while handling high-resolution image loading for album art via Coil, which initially caused minor stuttering during list scrolls.
+
+Solution: I optimized image loading by implementing proper caching strategies with Coil and ensured that dynamic color extraction occurred on a background thread to prevent blocking the main UI thread.
+
 ## Getting Started
 
 ### Prerequisites
