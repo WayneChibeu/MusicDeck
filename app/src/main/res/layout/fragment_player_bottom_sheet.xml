@@ -118,6 +118,17 @@
             app:layout_constraintStart_toEndOf="@+id/tvCurrentTime"
             app:layout_constraintEnd_toStartOf="@+id/tvTotalTime" />
 
+        <!-- STADIUM LIGHTING (VISUALIZER) -->
+        <com.wayne.musicdeck.utils.StadiumVisualizerView
+            android:id="@+id/visualizerView"
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:layout_marginBottom="8dp"
+            app:layout_constraintBottom_toTopOf="@+id/seekBar"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:alpha="0.3" />
+
         <TextView
             android:id="@+id/tvTotalTime"
             android:layout_width="40dp"
