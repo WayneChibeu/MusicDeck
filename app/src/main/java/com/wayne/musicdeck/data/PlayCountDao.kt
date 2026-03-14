@@ -21,4 +21,6 @@ interface PlayCountDao {
     
     @Query("INSERT OR IGNORE INTO song_play_counts (songId, playCount, lastPlayed) VALUES (:songId, 0, :timestamp)")
     suspend fun ensureExists(songId: Long, timestamp: Long = System.currentTimeMillis())
+    @Query("SELECT * FROM song_play_counts")
+    suspend fun getAllPlayCounts(): List<SongPlayCount>
 }

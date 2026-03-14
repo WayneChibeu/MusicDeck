@@ -23,6 +23,7 @@ class EqualizerBottomSheet : BottomSheetDialogFragment() {
     // Presets: name -> array of band values (normalized 0-100)
     private val customPresets = mapOf(
         "Normal" to intArrayOf(50, 50, 50, 50, 50),
+        "Bass" to intArrayOf(85, 75, 40, 50, 60),
         "Classical" to intArrayOf(65, 60, 50, 55, 60),
         "Dance" to intArrayOf(75, 40, 50, 60, 65),
         "Flat" to intArrayOf(50, 50, 50, 50, 50),
@@ -219,6 +220,17 @@ class EqualizerBottomSheet : BottomSheetDialogFragment() {
             // Update Manager
             AudioEffectManager.setBandLevel(i.toShort(), values[i], requireContext())
         }
+        
+        // RE-APPLY EXTREME BASS if enabled
+        if (AudioEffectManager.isExtremeBassEnabled(requireContext())) {
+            AudioEffectManager.applyExtremeBass()
+            // Refresh sliders to show the boosted values
+            view?.post {
+                setupEqualizer(view ?: return@post)
+                setupBassBoost(view ?: return@post)
+            }
+        }
+        
         AudioEffectManager.savePreset(presetName, requireContext())
     }
     

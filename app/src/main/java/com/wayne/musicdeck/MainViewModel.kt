@@ -155,7 +155,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             // Filter out the special "Favorites" playlist from the list
             val allPlaylists = playlistRepository.getAllPlaylists()
-            val filteredPlaylists = allPlaylists.filter { it.name != "Favorites" }
+            val filteredPlaylists = allPlaylists.filter { it.name != "Favorites" }.toMutableList()
+            
+            // INJECT SMART PLAYLISTS
+            filteredPlaylists.add(0, com.wayne.musicdeck.data.Playlist(com.wayne.musicdeck.data.SmartPlaylistManager.ID_RECENTLY_ADDED, com.wayne.musicdeck.data.SmartPlaylistManager.getSmartPlaylistName(com.wayne.musicdeck.data.SmartPlaylistManager.ID_RECENTLY_ADDED), null, System.currentTimeMillis()))
+            filteredPlaylists.add(1, com.wayne.musicdeck.data.Playlist(com.wayne.musicdeck.data.SmartPlaylistManager.ID_HEAVY_ROTATION, com.wayne.musicdeck.data.SmartPlaylistManager.getSmartPlaylistName(com.wayne.musicdeck.data.SmartPlaylistManager.ID_HEAVY_ROTATION), null, System.currentTimeMillis()))
+            filteredPlaylists.add(2, com.wayne.musicdeck.data.Playlist(com.wayne.musicdeck.data.SmartPlaylistManager.ID_FORGOTTEN_GEMS, com.wayne.musicdeck.data.SmartPlaylistManager.getSmartPlaylistName(com.wayne.musicdeck.data.SmartPlaylistManager.ID_FORGOTTEN_GEMS), null, System.currentTimeMillis()))
+
             playlists.postValue(filteredPlaylists)
         }
     }
@@ -183,6 +189,22 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     
     
     fun getPlaylistSongs(playlistId: Long): androidx.lifecycle.LiveData<List<Song>> {
+        if (com.wayne.musicdeck.data.SmartPlaylistManager.isSmartPlaylist(playlistId)) {
+            val smartLive = MutableLiveData<List<Song>>()
+            viewModelScope.launch(Dispatchers.IO) {
+                val allPlayCounts = playCountDao.getAllPlayCounts()
+                val manager = com.wayne.musicdeck.data.SmartPlaylistManager(originalSongs.ifEmpty { loadSongsInternal() }, allPlayCounts)
+                val songs = when (playlistId) {
+                    com.wayne.musicdeck.data.SmartPlaylistManager.ID_RECENTLY_ADDED -> manager.getRecentlyAdded()
+                    com.wayne.musicdeck.data.SmartPlaylistManager.ID_HEAVY_ROTATION -> manager.getHeavyRotation()
+                    com.wayne.musicdeck.data.SmartPlaylistManager.ID_FORGOTTEN_GEMS -> manager.getForgottenGems()
+                    else -> emptyList()
+                }
+                smartLive.postValue(songs)
+            }
+            return smartLive
+        }
+        
         return playlistRepository.getSongsForPlaylistLive(playlistId).map { playlistSongs ->
             val allSongs = originalSongs 
             playlistSongs.mapNotNull { pSong ->
@@ -597,6 +619,57 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch(Dispatchers.IO) {
             val songs = getMostPlayedSongs(20)
             _mostPlayed.postValue(songs)
+        }
+    }
+
+    // --- Listening Insights Logic ---
+    
+    data class ListeningInsights(
+        val totalPlays: Int,
+        val topSongs: List<Pair<Song, Int>>,
+        val topArtists: List<Pair<String, Int>>,
+        val uniqueArtistsCount: Int,
+        val uniqueAlbumsCount: Int
+    )
+
+    private val _insights = MutableLiveData<ListeningInsights>()
+    val insights: LiveData<ListeningInsights> = _insights
+
+    fun loadInsights() {
+        viewModelScope.launch(Dispatchers.IO) {
+            val allPlayCounts = playCountDao.getAllPlayCounts()
+            val allSongs = originalSongs.ifEmpty { loadSongsInternal() }
+            
+            if (allPlayCounts.isEmpty()) return@launch
+
+            val totalPlays = allPlayCounts.sumOf { it.playCount }
+            
+            // Map counts to songs
+            val songCounts = allPlayCounts.mapNotNull { pc ->
+                allSongs.find { it.id == pc.songId }?.let { it to pc.playCount }
+            }.sortedByDescending { it.second }.take(5)
+
+            // Aggregate by Artist
+            val artistCounts = allPlayCounts.mapNotNull { pc ->
+                allSongs.find { it.id == pc.songId }?.let { it.artist to pc.playCount }
+            }.groupBy({ it.first }, { it.second })
+                .mapValues { it.value.sum() }
+                .toList()
+                .sortedByDescending { it.second }
+                .take(3)
+
+            val uniqueArtists = allSongs.map { it.artist }.distinct().size
+            val uniqueAlbums = allSongs.map { it.albumId }.distinct().size
+
+            _insights.postValue(
+                ListeningInsights(
+                    totalPlays = totalPlays,
+                    topSongs = songCounts,
+                    topArtists = artistCounts,
+                    uniqueArtistsCount = uniqueArtists,
+                    uniqueAlbumsCount = uniqueAlbums
+                )
+            )
         }
     }
     

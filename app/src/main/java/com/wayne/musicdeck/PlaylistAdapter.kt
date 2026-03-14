@@ -26,12 +26,18 @@ class PlaylistAdapter(
 
     inner class PlaylistViewHolder(private val binding: ItemSongBinding) : RecyclerView.ViewHolder(binding.root) {
         fun bind(playlist: Playlist) {
+            val isSmart = com.wayne.musicdeck.data.SmartPlaylistManager.isSmartPlaylist(playlist.id)
             binding.tvTitle.text = playlist.name
-            val songCount = "Playlist" // Ideally pass specific count if available
-            binding.tvArtist.text = songCount
+            binding.tvArtist.text = if (isSmart) "Smart Auto-List" else "Playlist"
             
-            if (playlist.imagePath != null) {
+            if (isSmart) {
                 binding.ivAlbumArt.clearColorFilter()
+                binding.ivAlbumArt.setImageResource(R.drawable.ic_auto_fix)
+                binding.ivAlbumArt.setColorFilter(binding.root.context.getColor(R.color.colorNeon))
+                binding.btnMore.visibility = android.view.View.GONE
+            } else if (playlist.imagePath != null) {
+                binding.ivAlbumArt.clearColorFilter()
+                binding.btnMore.visibility = android.view.View.VISIBLE
                 binding.ivAlbumArt.load(java.io.File(playlist.imagePath)) {
                      crossfade(true)
                      transformations(coil.transform.RoundedCornersTransformation(8f))
@@ -39,8 +45,9 @@ class PlaylistAdapter(
                 }
             } else {
                 // Default folder icon
-                binding.ivAlbumArt.load(android.R.drawable.ic_input_add) // Reset to avoid old image
-                binding.ivAlbumArt.setImageResource(android.R.drawable.ic_input_add)
+                binding.btnMore.visibility = android.view.View.VISIBLE
+                binding.ivAlbumArt.load(R.drawable.ic_folder) // Reset to avoid old image
+                binding.ivAlbumArt.setImageResource(R.drawable.ic_folder)
                 binding.ivAlbumArt.setColorFilter(binding.root.context.getColor(R.color.teal_200))
             }
 

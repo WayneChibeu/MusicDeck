@@ -14,6 +14,7 @@ import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.isActive
 import androidx.media3.session.SessionCommand
 import androidx.media3.session.CommandButton
 
@@ -28,6 +29,7 @@ class MusicService : MediaSessionService() {
     private lateinit var volumeManager: com.wayne.musicdeck.utils.VolumeManager
     private lateinit var playCountDao: com.wayne.musicdeck.data.PlayCountDao
     private var playCountJob: kotlinx.coroutines.Job? = null
+    private var playbackPositionJob: kotlinx.coroutines.Job? = null
     
     companion object {
         const val ACTION_SET_SLEEP_TIMER = "com.wayne.musicdeck.ACTION_SET_SLEEP_TIMER"
@@ -228,8 +230,11 @@ class MusicService : MediaSessionService() {
                   updateWidget(player)
                   if (isPlaying) {
                       startPlayCountHeartbeat(player.currentMediaItem)
+                      startPlaybackPositionHeartbeat(player)
                   } else {
                       playCountJob?.cancel()
+                      playbackPositionJob?.cancel()
+                      saveFinalPosition(player)
                   }
              }
          
@@ -343,6 +348,27 @@ class MusicService : MediaSessionService() {
             playCountDao.incrementPlayCount(songId)
             android.util.Log.d("MusicService", "Play counted for song: $songId (30s heartbeat reached)")
         }
+    }
+
+    private fun startPlaybackPositionHeartbeat(player: Player) {
+        playbackPositionJob?.cancel()
+        playbackPositionJob = serviceScope.launch {
+            while (isActive) {
+                kotlinx.coroutines.delay(5000)
+                saveFinalPosition(player)
+            }
+        }
+    }
+
+    private fun saveFinalPosition(player: Player) {
+        val songId = player.currentMediaItem?.mediaId?.toLongOrNull() ?: return
+        val position = player.currentPosition
+        val prefs = getSharedPreferences("musicdeck_prefs", android.content.Context.MODE_PRIVATE)
+        prefs.edit()
+            .putLong("last_song_id", songId)
+            .putLong("last_position", position)
+            .apply()
+        // android.util.Log.d("MusicService", "Position saved: $position for song $songId")
     }
 
     private fun updateWidget(player: Player) {
@@ -617,6 +643,7 @@ class MusicService : MediaSessionService() {
 
     override fun onDestroy() {
         mediaSession?.run {
+            saveFinalPosition(player)
             player.release()
             release()
             mediaSession = null

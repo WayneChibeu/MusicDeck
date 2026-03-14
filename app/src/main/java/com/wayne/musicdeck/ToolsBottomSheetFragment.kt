@@ -52,6 +52,11 @@ class ToolsBottomSheetFragment : BottomSheetDialogFragment() {
             SmartOrganizeBottomSheet().show(parentFragmentManager, "smart_organize")
         }
         
+        binding.btnInsights.setOnClickListener {
+            dismiss()
+            InsightsBottomSheetFragment().show(parentFragmentManager, "insights")
+        }
+
         binding.btnAbout.setOnClickListener {
             showAboutDialog()
         }

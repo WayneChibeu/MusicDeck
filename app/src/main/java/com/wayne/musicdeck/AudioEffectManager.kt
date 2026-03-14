@@ -121,7 +121,7 @@ object AudioEffectManager {
         }
     }
 
-    private fun applyExtremeBass() {
+    fun applyExtremeBass() {
         equalizer?.let { eq ->
             val maxLevel = eq.bandLevelRange[1]
             if (eq.numberOfBands >= 1) eq.setBandLevel(0, maxLevel)
