@@ -22,14 +22,16 @@ class EqualizerBottomSheet : BottomSheetDialogFragment() {
     
     // Presets: name -> array of band values (normalized 0-100)
     private val customPresets = mapOf(
-        "Flat" to intArrayOf(50, 50, 50, 50, 50),
-        "Bass Boost" to intArrayOf(80, 70, 50, 50, 50),
-        "Treble Boost" to intArrayOf(50, 50, 50, 70, 80),
-        "Rock" to intArrayOf(70, 60, 50, 60, 70),
-        "Pop" to intArrayOf(55, 65, 70, 60, 55),
-        "Jazz" to intArrayOf(60, 55, 50, 55, 65),
+        "Normal" to intArrayOf(50, 50, 50, 50, 50),
         "Classical" to intArrayOf(65, 60, 50, 55, 60),
-        "Vocal Boost" to intArrayOf(45, 50, 70, 60, 45)
+        "Dance" to intArrayOf(75, 40, 50, 60, 65),
+        "Flat" to intArrayOf(50, 50, 50, 50, 50),
+        "Folk" to intArrayOf(60, 50, 50, 55, 60),
+        "Heavy Metal" to intArrayOf(70, 60, 55, 75, 80),
+        "Hip Hop" to intArrayOf(80, 65, 45, 55, 75),
+        "Jazz" to intArrayOf(60, 55, 50, 55, 65),
+        "Pop" to intArrayOf(55, 65, 70, 60, 55),
+        "Rock" to intArrayOf(70, 60, 50, 60, 70)
     )
 
     override fun onCreateView(
@@ -55,6 +57,7 @@ class EqualizerBottomSheet : BottomSheetDialogFragment() {
         try {
             setupEqualizer(view)
             setupBassBoost(view)
+            setupExtremeBass(view)
             setupPresets(view)
             setupSwitch(view)
             
@@ -93,8 +96,8 @@ class EqualizerBottomSheet : BottomSheetDialogFragment() {
         // Configure each band
         for (i in 0 until minOf(bandCount, 5)) {
             val freq = eq.getCenterFreq(i.toShort()) / 1000 // Convert to Hz
-            val freqText = if (freq >= 1000) "${freq / 1000}kHz" else "${freq}Hz"
-            freqLabels[i].text = freqText
+            // Just the number as per user request (Hz label is at the bottom left)
+            freqLabels[i].text = "$freq"
             
             seekBars[i].max = 100
             
@@ -156,6 +159,24 @@ class EqualizerBottomSheet : BottomSheetDialogFragment() {
             AudioEffectManager.setEqEnabled(isChecked, requireContext())
             val status = if (isChecked) "ON" else "OFF"
             Toast.makeText(context, "Effects $status", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun setupExtremeBass(view: View) {
+        val switchExtreme = view.findViewById<MaterialSwitch>(R.id.switchExtremeBass)
+        val isExtreme = AudioEffectManager.isExtremeBassEnabled(requireContext())
+        switchExtreme.isChecked = isExtreme
+
+        switchExtreme.setOnCheckedChangeListener { _, isChecked ->
+            AudioEffectManager.setExtremeBassEnabled(isChecked, requireContext())
+            if (isChecked) {
+                Toast.makeText(context, "EXTREME BASS ACTIVATED! 🔊💀", Toast.LENGTH_SHORT).show()
+            }
+            // Refresh UI to reflect changes
+            view.post {
+                setupEqualizer(view)
+                setupBassBoost(view)
+            }
         }
     }
     

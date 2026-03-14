@@ -47,6 +47,11 @@ class ToolsBottomSheetFragment : BottomSheetDialogFragment() {
             ThemeSelectionBottomSheet().show(parentFragmentManager, "theme")
         }
         
+        binding.btnSmartOrganize.setOnClickListener {
+            dismiss()
+            SmartOrganizeBottomSheet().show(parentFragmentManager, "smart_organize")
+        }
+        
         binding.btnAbout.setOnClickListener {
             showAboutDialog()
         }
@@ -70,11 +75,11 @@ class ToolsBottomSheetFragment : BottomSheetDialogFragment() {
         val message = """
             |Version: $version
             |
-            |🎵 Lyrics Service
-            |Powered by Lrclib.net - A free, open lyrics database.
+            |🎵 Smart Services
+            |Lyrics and official album metadata are powered by Lrclib.net - A free, open database.
             |
             |🔒 Privacy
-            |MusicDeck plays your local music files. We do not collect, store, or transmit any personal data. Lyrics are fetched from Lrclib using only song metadata (title, artist).
+            |MusicDeck plays your local music files. We do not collect or store any personal data. "Elite Sync" and Lyrics fetch data from Lrclib using only song metadata (title, artist).
             |
             |Made with ❤️ by Wayne Chibeu
         """.trimMargin()

@@ -137,7 +137,7 @@ class SongAdapter(
             
             
             // Use centralized loader for consistency (DISABLED for Plan B: Minimal List)
-            // binding.ivAlbumArt.loadSongCover(song)
+            binding.ivAlbumArt.loadSongCover(song)
             
             binding.root.setOnClickListener { onSongClick(song) }
             

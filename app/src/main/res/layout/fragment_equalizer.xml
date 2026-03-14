@@ -64,158 +64,216 @@
             android:importantForAccessibility="no"/>
     </FrameLayout>
 
-    <!-- EQ Bands -->
+    <!-- EQ Bands with dB Axis -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="200dp"
-        android:orientation="horizontal">
+        android:layout_height="220dp"
+        android:orientation="horizontal"
+        android:paddingTop="12dp">
 
-        <!-- Band 1 -->
+        <!-- dB Axis Labels -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:gravity="center_horizontal"
+            android:paddingEnd="12dp"
+            android:paddingBottom="24dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="+15 dB"
+                android:textSize="10sp"
+                android:textColor="?attr/colorOnSurfaceVariant"/>
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_weight="1"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0 dB"
+                android:textSize="10sp"
+                android:textColor="?attr/colorOnSurfaceVariant"/>
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_weight="1"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="-15 dB"
+                android:textSize="10sp"
+                android:textColor="?attr/colorOnSurfaceVariant"/>
+        </LinearLayout>
+
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:orientation="vertical"
-            android:gravity="center_horizontal">
+            android:orientation="horizontal">
 
-            <SeekBar
-                android:progressTint="?attr/colorPrimary"
-                android:thumbTint="?attr/colorPrimary"
-                android:id="@+id/seekBand1"
-                android:layout_width="150dp"
-                android:layout_height="0dp"
+            <!-- Band 1 -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
                 android:layout_weight="1"
-                android:rotation="270"
-                android:max="100"
-                android:progress="50" />
+                android:orientation="vertical"
+                android:gravity="center_horizontal">
 
-            <TextView
-                android:id="@+id/labelBand1"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="60Hz"
-                android:textSize="10sp"
-                android:textColor="?attr/colorOnSurfaceVariant"
-                android:layout_marginTop="4dp" />
-        </LinearLayout>
+                <SeekBar
+                    android:progressTint="?attr/colorPrimary"
+                    android:thumbTint="?attr/colorPrimary"
+                    android:id="@+id/seekBand1"
+                    android:layout_width="210dp"
+                    android:layout_height="0dp"
+                    android:layout_weight="1"
+                    android:rotation="270"
+                    android:max="100"
+                    android:progress="50" />
 
-        <!-- Band 2 -->
-        <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:orientation="vertical"
-            android:gravity="center_horizontal">
+                <TextView
+                    android:id="@+id/labelBand1"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="60"
+                    android:textSize="10sp"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:layout_marginTop="4dp" />
+            </LinearLayout>
 
-            <SeekBar
-                android:progressTint="?attr/colorPrimary"
-                android:thumbTint="?attr/colorPrimary"
-                android:id="@+id/seekBand2"
-                android:layout_width="150dp"
-                android:layout_height="0dp"
+            <!-- Band 2 -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
                 android:layout_weight="1"
-                android:rotation="270"
-                android:max="100"
-                android:progress="50" />
+                android:orientation="vertical"
+                android:gravity="center_horizontal">
 
-            <TextView
-                android:id="@+id/labelBand2"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="230Hz"
-                android:textSize="10sp"
-                android:textColor="?attr/colorOnSurfaceVariant"
-                android:layout_marginTop="4dp" />
-        </LinearLayout>
+                <SeekBar
+                    android:progressTint="?attr/colorPrimary"
+                    android:thumbTint="?attr/colorPrimary"
+                    android:id="@+id/seekBand2"
+                    android:layout_width="210dp"
+                    android:layout_height="0dp"
+                    android:layout_weight="1"
+                    android:rotation="270"
+                    android:max="100"
+                    android:progress="50" />
 
-        <!-- Band 3 -->
-        <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:orientation="vertical"
-            android:gravity="center_horizontal">
+                <TextView
+                    android:id="@+id/labelBand2"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="230"
+                    android:textSize="10sp"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:layout_marginTop="4dp" />
+            </LinearLayout>
 
-            <SeekBar
-                android:progressTint="?attr/colorPrimary"
-                android:thumbTint="?attr/colorPrimary"
-                android:id="@+id/seekBand3"
-                android:layout_width="150dp"
-                android:layout_height="0dp"
+            <!-- Band 3 -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
                 android:layout_weight="1"
-                android:rotation="270"
-                android:max="100"
-                android:progress="50" />
+                android:orientation="vertical"
+                android:gravity="center_horizontal">
 
-            <TextView
-                android:id="@+id/labelBand3"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="910Hz"
-                android:textSize="10sp"
-                android:textColor="?attr/colorOnSurfaceVariant"
-                android:layout_marginTop="4dp" />
-        </LinearLayout>
+                <SeekBar
+                    android:progressTint="?attr/colorPrimary"
+                    android:thumbTint="?attr/colorPrimary"
+                    android:id="@+id/seekBand3"
+                    android:layout_width="210dp"
+                    android:layout_height="0dp"
+                    android:layout_weight="1"
+                    android:rotation="270"
+                    android:max="100"
+                    android:progress="50" />
 
-        <!-- Band 4 -->
-        <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:orientation="vertical"
-            android:gravity="center_horizontal">
+                <TextView
+                    android:id="@+id/labelBand3"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="910"
+                    android:textSize="10sp"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:layout_marginTop="4dp" />
+            </LinearLayout>
 
-            <SeekBar
-                android:progressTint="?attr/colorPrimary"
-                android:thumbTint="?attr/colorPrimary"
-                android:id="@+id/seekBand4"
-                android:layout_width="150dp"
-                android:layout_height="0dp"
+            <!-- Band 4 -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
                 android:layout_weight="1"
-                android:rotation="270"
-                android:max="100"
-                android:progress="50" />
+                android:orientation="vertical"
+                android:gravity="center_horizontal">
 
-            <TextView
-                android:id="@+id/labelBand4"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="3.6kHz"
-                android:textSize="10sp"
-                android:textColor="?attr/colorOnSurfaceVariant"
-                android:layout_marginTop="4dp" />
-        </LinearLayout>
+                <SeekBar
+                    android:progressTint="?attr/colorPrimary"
+                    android:thumbTint="?attr/colorPrimary"
+                    android:id="@+id/seekBand4"
+                    android:layout_width="210dp"
+                    android:layout_height="0dp"
+                    android:layout_weight="1"
+                    android:rotation="270"
+                    android:max="100"
+                    android:progress="50" />
 
-        <!-- Band 5 -->
-        <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:orientation="vertical"
-            android:gravity="center_horizontal">
+                <TextView
+                    android:id="@+id/labelBand4"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="3600"
+                    android:textSize="10sp"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:layout_marginTop="4dp" />
+            </LinearLayout>
 
-            <SeekBar
-                android:progressTint="?attr/colorPrimary"
-                android:thumbTint="?attr/colorPrimary"
-                android:id="@+id/seekBand5"
-                android:layout_width="150dp"
-                android:layout_height="0dp"
+            <!-- Band 5 -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
                 android:layout_weight="1"
-                android:rotation="270"
-                android:max="100"
-                android:progress="50" />
+                android:orientation="vertical"
+                android:gravity="center_horizontal">
 
-            <TextView
-                android:id="@+id/labelBand5"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="14kHz"
-                android:textSize="10sp"
-                android:textColor="?attr/colorOnSurfaceVariant"
-                android:layout_marginTop="4dp" />
+                <SeekBar
+                    android:progressTint="?attr/colorPrimary"
+                    android:thumbTint="?attr/colorPrimary"
+                    android:id="@+id/seekBand5"
+                    android:layout_width="210dp"
+                    android:layout_height="0dp"
+                    android:layout_weight="1"
+                    android:rotation="270"
+                    android:max="100"
+                    android:progress="50" />
+
+                <TextView
+                    android:id="@+id/labelBand5"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="14000"
+                    android:textSize="10sp"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:layout_marginTop="4dp" />
+            </LinearLayout>
         </LinearLayout>
-
     </LinearLayout>
+
+    <!-- (Hz) indicator -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="(Hz)"
+        android:textSize="10sp"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="-20dp"/>
 
     <!-- Bass Boost Slider -->
     <LinearLayout
@@ -256,6 +314,54 @@
                 android:gravity="end"
                 android:text="0%"
                 android:textColor="?attr/colorOnSurfaceVariant" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Extreme Bass Mode -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_marginTop="24dp"
+        android:paddingBottom="16dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Extreme Bass Mode"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:textColor="?attr/colorError" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Caution: This might make your ears bleed (and melt your brain) 💀"
+                    android:textSize="12sp"
+                    android:textStyle="italic"
+                    android:textColor="?attr/colorError"
+                    android:alpha="0.8"
+                    android:layout_marginTop="2dp" />
+            </LinearLayout>
+
+            <com.google.android.material.materialswitch.MaterialSwitch
+                android:id="@+id/switchExtremeBass"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:thumbTint="?attr/colorError"
+                android:trackTint="?attr/colorError" />
         </LinearLayout>
     </LinearLayout>
 

@@ -196,6 +196,22 @@ class PlayerMenuBottomSheet : BottomSheetDialogFragment() {
             tvCurrentSpeed.text = formatSpeed(newSpeed)
             Toast.makeText(context, "Speed: ${formatSpeed(newSpeed)}", Toast.LENGTH_SHORT).show()
         }
+
+        // Sunset Transition Toggle
+        val sunsetSwitch = view.findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.switchSunset)
+        val prefs = requireContext().getSharedPreferences("musicdeck_prefs", android.content.Context.MODE_PRIVATE)
+        val isSunsetEnabled = prefs.getBoolean("sunset_transition_enabled", false)
+        sunsetSwitch.isChecked = isSunsetEnabled
+
+        sunsetSwitch.setOnCheckedChangeListener { _, isChecked ->
+            prefs.edit().putBoolean("sunset_transition_enabled", isChecked).apply()
+            val msg = if (isChecked) "Sunset Transition enabled" else "Sunset Transition disabled"
+            Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+        }
+
+        view.findViewById<View>(R.id.menuSunset).setOnClickListener {
+            sunsetSwitch.isChecked = !sunsetSwitch.isChecked
+        }
     }
 
     private fun formatSpeed(speed: Float): String {

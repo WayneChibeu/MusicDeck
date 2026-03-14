@@ -261,4 +261,38 @@
             android:textColor="?attr/colorPrimary" />
     </LinearLayout>
 
+    <!-- Sunset Transition -->
+    <LinearLayout
+        android:id="@+id/menuSunset"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:padding="16dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:background="?attr/selectableItemBackground">
+
+        <ImageView
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:src="@drawable/ic_sunset"
+            android:layout_marginEnd="16dp" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Sunset Transition"
+            android:textSize="16sp"
+            android:textColor="?attr/colorOnSurface" />
+
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/switchSunset"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:thumbTint="@color/sunset_switch_thumb_selector"
+            app:trackTint="@color/sunset_switch_track_selector" />
+    </LinearLayout>
+
 </LinearLayout>

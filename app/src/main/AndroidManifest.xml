@@ -39,6 +39,7 @@
             android:enabled="true">
             <intent-filter>
                 <action android:name="androidx.media3.session.MediaSessionService" />
+                <action android:name="android.intent.action.MEDIA_BUTTON" />
                 <action android:name="com.wayne.musicdeck.ACTION_PLAY_PAUSE" />
                 <action android:name="com.wayne.musicdeck.ACTION_NEXT" />
                 <action android:name="com.wayne.musicdeck.ACTION_PREVIOUS" />

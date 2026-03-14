@@ -6,6 +6,7 @@ import android.content.ContentUris
 import android.net.Uri
 import android.provider.MediaStore
 import androidx.lifecycle.AndroidViewModel
+import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
@@ -423,7 +424,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val albumsList = albumMap.map { (albumId, albumSongs) ->
             Album(
                 id = albumId,
-                name = albumSongs.firstOrNull()?.title?.substringBefore(" - ") ?: "Unknown Album",
+                name = albumSongs.firstOrNull()?.album ?: "Unknown Album",
                 artist = albumSongs.firstOrNull()?.artist ?: "Unknown Artist",
                 songCount = albumSongs.size
             )
@@ -566,8 +567,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         
         lastPlayedSongId = song.id
         
-        // Track play count
-        incrementPlayCount(song.id)
+        // Remove manual increment, handled by Service Heartbeat now
     }
     
     fun savePosition() {
@@ -1179,9 +1179,186 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
     
-    fun retryFetchLyrics() {
-        val controller = mediaController.value ?: return
-        val item = controller.currentMediaItem ?: return
-        loadLyricsForMediaItem(item, forceRefetch = true)
+    // --- Smart Auto-Organize Logic ---
+
+    private val _useOnlineWisdom = androidx.lifecycle.MutableLiveData<Boolean>(false)
+    val useOnlineWisdom: androidx.lifecycle.LiveData<Boolean> get() = _useOnlineWisdom
+
+    fun setUseOnlineWisdom(enabled: Boolean) {
+        _useOnlineWisdom.value = enabled
+        generateOrganizationSuggestions()
+    }
+
+    private val _organizationSuggestions = androidx.lifecycle.MutableLiveData<List<com.wayne.musicdeck.data.OrganizationSuggestion>>()
+    val organizationSuggestions: androidx.lifecycle.LiveData<List<com.wayne.musicdeck.data.OrganizationSuggestion>> get() = _organizationSuggestions
+
+    fun generateOrganizationSuggestions() {
+        viewModelScope.launch {
+            val enabled = _useOnlineWisdom.value ?: false
+            val currentSongs = _songs.value ?: emptyList()
+            val suggestions = mutableListOf<com.wayne.musicdeck.data.OrganizationSuggestion>()
+            val lyricsApiService = com.wayne.musicdeck.data.LyricsApiService()
+
+            withContext(Dispatchers.IO) {
+                for (song in currentSongs) {
+                    var suggestedTitle = song.title
+                    var suggestedArtist = song.artist
+                    var suggestedAlbum = song.album
+                    val reasons = mutableListOf<String>()
+
+                    // 1. Cleaning Junk (Local)
+                    val junkPatterns = listOf(
+                        "Official Music Video", "Official Video", "Lyric Video", "Official Audio", 
+                        "Official", "Lyrics", "VEVO", "HQ", "HD", "4K", "Topic"
+                    )
+
+                    fun String.cleanJunk(): String {
+                        var cleaned = this
+                        for (pattern in junkPatterns) {
+                            val escapedPattern = Regex.escape(pattern)
+                            cleaned = cleaned.replace(Regex("(?i)\\s*[\\[\\(]?$escapedPattern[\\]\\)]?\\s*"), " ").trim()
+                        }
+                        if (cleaned.endsWith("VEVO", ignoreCase = true) && cleaned.length > 4) {
+                            cleaned = cleaned.substring(0, cleaned.length - 4).trim()
+                        }
+                        return cleaned
+                    }
+
+                    val cleanedArtist = suggestedArtist.cleanJunk()
+                    if (cleanedArtist != suggestedArtist) {
+                        suggestedArtist = cleanedArtist
+                        reasons.add("Cleaned junk from Artist")
+                    }
+
+                    val cleanedTitle = suggestedTitle.cleanJunk()
+                    if (cleanedTitle != suggestedTitle) {
+                        suggestedTitle = cleanedTitle
+                        reasons.add("Cleaned junk from Title")
+                    }
+
+                    // 2. Path-based Deduction for Unknowns (Local)
+                    val isSuspiciousArtist = suggestedArtist == "Unknown Artist" || 
+                                           suggestedArtist.length < 3 ||
+                                           suggestedArtist.contains("VEVO", ignoreCase = true)
+                                           
+                    val isSuspiciousAlbum = suggestedAlbum == "Unknown Album" || 
+                                          suggestedAlbum == suggestedTitle
+
+                    if (isSuspiciousArtist || isSuspiciousAlbum) {
+                        val file = java.io.File(song.data)
+                        val folder = file.parentFile
+                        val parentFolder = folder?.parentFile
+
+                        if (folder != null && folder.name != "Music" && folder.name != "Download") {
+                            if (isSuspiciousAlbum) {
+                                suggestedAlbum = folder.name
+                                reasons.add("Guessed Album from folder")
+                            }
+                            if (parentFolder != null && parentFolder.name != "0" && parentFolder.name != "emulated") {
+                                if (suggestedArtist == "Unknown Artist") {
+                                    suggestedArtist = parentFolder.name
+                                    reasons.add("Guessed Artist from parent folder")
+                                }
+                            }
+                        }
+                        
+                        // Try splitting "Artist - Title" from both Filename AND the Title tag itself
+                        val sourceForSplit = if (suggestedTitle.contains(" - ")) suggestedTitle else file.nameWithoutExtension
+                        
+                        if (suggestedArtist == "Unknown Artist" && sourceForSplit.contains(" - ")) {
+                            val parts = sourceForSplit.split(" - ", limit = 2)
+                            if (parts.size == 2) {
+                                suggestedArtist = parts[0].trim().cleanJunk()
+                                suggestedTitle = parts[1].trim().cleanJunk()
+                                reasons.add("Parsed Artist and Title")
+                            }
+                        }
+                    }
+
+                    // 3. Online Wisdom (Web-Sync)
+                    val isGuessed = reasons.any { it.contains("Guessed") }
+                    val needsWebSync = enabled && (suggestedArtist == "Unknown Artist" || isGuessed || suggestedArtist.length < 3)
+
+                    if (needsWebSync) {
+                        val titleQuery = suggestedTitle.cleanJunk().trim()
+                        var webMatch: com.wayne.musicdeck.data.LrclibResponse? = null
+                        
+                        // If artist is a guess (like Javier G), try searching title only first
+                        if (isGuessed || suggestedArtist == "Unknown Artist") {
+                             if (titleQuery.length > 3) {
+                                 Log.d("SmartOrganize", "Searching Web by Title: $titleQuery")
+                                 webMatch = lyricsApiService.searchTrackMetadata(titleQuery)
+                             }
+                        }
+                        
+                        // If title-only failed, try combined
+                        if (webMatch == null) {
+                            val combinedQuery = "$suggestedTitle $suggestedArtist".cleanJunk().trim()
+                            if (combinedQuery.length > 5) {
+                                Log.d("SmartOrganize", "Searching Web by Combined: $combinedQuery")
+                                webMatch = lyricsApiService.searchTrackMetadata(combinedQuery)
+                            }
+                        }
+
+                        val match = webMatch
+                        if (match != null && !match.artistName.isNullOrBlank()) {
+                            if (suggestedArtist != match.artistName || suggestedAlbum != match.albumName) {
+                                suggestedArtist = match.artistName!!
+                                suggestedAlbum = match.albumName ?: suggestedAlbum
+                                suggestedTitle = match.trackName ?: suggestedTitle
+                                reasons.add("Web-Synced (Elite Sync)")
+                                Log.d("SmartOrganize", "Found Match: ${match.artistName} - ${match.trackName}")
+                                kotlinx.coroutines.delay(150)
+                            }
+                        }
+                    }
+
+                    val suggestion = com.wayne.musicdeck.data.OrganizationSuggestion(
+                        songId = song.id,
+                        currentTitle = song.title,
+                        currentArtist = song.artist,
+                        currentAlbum = song.album,
+                        suggestedTitle = suggestedTitle,
+                        suggestedArtist = suggestedArtist,
+                        suggestedAlbum = suggestedAlbum,
+                        reason = reasons.joinToString(", ")
+                    )
+
+                    if (suggestion.hasChanges) {
+                        suggestions.add(suggestion)
+                    }
+                }
+            }
+            _organizationSuggestions.postValue(suggestions)
+        }
+    }
+
+    fun resetOrganization() {
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                // Wipe all custom metadata to restore originals
+                customMetadataDao.deleteAll()
+                // Regenerate logic to show results based on originals
+                generateOrganizationSuggestions()
+            }
+        }
+    }
+
+    fun applyOrganizationSuggestions(suggestions: List<com.wayne.musicdeck.data.OrganizationSuggestion>) {
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                for (sug in suggestions) {
+                    val metadata = com.wayne.musicdeck.data.CustomMetadata(
+                        songId = sug.songId,
+                        customTitle = sug.suggestedTitle,
+                        customArtist = sug.suggestedArtist,
+                        customAlbum = sug.suggestedAlbum
+                    )
+                    customMetadataDao.insertOrUpdate(metadata)
+                }
+            }
+            _organizationSuggestions.postValue(emptyList())
+            loadSongs() // Refresh library
+        }
     }
 }

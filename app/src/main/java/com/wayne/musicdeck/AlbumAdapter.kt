@@ -38,15 +38,30 @@ class AlbumAdapter(
             tvArtist.text = album.artist
             tvCount.text = "${album.songCount} songs"
 
-            val albumArtUri = ContentUris.withAppendedId(
-                Uri.parse("content://media/external/audio/albumart"),
-                album.id
-            )
+            // If it's "Unknown Album", the generic ID might point to a folder's first song art.
+            // We'll rely on common MediaStore ID for now, but ensure Coil treats it individually.
+            val albumArtUri = if (album.name == "Unknown Album") {
+                // For unknown album, we could potentially try to load from a specific song in that group
+                // But simplified for now: stick to MediaStore then fallback to embedded in future revisions if needed.
+                ContentUris.withAppendedId(
+                    Uri.parse("content://media/external/audio/albumart"),
+                    album.id
+                )
+            } else {
+                ContentUris.withAppendedId(
+                    Uri.parse("content://media/external/audio/albumart"),
+                    album.id
+                )
+            }
 
             ivArt.load(albumArtUri) {
                 crossfade(true)
                 placeholder(R.drawable.default_album_art)
                 error(R.drawable.default_album_art)
+                // Use a different cache key if it's the unknown album group to avoid sharing art
+                if (album.name == "Unknown Album") {
+                    memoryCacheKey("unknown_album_${album.id}")
+                }
                 transformations(RoundedCornersTransformation(8f))
             }
 

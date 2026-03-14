@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@drawable/bg_bottom_sheet_glassmorphic"
+    android:padding="20dp">
+
+    <!-- Drag Handle -->
+    <View
+        android:layout_width="40dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="16dp"
+        android:background="@drawable/bg_drag_handle" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Elite Library Sync"
+        android:textSize="22sp"
+        android:textStyle="bold"
+        android:textColor="@android:color/white"
+        android:gravity="center"
+        android:layout_marginBottom="8dp" />
+
+    <TextView
+        android:id="@+id/tvDescription"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="I've analyzed your library. Use Elite Sync to fix unknown artists and albums!"
+        android:textSize="14sp"
+        android:textColor="#B0FFFFFF"
+        android:gravity="center"
+        android:layout_marginBottom="12dp" />
+
+    <!-- Online Wisdom Toggle -> Elite Sync -->
+    <LinearLayout
+        android:id="@+id/btnToggleOnlineWisdom"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:padding="8dp"
+        android:layout_marginBottom="16dp"
+        android:background="@drawable/bg_glassmorphic_item"
+        android:clickable="true"
+        android:focusable="true">
+        
+        <ImageView
+            android:id="@+id/ivOnlineWisdom"
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:src="@drawable/ic_refresh"
+            app:tint="#80FFFFFF" />
+            
+        <TextView
+            android:id="@+id/tvOnlineWisdom"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Elite Sync: OFF"
+            android:textSize="12sp"
+            android:textColor="#80FFFFFF"
+            android:layout_marginStart="8dp" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/btnResetMetadata"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:text="Reset to Original Tags"
+        android:textSize="11sp"
+        android:textColor="#80FF5252"
+        android:padding="8dp"
+        android:layout_marginBottom="8dp"
+        android:clickable="true"
+        android:focusable="true" />
+
+    <!-- List of Suggestions -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvSuggestions"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginBottom="16dp"
+        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+        tools:listitem="@layout/item_organization_suggestion" />
+
+    <!-- Progress Indicator -->
+    <ProgressBar
+        android:id="@+id/loadingProgress"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:visibility="gone"
+        android:indeterminateTint="?attr/colorPrimary" />
+
+    <TextView
+        android:id="@+id/tvNoSuggestions"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="No junk found! Your library is clean."
+        android:textSize="16sp"
+        android:textColor="#80FFFFFF"
+        android:gravity="center"
+        android:visibility="gone"
+        android:layout_marginTop="40dp"
+        android:layout_marginBottom="40dp" />
+
+    <!-- Actions -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btnCancel"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="0dp"
+            android:layout_height="56dp"
+            android:layout_weight="1"
+            android:text="Maybe Later"
+            android:textColor="@android:color/white"
+            android:layout_marginEnd="8dp" />
+
+        <Button
+            android:id="@+id/btnApplyAll"
+            android:layout_width="0dp"
+            android:layout_height="56dp"
+            android:layout_weight="2"
+            android:text="Apply All Changes"
+            android:backgroundTint="?attr/colorPrimary"
+            android:textColor="@android:color/white"
+            android:textStyle="bold"
+            app:cornerRadius="16dp"
+            android:layout_marginStart="8dp" />
+    </LinearLayout>
+
+</LinearLayout>

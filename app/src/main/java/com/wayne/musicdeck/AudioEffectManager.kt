@@ -114,6 +114,24 @@ object AudioEffectManager {
                 bb.setStrength(strength)
             }
         }
+
+        // Restore Extreme Bass
+        if (prefs.getBoolean("extreme_bass_enabled", false)) {
+            applyExtremeBass()
+        }
+    }
+
+    private fun applyExtremeBass() {
+        equalizer?.let { eq ->
+            val maxLevel = eq.bandLevelRange[1]
+            if (eq.numberOfBands >= 1) eq.setBandLevel(0, maxLevel)
+            if (eq.numberOfBands >= 2) eq.setBandLevel(1, maxLevel)
+        }
+        bassBoost?.let { bb ->
+            if (bb.strengthSupported) {
+                bb.setStrength(1000)
+            }
+        }
     }
 
     fun setEqEnabled(enabled: Boolean, context: Context) {
@@ -163,5 +181,24 @@ object AudioEffectManager {
     fun getSavedPreset(context: Context): String {
         return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             .getString("eq_preset", "Flat") ?: "Flat"
+    }
+
+    fun setExtremeBassEnabled(enabled: Boolean, context: Context) {
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .edit()
+            .putBoolean("extreme_bass_enabled", enabled)
+            .apply()
+        
+        if (enabled) {
+            applyExtremeBass()
+        } else {
+            // Restore normal settings
+            restoreSettings(context)
+        }
+    }
+
+    fun isExtremeBassEnabled(context: Context): Boolean {
+        return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .getBoolean("extreme_bass_enabled", false)
     }
 }

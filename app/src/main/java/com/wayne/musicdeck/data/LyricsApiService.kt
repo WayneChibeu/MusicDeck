@@ -126,6 +126,22 @@ class LyricsApiService {
     }
     
     /**
+     * Search for track metadata without downloading lyrics
+     */
+    suspend fun searchTrackMetadata(query: String): LrclibResponse? = withContext(Dispatchers.IO) {
+        try {
+            val response = api.searchLyrics(query)
+            if (response.isSuccessful && response.body() != null) {
+                // Return the best match (first one usually)
+                return@withContext response.body()?.firstOrNull()
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Metadata search failed", e)
+        }
+        null
+    }
+
+    /**
      * Clean up messy metadata for better search results.
      */
     private fun cleanupMetadata(rawTitle: String, rawArtist: String): Pair<String, String> {

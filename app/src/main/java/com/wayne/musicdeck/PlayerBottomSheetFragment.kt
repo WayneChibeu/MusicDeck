@@ -429,7 +429,7 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         behavior.peekHeight = height
         behavior.state = BottomSheetBehavior.STATE_EXPANDED
         behavior.skipCollapsed = true
-        behavior.isDraggable = false // Restrict swipe-down dismissal
+        behavior.isDraggable = true // Allow swipe-down dismissal
         
         setupEdgeToEdge(dialog)
     }

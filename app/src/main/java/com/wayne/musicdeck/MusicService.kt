@@ -25,6 +25,9 @@ class MusicService : MediaSessionService() {
     private var mediaSession: MediaSession? = null
     private var sleepTimerJob: kotlinx.coroutines.Job? = null
     private var isCurrentSongFavorite = false
+    private lateinit var volumeManager: com.wayne.musicdeck.utils.VolumeManager
+    private lateinit var playCountDao: com.wayne.musicdeck.data.PlayCountDao
+    private var playCountJob: kotlinx.coroutines.Job? = null
     
     companion object {
         const val ACTION_SET_SLEEP_TIMER = "com.wayne.musicdeck.ACTION_SET_SLEEP_TIMER"
@@ -36,6 +39,7 @@ class MusicService : MediaSessionService() {
         super.onCreate()
         val database = com.wayne.musicdeck.data.MusicDatabase.getDatabase(applicationContext)
         playlistRepository = com.wayne.musicdeck.data.PlaylistRepository(database.playlistDao())
+        playCountDao = database.playCountDao()
         
         // Initialize favorites ID
         serviceScope.launch(kotlinx.coroutines.Dispatchers.IO) {
@@ -52,6 +56,8 @@ class MusicService : MediaSessionService() {
             
         // Initialize Audio Effects Manager
         AudioEffectManager.initialize(exoPlayer.audioSessionId, this)
+        
+        volumeManager = com.wayne.musicdeck.utils.VolumeManager(exoPlayer, serviceScope)
             
         val player = AutoPlayForwardingPlayer(exoPlayer)
 
@@ -141,6 +147,44 @@ class MusicService : MediaSessionService() {
                     }
                     return super.onCustomCommand(session, controller, customCommand, args)
                 }
+
+                private var mediaButtonPressCount = 0
+                private val mediaButtonPressTimeout = 400L
+                private var mediaButtonPressJob: kotlinx.coroutines.Job? = null
+
+                override fun onMediaButtonEvent(
+                    session: MediaSession,
+                    controllerInfo: MediaSession.ControllerInfo,
+                    intent: Intent
+                ): Boolean {
+                    val ke = intent.getParcelableExtra<android.view.KeyEvent>(Intent.EXTRA_KEY_EVENT)
+                    if (ke != null && ke.action == android.view.KeyEvent.ACTION_DOWN) {
+                        when (ke.keyCode) {
+                            android.view.KeyEvent.KEYCODE_HEADSETHOOK,
+                            android.view.KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> {
+                                mediaButtonPressCount++
+                                mediaButtonPressJob?.cancel()
+                                mediaButtonPressJob = serviceScope.launch {
+                                    kotlinx.coroutines.delay(mediaButtonPressTimeout)
+                                    when (mediaButtonPressCount) {
+                                        1 -> {
+                                            if (player.isPlaying) player.pause() else player.play()
+                                        }
+                                        2 -> {
+                                            player.seekToNextMediaItem()
+                                        }
+                                        3 -> {
+                                            player.seekToPreviousMediaItem()
+                                        }
+                                    }
+                                    mediaButtonPressCount = 0
+                                }
+                                return true
+                            }
+                        }
+                    }
+                    return super.onMediaButtonEvent(session, controllerInfo, intent)
+                }
                 
                 override fun onPostConnect(
                     session: MediaSession,
@@ -178,13 +222,27 @@ class MusicService : MediaSessionService() {
              }
              override fun onMediaItemTransition(mediaItem: androidx.media3.common.MediaItem?, reason: Int) {
                  updateWidget(player)
+                 startPlayCountHeartbeat(mediaItem)
              }
              override fun onIsPlayingChanged(isPlaying: Boolean) {
                   updateWidget(player)
+                  if (isPlaying) {
+                      startPlayCountHeartbeat(player.currentMediaItem)
+                  } else {
+                      playCountJob?.cancel()
+                  }
              }
-             // No redundant updateWidget in onPlaybackStateChanged needed if covered by others, but keeping original structure is fine if I don't remove it.
-             // I will replace only what I selected.
-        })
+         
+         override fun onPlaybackStateChanged(playbackState: Int) {
+             if (playbackState == Player.STATE_ENDED) {
+                 val prefs = getSharedPreferences("musicdeck_prefs", android.content.Context.MODE_PRIVATE)
+                 if (prefs.getBoolean("sunset_transition_enabled", false)) {
+                     // Note: STATE_ENDED means it already stopped, but we can reset volume for next play
+                     volumeManager.resetVolume()
+                 }
+             }
+         }
+    })
         
         updateMediaSessionLayout(player)
             
@@ -272,6 +330,21 @@ class MusicService : MediaSessionService() {
         }
     }
     
+    private fun startPlayCountHeartbeat(mediaItem: androidx.media3.common.MediaItem?) {
+        playCountJob?.cancel()
+        val songId = mediaItem?.mediaId?.toLongOrNull() ?: return
+        
+        playCountJob = serviceScope.launch {
+            // Wait for 30 seconds of continuous play
+            kotlinx.coroutines.delay(30000)
+            
+            // If still active after 30s, count it!
+            playCountDao.ensureExists(songId)
+            playCountDao.incrementPlayCount(songId)
+            android.util.Log.d("MusicService", "Play counted for song: $songId (30s heartbeat reached)")
+        }
+    }
+
     private fun updateWidget(player: Player) {
         val mediaItem = player.currentMediaItem
         val title = mediaItem?.mediaMetadata?.title?.toString() ?: "Not Playing"
@@ -594,28 +667,36 @@ class MusicService : MediaSessionService() {
     }
 
     private inner class AutoPlayForwardingPlayer(player: Player) : ForwardingPlayer(player) {
-        override fun play() {
-            if (!isPlaying) {
-                volume = 0f
-                super.play()
-                fadeIn()
+        override fun pause() {
+            val prefs = getSharedPreferences("musicdeck_prefs", android.content.Context.MODE_PRIVATE)
+            if (prefs.getBoolean("sunset_transition_enabled", false)) {
+                volumeManager.fadeOut(500) {
+                    super.pause()
+                    // Reset volume after pause so next play starts at full (or fades in)
+                    volumeManager.resetVolume()
+                }
             } else {
-                super.play()
+                super.pause()
             }
         }
 
         private fun fadeIn() {
-            serviceScope.launch {
-                val steps = 10
-                val duration = 500L
-                val stepDelay = duration / steps
-                var vol = 0f
-                repeat(steps) {
-                    vol += 0.1f
-                    if (vol > 1f) vol = 1f
-                    volume = vol
-                    kotlinx.coroutines.delay(stepDelay)
+            val prefs = getSharedPreferences("musicdeck_prefs", android.content.Context.MODE_PRIVATE)
+            if (prefs.getBoolean("sunset_transition_enabled", false)) {
+                serviceScope.launch {
+                    val steps = 10
+                    val duration = 500L
+                    val stepDelay = duration / steps
+                    var vol = 0f
+                    repeat(steps) {
+                        vol += 0.1f
+                        if (vol > 1f) vol = 1f
+                        volume = vol
+                        kotlinx.coroutines.delay(stepDelay)
+                    }
+                    volume = 1f
                 }
+            } else {
                 volume = 1f
             }
         }
@@ -624,16 +705,18 @@ class MusicService : MediaSessionService() {
             super.seekToNext()
             if (!isPlaying) play()
         }
+
         override fun seekToPrevious() {
-            // Always go to previous track immediately (not rewind to start first)
             super.seekToPreviousMediaItem()
             if (!isPlaying) play()
         }
+
         override fun seekToNextMediaItem() {
             super.seekToNextMediaItem()
             if (!isPlaying) play()
         }
-         override fun seekToPreviousMediaItem() {
+
+        override fun seekToPreviousMediaItem() {
             super.seekToPreviousMediaItem()
             if (!isPlaying) play()
         }

@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="12dp"
+    android:layout_marginBottom="8dp"
+    android:background="@drawable/bg_glassmorphic_item">
+
+    <!-- Original -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+        
+        <TextView
+            android:layout_width="60dp"
+            android:layout_height="wrap_content"
+            android:text="Before:"
+            android:textSize="11sp"
+            android:textColor="#60FFFFFF" />
+            
+        <TextView
+            android:id="@+id/tvBefore"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="CalvinHarrisVEVO"
+            android:textSize="13sp"
+            android:textColor="#80FFFFFF"
+            android:singleLine="true" />
+    </LinearLayout>
+
+    <ImageView
+        android:layout_width="16dp"
+        android:layout_height="16dp"
+        android:layout_gravity="center"
+        android:src="@drawable/ic_chevron_down"
+        app:tint="?attr/colorPrimary"
+        android:layout_marginVertical="4dp" />
+
+    <!-- Suggested -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+        
+        <TextView
+            android:layout_width="60dp"
+            android:layout_height="wrap_content"
+            android:text="After:"
+            android:textSize="11sp"
+            android:textColor="?attr/colorPrimary" />
+            
+        <TextView
+            android:id="@+id/tvAfter"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Calvin Harris"
+            android:textSize="14sp"
+            android:textColor="@android:color/white"
+            android:textStyle="bold"
+            android:singleLine="true" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/tvReason"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Cleaned junk from Artist"
+        android:textSize="10sp"
+        android:textColor="#40FFFFFF"
+        android:layout_gravity="end"
+        android:layout_marginTop="4dp" />
+
+</LinearLayout>

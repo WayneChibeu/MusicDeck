@@ -32,7 +32,21 @@ fun ImageView.loadSongCover(song: Song) {
         }
     }
     
-    // Fallback to MediaStore
+    // For "Unknown Album", MediaStore returns a shared ID that leads to "leaking" covers.
+    // We prioritize embedded art for these cases.
+    if (song.album == "Unknown Album") {
+        this.load(song.data) { // Load directly from file path (Coil handles MediaMetadataRetriever internally for audio)
+            crossfade(150)
+            placeholder(R.drawable.default_album_art)
+            error(R.drawable.default_album_art)
+            transformations(RoundedCornersTransformation(12f))
+            memoryCacheKey("embedded_cover_${song.id}")
+            diskCacheKey("embedded_cover_${song.id}")
+        }
+        return
+    }
+
+    // Standard behavior for songs with actual album tags
     val albumArtUri = ContentUris.withAppendedId(
         Uri.parse("content://media/external/audio/albumart"),
         song.albumId
