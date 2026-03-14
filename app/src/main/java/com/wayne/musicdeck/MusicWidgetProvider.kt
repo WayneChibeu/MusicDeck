@@ -15,9 +15,23 @@ class MusicWidgetProvider : AppWidgetProvider() {
         appWidgetManager: AppWidgetManager,
         appWidgetIds: IntArray
     ) {
-        // Perform this loop procedure for each AppWidget that belongs to this provider
+        val prefs = context.getSharedPreferences("musicdeck_prefs", Context.MODE_PRIVATE)
+        val lastTitle = prefs.getString("last_title", "Not Playing") ?: "Not Playing"
+        val lastArtist = prefs.getString("last_artist", "MusicDeck") ?: "MusicDeck"
+        
         for (appWidgetId in appWidgetIds) {
-            updateAppWidget(context, appWidgetManager, appWidgetId)
+            updateAppWidget(context, appWidgetManager, appWidgetId, title = lastTitle, artist = lastArtist)
+        }
+    }
+
+    override fun onReceive(context: Context, intent: Intent) {
+        super.onReceive(context, intent)
+        val action = intent.action ?: return
+        if (action.startsWith("com.wayne.musicdeck.ACTION_")) {
+            val serviceIntent = Intent(context, MusicService::class.java).apply {
+                this.action = action
+            }
+            context.startForegroundService(serviceIntent)
         }
     }
     
@@ -90,11 +104,11 @@ class MusicWidgetProvider : AppWidgetProvider() {
         }
         
         private fun getPendingIntent(context: Context, action: String): PendingIntent {
-            val intent = Intent(context, MusicService::class.java).apply {
+            val intent = Intent(context, MusicWidgetProvider::class.java).apply {
                 this.action = action
             }
             val reqCode = action.hashCode()
-            return PendingIntent.getService(context, reqCode, intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
+            return PendingIntent.getBroadcast(context, reqCode, intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
         }
         
         fun pushUpdate(context: Context, title: String, artist: String, isPlaying: Boolean, isFavorite: Boolean, albumArtUri: android.net.Uri?, albumArtBitmap: android.graphics.Bitmap? = null) {

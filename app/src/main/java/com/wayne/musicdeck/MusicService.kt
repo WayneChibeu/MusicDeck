@@ -361,14 +361,19 @@ class MusicService : MediaSessionService() {
     }
 
     private fun saveFinalPosition(player: Player) {
-        val songId = player.currentMediaItem?.mediaId?.toLongOrNull() ?: return
+        val mediaItem = player.currentMediaItem ?: return
+        val songId = mediaItem.mediaId.toLongOrNull() ?: return
         val position = player.currentPosition
+        val title = mediaItem.mediaMetadata.title?.toString() ?: "Unknown Title"
+        val artist = mediaItem.mediaMetadata.artist?.toString() ?: "Unknown Artist"
+        
         val prefs = getSharedPreferences("musicdeck_prefs", android.content.Context.MODE_PRIVATE)
         prefs.edit()
             .putLong("last_song_id", songId)
             .putLong("last_position", position)
+            .putString("last_title", title)
+            .putString("last_artist", artist)
             .apply()
-        // android.util.Log.d("MusicService", "Position saved: $position for song $songId")
     }
 
     private fun updateWidget(player: Player) {
@@ -465,17 +470,35 @@ class MusicService : MediaSessionService() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val player = mediaSession?.player
         if (player != null && intent != null && intent.action != null) {
+            android.util.Log.d("MusicService", "Widget Action: ${intent.action}")
             when (intent.action) {
                 MusicWidgetProvider.ACTION_PLAY_PAUSE -> {
                     if (player.isPlaying) {
                         player.pause()
                     } else {
-                        // Resume Logic
                         if (player.mediaItemCount == 0) {
-                            restoreLastSession(player)
+                            restoreLastSession(player, startPlaying = true)
                         } else {
                             player.play()
                         }
+                    }
+                }
+                MusicWidgetProvider.ACTION_NEXT -> {
+                    if (player.mediaItemCount == 0) {
+                        restoreLastSession(player, startPlaying = true) {
+                            player.seekToNextMediaItem()
+                        }
+                    } else {
+                        player.seekToNextMediaItem()
+                    }
+                }
+                MusicWidgetProvider.ACTION_PREVIOUS -> {
+                    if (player.mediaItemCount == 0) {
+                        restoreLastSession(player, startPlaying = true) {
+                            player.seekToPreviousMediaItem()
+                        }
+                    } else {
+                        player.seekToPreviousMediaItem()
                     }
                 }
                 MusicWidgetProvider.ACTION_FAVORITE -> {
@@ -490,7 +513,7 @@ class MusicService : MediaSessionService() {
                             }
                              kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
                                  updateWidget(player)
-                                 updateMediaSessionLayout(player) // Update notification favorite state if we added it there too
+                                 updateMediaSessionLayout(player)
                              }
                         }
                     }
@@ -575,7 +598,7 @@ class MusicService : MediaSessionService() {
     // See initialization update below 
 
 
-    private fun restoreLastSession(player: Player) {
+    private fun restoreLastSession(player: Player, startPlaying: Boolean = false, onReady: (() -> Unit)? = null) {
         val prefs = getSharedPreferences("musicdeck_prefs", android.content.Context.MODE_PRIVATE)
         val lastId = prefs.getLong("last_song_id", -1)
         val lastPos = prefs.getLong("last_position", 0)
@@ -627,12 +650,16 @@ class MusicService : MediaSessionService() {
                         .build()
                 )
                 .build()
+            
+            // If we're restoring, we should probably load the whole "All Songs" or last played playlist
+            // But for instant widget "Play", restoring the single last item and starting is the priority.
 
             kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
                 player.setMediaItem(mediaItem)
                 player.seekTo(lastPos)
                 player.prepare()
-                player.play()
+                if (startPlaying) player.play()
+                onReady?.invoke()
             }
         }
     }

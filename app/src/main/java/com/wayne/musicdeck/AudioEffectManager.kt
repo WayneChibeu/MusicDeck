@@ -9,8 +9,7 @@ import android.util.Log
 object AudioEffectManager {
     private var equalizer: Equalizer? = null
     private var bassBoost: BassBoost? = null
-    var audioSessionId: Int = 0
-        private set
+    private var audioSessionId: Int = 0
     private const val PREFS_NAME = "eq_prefs"
     
     // Store last error for user feedback

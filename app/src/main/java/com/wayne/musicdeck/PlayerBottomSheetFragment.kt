@@ -598,11 +598,6 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         updatePlayPauseIcon(player.isPlaying)
         updatePlaybackModeIcon()
         
-        // Initialize Visualizer
-        if (AudioEffectManager.audioSessionId != 0) {
-            binding.visualizerView.setAudioSessionId(AudioEffectManager.audioSessionId)
-        }
-        
         player.addListener(playerListener)
     }
     
@@ -892,7 +887,6 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
     }
 
     override fun onDestroyView() {
-        binding.visualizerView.release()
         super.onDestroyView()
         _binding?.seekBar?.removeCallbacks(updateProgressAction)
         viewModel.mediaController.value?.removeListener(playerListener)

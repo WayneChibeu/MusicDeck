@@ -61,16 +61,6 @@ class ToolsBottomSheetFragment : BottomSheetDialogFragment() {
             showAboutDialog()
         }
         
-        binding.btnScoutEngine.setOnClickListener {
-             android.widget.Toast.makeText(context, "Scouting for Identities...", android.widget.Toast.LENGTH_LONG).show()
-             // Future: Open ScoutEngineBottomSheet()
-        }
-        
-        binding.btnTransferWindow.setOnClickListener {
-             android.widget.Toast.makeText(context, "Opening Transfer Window (Wi-Fi)...", android.widget.Toast.LENGTH_LONG).show()
-             // Future: Open TransferWindowBottomSheet()
-        }
-        
         // Observe backup result
         viewModel.backupResult.observe(viewLifecycleOwner) { result ->
             if (!result.isNullOrEmpty()) {
