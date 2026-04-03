@@ -2,6 +2,7 @@ package com.wayne.musicdeck.data
 
 data class OrganizationSuggestion(
     val songId: Long,
+    val filePath: String,
     val currentTitle: String,
     val currentArtist: String,
     val currentAlbum: String,

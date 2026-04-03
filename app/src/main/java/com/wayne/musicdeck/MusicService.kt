@@ -17,21 +17,25 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.isActive
 import androidx.media3.session.SessionCommand
 import androidx.media3.session.CommandButton
+import org.koin.android.ext.android.inject
+import com.wayne.musicdeck.utils.SettingsManager
 
 class MusicService : MediaSessionService() {
 
-    private lateinit var playlistRepository: com.wayne.musicdeck.data.PlaylistRepository
+    private val playlistRepository: com.wayne.musicdeck.data.PlaylistRepository by inject()
     private val serviceScope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Main + kotlinx.coroutines.Job())
     private var favoritesPlaylistId: Long = -1L
     private var mediaSession: MediaSession? = null
     private var sleepTimerJob: kotlinx.coroutines.Job? = null
     private var isCurrentSongFavorite = false
     private lateinit var volumeManager: com.wayne.musicdeck.utils.VolumeManager
-    private lateinit var playCountDao: com.wayne.musicdeck.data.PlayCountDao
+    private val playCountDao: com.wayne.musicdeck.data.PlayCountDao by inject()
+    private val settingsManager: SettingsManager by inject()
     private var playCountJob: kotlinx.coroutines.Job? = null
     private var playbackPositionJob: kotlinx.coroutines.Job? = null
     
     companion object {
+        private const val USER_AGENT = "MusicDeck/2.5.0"
         const val ACTION_SET_SLEEP_TIMER = "com.wayne.musicdeck.ACTION_SET_SLEEP_TIMER"
         const val ACTION_CANCEL_SLEEP_TIMER = "com.wayne.musicdeck.ACTION_CANCEL_SLEEP_TIMER"
         const val EXTRA_TIMER_MINUTES = "extra_timer_minutes"
@@ -39,9 +43,6 @@ class MusicService : MediaSessionService() {
 
     override fun onCreate() {
         super.onCreate()
-        val database = com.wayne.musicdeck.data.MusicDatabase.getDatabase(applicationContext)
-        playlistRepository = com.wayne.musicdeck.data.PlaylistRepository(database.playlistDao())
-        playCountDao = database.playCountDao()
         
         // Initialize favorites ID
         serviceScope.launch(kotlinx.coroutines.Dispatchers.IO) {
@@ -56,7 +57,8 @@ class MusicService : MediaSessionService() {
             .setSeekForwardIncrementMs(10000)
             .build()
             
-        // Initialize Audio Effects Manager
+        // Initialize Audio Effects Manager eagerly. If it fails due to Session 0 hardware restrictions,
+        // it will retry dynamically during onIsPlayingChanged.
         AudioEffectManager.initialize(exoPlayer.audioSessionId, this)
         
         volumeManager = com.wayne.musicdeck.utils.VolumeManager(exoPlayer, serviceScope)
@@ -105,15 +107,16 @@ class MusicService : MediaSessionService() {
                     android.util.Log.d("MusicService", "onCustomCommand received: ${customCommand.customAction}")
                     when (customCommand.customAction) {
                         "TOGGLE_FAVORITE" -> {
-                            val currentId = player.currentMediaItem?.mediaId?.toLongOrNull()
-                            if (currentId != null && favoritesPlaylistId != -1L) {
+                            val currentPath = player.currentMediaItem?.mediaId
+                            val currentId = player.currentMediaItem?.requestMetadata?.extras?.getLong("songId") ?: -1L
+                            if (currentPath != null && favoritesPlaylistId != -1L) {
                                 serviceScope.launch(kotlinx.coroutines.Dispatchers.IO) {
-                                    val isFav = playlistRepository.isSongInPlaylist(favoritesPlaylistId, currentId)
+                                    val isFav = playlistRepository.isSongInPlaylist(favoritesPlaylistId, currentPath)
                                     if (isFav) {
-                                        playlistRepository.removeSongFromPlaylist(favoritesPlaylistId, currentId)
+                                        playlistRepository.removeSongFromPlaylist(favoritesPlaylistId, currentPath)
                                         isCurrentSongFavorite = false
                                     } else {
-                                        playlistRepository.addSongToPlaylist(favoritesPlaylistId, currentId)
+                                        playlistRepository.addSongToPlaylist(favoritesPlaylistId, currentId, currentPath)
                                         isCurrentSongFavorite = true
                                     }
                                     kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
@@ -159,7 +162,12 @@ class MusicService : MediaSessionService() {
                     controllerInfo: MediaSession.ControllerInfo,
                     intent: Intent
                 ): Boolean {
-                    val ke = intent.getParcelableExtra<android.view.KeyEvent>(Intent.EXTRA_KEY_EVENT)
+                    val ke = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                        intent.getParcelableExtra(Intent.EXTRA_KEY_EVENT, android.view.KeyEvent::class.java)
+                    } else {
+                        @Suppress("DEPRECATION")
+                        intent.getParcelableExtra<android.view.KeyEvent>(Intent.EXTRA_KEY_EVENT)
+                    }
                     if (ke != null && ke.action == android.view.KeyEvent.ACTION_DOWN) {
                         when (ke.keyCode) {
                             android.view.KeyEvent.KEYCODE_HEADSETHOOK,
@@ -222,6 +230,15 @@ class MusicService : MediaSessionService() {
              override fun onRepeatModeChanged(repeatMode: Int) {
                  updateMediaSessionLayout(player)
              }
+             override fun onAudioSessionIdChanged(audioSessionId: Int) {
+                 super.onAudioSessionIdChanged(audioSessionId)
+                 // This is the absolute golden moment to initialize the Equalizer.
+                 // Before this triggers, the sessionId is 0 and fails on many devices.
+                 if (audioSessionId != 0) {
+                     android.util.Log.d("MusicService", "Audio Session ID generated: $audioSessionId. Initializing EQ...")
+                     AudioEffectManager.initialize(audioSessionId, this@MusicService)
+                 }
+             }
              override fun onMediaItemTransition(mediaItem: androidx.media3.common.MediaItem?, reason: Int) {
                  updateWidget(player)
                  startPlayCountHeartbeat(mediaItem)
@@ -231,6 +248,16 @@ class MusicService : MediaSessionService() {
                   if (isPlaying) {
                       startPlayCountHeartbeat(player.currentMediaItem)
                       startPlaybackPositionHeartbeat(player)
+                      
+                      // Aggressive EQ Init Retry: If it failed early (session 0), try again now
+                      // that the audio engine is actively pumping output.
+                      if (!AudioEffectManager.isInitialized()) {
+                          val currentSession = exoPlayer.audioSessionId
+                          if (currentSession != 0) {
+                              android.util.Log.d("MusicService", "Aggressive EQ Retry on playing start")
+                              AudioEffectManager.initialize(currentSession, this@MusicService)
+                          }
+                      }
                   } else {
                       playCountJob?.cancel()
                       playbackPositionJob?.cancel()
@@ -238,15 +265,14 @@ class MusicService : MediaSessionService() {
                   }
              }
          
-         override fun onPlaybackStateChanged(playbackState: Int) {
-             if (playbackState == Player.STATE_ENDED) {
-                 val prefs = getSharedPreferences("musicdeck_prefs", android.content.Context.MODE_PRIVATE)
-                 if (prefs.getBoolean("sunset_transition_enabled", false)) {
-                     // Note: STATE_ENDED means it already stopped, but we can reset volume for next play
-                     volumeManager.resetVolume()
-                 }
-             }
-         }
+          override fun onPlaybackStateChanged(playbackState: Int) {
+              if (playbackState == Player.STATE_ENDED) {
+                  if (settingsManager.isSunsetTransitionEnabled) {
+                      // Note: STATE_ENDED means it already stopped, but we can reset volume for next play
+                      volumeManager.resetVolume()
+                  }
+              }
+          }
     })
         
         updateMediaSessionLayout(player)
@@ -314,9 +340,9 @@ class MusicService : MediaSessionService() {
             // 5. Repeat - State-aware icon with "1" for repeat one
             val repeatMode = player.repeatMode
             val repeatIcon = when (repeatMode) {
-                Player.REPEAT_MODE_ONE -> androidx.media3.ui.R.drawable.exo_icon_repeat_one
-                Player.REPEAT_MODE_ALL -> androidx.media3.ui.R.drawable.exo_icon_repeat_all
-                else -> androidx.media3.ui.R.drawable.exo_icon_repeat_off
+                Player.REPEAT_MODE_ONE -> R.drawable.ic_notif_repeat_one
+                Player.REPEAT_MODE_ALL -> R.drawable.ic_notif_repeat_all
+                else -> R.drawable.ic_notif_repeat_off
             }
             val repeatDisplayName = when (repeatMode) {
                 Player.REPEAT_MODE_ONE -> "Repeat: One"
@@ -337,16 +363,17 @@ class MusicService : MediaSessionService() {
     
     private fun startPlayCountHeartbeat(mediaItem: androidx.media3.common.MediaItem?) {
         playCountJob?.cancel()
-        val songId = mediaItem?.mediaId?.toLongOrNull() ?: return
+        val filePath = mediaItem?.mediaId ?: return
+        val songId = mediaItem.requestMetadata.extras?.getLong("songId") ?: -1L
         
         playCountJob = serviceScope.launch {
             // Wait for 30 seconds of continuous play
             kotlinx.coroutines.delay(30000)
             
             // If still active after 30s, count it!
-            playCountDao.ensureExists(songId)
-            playCountDao.incrementPlayCount(songId)
-            android.util.Log.d("MusicService", "Play counted for song: $songId (30s heartbeat reached)")
+            playCountDao.ensureExists(filePath, songId)
+            playCountDao.incrementPlayCount(filePath)
+            android.util.Log.d("MusicService", "Play counted for path: $filePath (30s heartbeat reached)")
         }
     }
 
@@ -362,108 +389,107 @@ class MusicService : MediaSessionService() {
 
     private fun saveFinalPosition(player: Player) {
         val mediaItem = player.currentMediaItem ?: return
-        val songId = mediaItem.mediaId.toLongOrNull() ?: return
+        val filePath = mediaItem.mediaId
+        val songId = mediaItem.requestMetadata.extras?.getLong("songId") ?: -1L
         val position = player.currentPosition
         val title = mediaItem.mediaMetadata.title?.toString() ?: "Unknown Title"
         val artist = mediaItem.mediaMetadata.artist?.toString() ?: "Unknown Artist"
         
-        val prefs = getSharedPreferences("musicdeck_prefs", android.content.Context.MODE_PRIVATE)
-        prefs.edit()
-            .putLong("last_song_id", songId)
-            .putLong("last_position", position)
-            .putString("last_title", title)
-            .putString("last_artist", artist)
-            .apply()
+        settingsManager.lastPlayedSongPath = filePath
+        settingsManager.lastPlayedSongId = songId
+        settingsManager.lastPlayedPosition = position
+        settingsManager.lastPlayedTitle = title
+        settingsManager.lastPlayedArtist = artist
     }
 
     private fun updateWidget(player: Player) {
-        val mediaItem = player.currentMediaItem
-        val title = mediaItem?.mediaMetadata?.title?.toString() ?: "Not Playing"
-        val artist = mediaItem?.mediaMetadata?.artist?.toString() ?: "MusicDeck"
-        val isPlaying = player.isPlaying
-        val artUri = mediaItem?.mediaMetadata?.artworkUri
-        
-        // Check favorite status
-        val currentId = mediaItem?.mediaId?.toLongOrNull() ?: -1L
-
-        serviceScope.launch(kotlinx.coroutines.Dispatchers.IO) {
-            val isFav = if (currentId != -1L && favoritesPlaylistId != -1L) {
-                playlistRepository.isSongInPlaylist(favoritesPlaylistId, currentId)
-            } else {
-                false
-            }
-            if (currentId != -1L) isCurrentSongFavorite = isFav
-
-            // Load Bitmap for Widget (Fixes missing art on some launchers)
-            // Tries artUri first, then fallback to embedded MP3 art
-            var artBitmap: android.graphics.Bitmap? = null
-            if (artUri != null) {
-                try {
-                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
-                        val source = if (artUri.scheme == "file") {
-                             android.graphics.ImageDecoder.createSource(java.io.File(artUri.path!!))
-                        } else {
-                             android.graphics.ImageDecoder.createSource(contentResolver, artUri)
-                        }
-                        artBitmap = android.graphics.ImageDecoder.decodeBitmap(source) { decoder, _, _ ->
-                            decoder.setAllocator(android.graphics.ImageDecoder.ALLOCATOR_SOFTWARE)
-                            decoder.setTargetSampleSize(2) // Downsample for widget
-                        }
-                    } else {
-                        @Suppress("DEPRECATION")
-                        artBitmap = android.provider.MediaStore.Images.Media.getBitmap(contentResolver, artUri)
-                    }
-                } catch (e: Exception) {
-                    // Bitmap load failed - will try embedded art fallback
-                    android.util.Log.e("MusicService", "Failed to load widget art from URI: ${e.message}")
-                }
-            }
+        try {
+            val mediaItem = player.currentMediaItem
+            val title = mediaItem?.mediaMetadata?.title?.toString() ?: "Unknown"
+            val artist = mediaItem?.mediaMetadata?.artist?.toString() ?: "Unknown Artist"
+            val isPlaying = player.isPlaying
+            val isFav = isCurrentSongFavorite
             
-            // Fallback: Try embedded art from MP3 file (like PlayerBottomSheetFragment does)
-            if (artBitmap == null && currentId != -1L) {
-                try {
-                    val uri = android.content.ContentUris.withAppendedId(
-                        android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
-                        currentId
-                    )
-                    val retriever = android.media.MediaMetadataRetriever()
-                    retriever.setDataSource(this@MusicService, uri)
-                    val embeddedArt = retriever.embeddedPicture
-                    retriever.release()
-                    if (embeddedArt != null) {
-                        artBitmap = android.graphics.BitmapFactory.decodeByteArray(embeddedArt, 0, embeddedArt.size)
-                    }
-                } catch (e: Exception) {
-                    android.util.Log.e("MusicService", "Failed to load embedded art: ${e.message}")
+            val currentPath = mediaItem?.mediaId ?: return
+            
+            serviceScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                val isFav = if (favoritesPlaylistId != -1L) {
+                    playlistRepository.isSongInPlaylist(favoritesPlaylistId, currentPath)
+                } else {
+                    false
                 }
-            }
+                isCurrentSongFavorite = isFav
 
-            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-                MusicWidgetProvider.pushUpdate(this@MusicService, title, artist, isPlaying, isFav, artUri, artBitmap)
-                if (currentId != -1L) updateMediaSessionLayout(player)
-                
-                // ALWAYS update artwork data for Notification to prevent stale cached art
-                // This ensures each song gets its own art (or lack thereof)
-                if (mediaItem != null) {
-                    val newMetaBuilder = mediaItem.mediaMetadata.buildUpon()
-                    
-                    if (artBitmap != null) {
-                        val stream = java.io.ByteArrayOutputStream()
-                        artBitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, stream)
-                        val byteArray = stream.toByteArray()
-                        newMetaBuilder.setArtworkData(byteArray, androidx.media3.common.MediaMetadata.PICTURE_TYPE_FRONT_COVER)
-                    }
-                    // Note: Can't set null artwork in Media3, but widget gets explicit null bitmap
-                    
-                    val newMeta = newMetaBuilder.build()
-                    val newItem = mediaItem.buildUpon().setMediaMetadata(newMeta).build()
-                    
-                    val idx = player.currentMediaItemIndex
-                    if (idx != -1 && player.currentMediaItem?.mediaId == newItem.mediaId) {
-                         player.replaceMediaItem(idx, newItem)
+                // Load Bitmap for Widget (Fixes missing art on some launchers)
+                // Tries artUri first, then fallback to embedded MP3 art
+                var artBitmap: android.graphics.Bitmap? = null
+                val artUri = mediaItem?.mediaMetadata?.artworkUri
+                if (artUri != null) {
+                    try {
+                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                            val source = if (artUri.scheme == "file") {
+                                 android.graphics.ImageDecoder.createSource(java.io.File(artUri.path!!))
+                            } else {
+                                 android.graphics.ImageDecoder.createSource(contentResolver, artUri)
+                            }
+                            artBitmap = android.graphics.ImageDecoder.decodeBitmap(source) { decoder, _, _ ->
+                                decoder.setAllocator(android.graphics.ImageDecoder.ALLOCATOR_SOFTWARE)
+                                decoder.setTargetSampleSize(2) // Downsample for widget
+                            }
+                        } else {
+                            @Suppress("DEPRECATION")
+                            artBitmap = android.provider.MediaStore.Images.Media.getBitmap(contentResolver, artUri)
+                        }
+                    } catch (e: Exception) {
+                        // Bitmap load failed - will try embedded art fallback
+                        android.util.Log.e("MusicService", "Failed to load widget art from URI: ${e.message}")
                     }
                 }
-            }
+                
+                // Fallback: Try embedded art from MP3 file (like PlayerBottomSheetFragment does)
+                if (artBitmap == null) {
+                    try {
+                        val uri = android.net.Uri.fromFile(java.io.File(currentPath))
+                        val retriever = android.media.MediaMetadataRetriever()
+                        retriever.setDataSource(this@MusicService, uri)
+                        val embeddedArt = retriever.embeddedPicture
+                        retriever.release()
+                        if (embeddedArt != null) {
+                            artBitmap = android.graphics.BitmapFactory.decodeByteArray(embeddedArt, 0, embeddedArt.size)
+                        }
+                    } catch (e: Exception) {
+                        android.util.Log.e("MusicService", "Failed to load embedded art: ${e.message}")
+                    }
+                }
+
+                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                    MusicWidgetProvider.pushUpdate(this@MusicService, title, artist, isPlaying, isFav, artUri, artBitmap)
+                    updateMediaSessionLayout(player)
+                    
+                    // ALWAYS update artwork data for Notification to prevent stale cached art
+                    // This ensures each song gets its own art (or lack thereof)
+                    val mItem = mediaItem ?: return@withContext
+                    val newMetaBuilder = mItem.mediaMetadata.buildUpon()
+                        
+                        if (artBitmap != null) {
+                            val stream = java.io.ByteArrayOutputStream()
+                            artBitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, stream)
+                            val byteArray = stream.toByteArray()
+                            newMetaBuilder.setArtworkData(byteArray, androidx.media3.common.MediaMetadata.PICTURE_TYPE_FRONT_COVER)
+                        }
+                        // Note: Can't set null artwork in Media3, but widget gets explicit null bitmap
+                        
+                        val newMeta = newMetaBuilder.build()
+                        val newItem = mItem.buildUpon().setMediaMetadata(newMeta).build()
+                        
+                        val idx = player.currentMediaItemIndex
+                        if (idx != -1 && player.currentMediaItem?.mediaId == newItem.mediaId) {
+                             player.replaceMediaItem(idx, newItem)
+                        }
+                    }
+                }
+        } catch (e: Exception) {
+            android.util.Log.e("MusicService", "Widget update failed: ${e.message}")
         }
     }
 
@@ -502,14 +528,18 @@ class MusicService : MediaSessionService() {
                     }
                 }
                 MusicWidgetProvider.ACTION_FAVORITE -> {
-                    val currentId = player.currentMediaItem?.mediaId?.toLongOrNull()
-                    if (currentId != null && favoritesPlaylistId != -1L) {
+                    val currentPath = player.currentMediaItem?.mediaId
+                    if (currentPath != null && favoritesPlaylistId != -1L) {
                         serviceScope.launch(kotlinx.coroutines.Dispatchers.IO) {
-                            val isFav = playlistRepository.isSongInPlaylist(favoritesPlaylistId, currentId)
+                            val isFav = playlistRepository.isSongInPlaylist(favoritesPlaylistId, currentPath)
                             if (isFav) {
-                                playlistRepository.removeSongFromPlaylist(favoritesPlaylistId, currentId)
+                                playlistRepository.removeSongFromPlaylist(favoritesPlaylistId, currentPath)
                             } else {
-                                playlistRepository.addSongToPlaylist(favoritesPlaylistId, currentId)
+                                // Need songId for legacy Room compatibility, but path is primary now
+                                // This is a bit tricky in Service without a direct song list, 
+                                // but we can use a dummy ID or find it if needed. 
+                                // For now, passing -1L for ID as the path-based DAO handles the lookup.
+                                playlistRepository.addSongToPlaylist(favoritesPlaylistId, -1L, currentPath)
                             }
                              kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
                                  updateWidget(player)
@@ -599,68 +629,85 @@ class MusicService : MediaSessionService() {
 
 
     private fun restoreLastSession(player: Player, startPlaying: Boolean = false, onReady: (() -> Unit)? = null) {
-        val prefs = getSharedPreferences("musicdeck_prefs", android.content.Context.MODE_PRIVATE)
-        val lastId = prefs.getLong("last_song_id", -1)
-        val lastPos = prefs.getLong("last_position", 0)
-        
-        if (lastId == -1L) return
-        
-        serviceScope.launch(kotlinx.coroutines.Dispatchers.IO) {
-             val contentUri = android.content.ContentUris.withAppendedId(
-                android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
-                lastId
-            )
-            var title = "Unknown Title"
-            var artist = "Unknown Artist"
-            var albumId = 0L
+        try {
+            val prefs = applicationContext.getSharedPreferences("MusicDeckPrefs", android.content.Context.MODE_PRIVATE)
+            val lastPath = prefs.getString("lastPlayedSongPath", null)
+            val lastPos = prefs.getLong("lastPlayedSongPos", 0L)
             
-            try {
-                contentResolver.query(
-                    contentUri,
-                    arrayOf(
-                        android.provider.MediaStore.Audio.Media.TITLE,
-                        android.provider.MediaStore.Audio.Media.ARTIST,
-                        android.provider.MediaStore.Audio.Media.ALBUM_ID
-                    ),
-                    null, null, null
-                )?.use { cursor ->
-                    if (cursor.moveToFirst()) {
-                        title = cursor.getString(0)
-                        artist = cursor.getString(1)
-                        albumId = cursor.getLong(2)
-                    }
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-            
-            val mediaItem = androidx.media3.common.MediaItem.Builder()
-                .setMediaId(lastId.toString())
-                .setUri(contentUri)
-                .setMediaMetadata(
-                    androidx.media3.common.MediaMetadata.Builder()
-                        .setTitle(title)
-                        .setArtist(artist)
-                        .setArtworkUri(
-                            android.content.ContentUris.withAppendedId(
-                                android.net.Uri.parse("content://media/external/audio/albumart"),
-                                albumId
-                            )
-                        )
-                        .build()
-                )
-                .build()
-            
-            // If we're restoring, we should probably load the whole "All Songs" or last played playlist
-            // But for instant widget "Play", restoring the single last item and starting is the priority.
-
-            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-                player.setMediaItem(mediaItem)
-                player.seekTo(lastPos)
-                player.prepare()
-                if (startPlaying) player.play()
+            if (lastPath == null) {
                 onReady?.invoke()
+                return
             }
+            
+            serviceScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                var title = "Unknown Title"
+                var artist = "Unknown Artist"
+                var albumId = 0L
+                var contentUri: android.net.Uri? = null
+                var songId: Long = -1L
+                
+                try {
+                    // Correctly find the song by data path in MediaStore
+                    contentResolver.query(
+                        android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                        arrayOf(
+                            android.provider.MediaStore.Audio.Media._ID,
+                            android.provider.MediaStore.Audio.Media.TITLE,
+                            android.provider.MediaStore.Audio.Media.ARTIST,
+                            android.provider.MediaStore.Audio.Media.ALBUM_ID
+                        ),
+                        "${android.provider.MediaStore.Audio.Media.DATA} = ?",
+                        arrayOf(lastPath),
+                        null
+                    )?.use { cursor ->
+                        if (cursor.moveToFirst()) {
+                            songId = cursor.getLong(0)
+                            title = cursor.getString(1)
+                            artist = cursor.getString(2)
+                            albumId = cursor.getLong(3)
+                            contentUri = android.content.ContentUris.withAppendedId(
+                                android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, 
+                                songId
+                            )
+                        }
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+                
+                val finalUri = contentUri ?: return@launch
+                
+                val mediaItem = androidx.media3.common.MediaItem.Builder()
+                    .setMediaId(lastPath) // Stable file path
+                    .setUri(finalUri)
+                    .setMediaMetadata(
+                        androidx.media3.common.MediaMetadata.Builder()
+                            .setTitle(title)
+                            .setArtist(artist)
+                            .setArtworkUri(
+                                android.content.ContentUris.withAppendedId(
+                                    android.net.Uri.parse("content://media/external/audio/album_art"),
+                                    albumId
+                                )
+                            )
+                            .build()
+                    )
+                    .build()
+                
+                // If we're restoring, we should probably load the whole "All Songs" or last played playlist
+                // But for instant widget "Play", restoring the single last item and starting is the priority.
+
+                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                    player.setMediaItem(mediaItem)
+                    player.seekTo(lastPos)
+                    player.prepare()
+                    if (startPlaying) player.play()
+                    onReady?.invoke()
+                }
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("MusicService", "Session restoration failed: ${e.message}")
+            onReady?.invoke()
         }
     }
 
@@ -722,8 +769,7 @@ class MusicService : MediaSessionService() {
 
     private inner class AutoPlayForwardingPlayer(player: Player) : ForwardingPlayer(player) {
         override fun pause() {
-            val prefs = getSharedPreferences("musicdeck_prefs", android.content.Context.MODE_PRIVATE)
-            if (prefs.getBoolean("sunset_transition_enabled", false)) {
+            if (settingsManager.isSunsetTransitionEnabled) {
                 volumeManager.fadeOut(500) {
                     super.pause()
                     // Reset volume after pause so next play starts at full (or fades in)
@@ -735,8 +781,7 @@ class MusicService : MediaSessionService() {
         }
 
         private fun fadeIn() {
-            val prefs = getSharedPreferences("musicdeck_prefs", android.content.Context.MODE_PRIVATE)
-            if (prefs.getBoolean("sunset_transition_enabled", false)) {
+            if (settingsManager.isSunsetTransitionEnabled) {
                 serviceScope.launch {
                     val steps = 10
                     val duration = 500L

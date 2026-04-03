@@ -5,7 +5,6 @@ import android.content.ComponentName
 import android.content.ContentUris
 import android.net.Uri
 import android.provider.MediaStore
-import androidx.lifecycle.AndroidViewModel
 import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -20,8 +19,19 @@ import androidx.lifecycle.map
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import com.wayne.musicdeck.utils.SettingsManager
+import com.wayne.musicdeck.data.*
 
-class MainViewModel(application: Application) : AndroidViewModel(application) {
+class MainViewModel(
+    private val application: Application,
+    private val settingsManager: SettingsManager,
+    private val playlistRepository: PlaylistRepository,
+    private val playCountDao: PlayCountDao,
+    private val customMetadataDao: CustomMetadataDao,
+    private val hiddenSongDao: HiddenSongDao,
+    private val customCoverRepository: CustomCoverRepository,
+    private val lyricsRepository: LyricsRepository
+) : androidx.lifecycle.ViewModel() {
 
     private val _songs = MutableLiveData<List<Song>>()
     val songs: LiveData<List<Song>> = _songs
@@ -31,13 +41,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val mediaController = MutableLiveData<MediaController?>()
     
     // Persistent state
-    private val prefs = application.getSharedPreferences("musicdeck_prefs", android.content.Context.MODE_PRIVATE)
-    var lastPlayedSongId: Long
-        get() = prefs.getLong("last_song_id", -1)
-        set(value) = prefs.edit().putLong("last_song_id", value).apply()
+    var lastPlayedSongPath: String?
+        get() = settingsManager.lastPlayedSongPath
+        set(value) { settingsManager.lastPlayedSongPath = value }
     var lastPlayedPosition: Long
-        get() = prefs.getLong("last_position", 0)
-        set(value) = prefs.edit().putLong("last_position", value).apply()
+        get() = settingsManager.lastPlayedPosition
+        set(value) { settingsManager.lastPlayedPosition = value }
         
     // Pending Delete State (survives Activity recreation)
     var pendingDeleteSongId: Long? = null
@@ -47,26 +56,22 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         if (history.contains(query)) history.remove(query)
         history.add(0, query) // Add to top
         if (history.size > 10) history.removeAt(history.lastIndex) // Limit to 10
-        val str = history.joinToString("|||")
-        prefs.edit().putString("search_history", str).apply()
+        settingsManager.saveSearchQuery(history)
     }
     
     fun getSearchHistory(): List<String> {
-        val str = prefs.getString("search_history", "") ?: ""
-        return if (str.isEmpty()) emptyList() else str.split("|||")
+        return settingsManager.getSearchHistory()
     }
     
     fun clearSearchHistory() {
-        prefs.edit().remove("search_history").apply()
+        settingsManager.clearSearchHistory()
     }
 
-    // Database & Repository
-    private val database = com.wayne.musicdeck.data.MusicDatabase.getDatabase(application)
-    private val playlistRepository = com.wayne.musicdeck.data.PlaylistRepository(database.playlistDao())
-    private val playCountDao = database.playCountDao()
-    private val customCoverRepository = com.wayne.musicdeck.data.CustomCoverRepository(application)
-    private val lyricsRepository = com.wayne.musicdeck.data.LyricsRepository(application)
-    private val customMetadataDao = database.customMetadataDao()
+    // Dependencies are now injected via Koin constructor injection
+    
+    // Hidden Songs
+    private val _hiddenSongs = MutableLiveData<List<Song>>()
+    val hiddenSongs: LiveData<List<Song>> = _hiddenSongs
     
     val playlists = MutableLiveData<List<com.wayne.musicdeck.data.Playlist>>()
     
@@ -93,17 +98,34 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     init {
-        loadSongs()
-        getApplication<Application>().contentResolver.registerContentObserver(
-            android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
-            true,
-            contentObserver
-        )
+        // Only load if permissions are likely granted (checked in Activity, but safe guard here)
+        val hasPermission = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            androidx.core.content.ContextCompat.checkSelfPermission(application, android.Manifest.permission.READ_MEDIA_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        } else {
+            androidx.core.content.ContextCompat.checkSelfPermission(application, android.Manifest.permission.READ_EXTERNAL_STORAGE) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        }
+
+        if (hasPermission) {
+            loadSongs()
+            try {
+                application.contentResolver.registerContentObserver(
+                    android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                    true,
+                    contentObserver
+                )
+            } catch (e: Exception) {
+                Log.e("MainViewModel", "Failed to register observer: ${e.message}")
+            }
+        }
+        
         viewModelScope.launch {
-            val favPlaylist = playlistRepository.getOrCreateFavoritesPlaylist()
-            favoritesPlaylistId = favPlaylist.id
-            // Set up reactive observation of favorites
-            setupFavoritesObserver()
+            try {
+                val favPlaylist = playlistRepository.getOrCreateFavoritesPlaylist()
+                favoritesPlaylistId = favPlaylist.id
+                setupFavoritesObserver()
+            } catch (e: Exception) {
+                Log.e("MainViewModel", "Favorites setup failed: ${e.message}")
+            }
         }
     }
     
@@ -139,14 +161,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             if (favoritesPlaylistId == -1L) return@launch
             
             val currentFavs = _favorites.value ?: emptyList()
-            val isFav = currentFavs.any { it.id == song.id }
+            val isFav = currentFavs.any { it.data == song.data }
             
             if (isFav) {
-                playlistRepository.removeSongFromPlaylist(favoritesPlaylistId, song.id)
+                playlistRepository.removeSongFromPlaylist(favoritesPlaylistId, song.data)
             } else {
-                playlistRepository.addSongToPlaylist(favoritesPlaylistId, song.id)
+                playlistRepository.addSongToPlaylist(favoritesPlaylistId, song.id, song.data)
             }
-            // No need to manually refresh - MediatorLiveData observes database changes automatically
         }
     }
     
@@ -182,8 +203,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     
     fun addSongToPlaylist(playlistId: Long, song: Song) {
         viewModelScope.launch {
-            playlistRepository.addSongToPlaylist(playlistId, song.id)
-            // Toast is now shown by the caller with playlist name
+            playlistRepository.addSongToPlaylist(playlistId, song.id, song.data)
+            loadPlaylists()
         }
     }
     
@@ -227,7 +248,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         .setArtist(it.artist)
                         .setArtworkUri(
                             android.content.ContentUris.withAppendedId(
-                                android.net.Uri.parse("content://media/external/audio/albumart"),
+                                android.net.Uri.parse("content://media/external/audio/album_art"),
                                 it.albumId
                             )
                         )
@@ -242,7 +263,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         controller.repeatMode = androidx.media3.common.Player.REPEAT_MODE_ALL
         controller.play()
         
-        lastPlayedSongId = songs[startIndex].id
+        lastPlayedSongPath = songs[startIndex].data
     }
     
     fun deletePlaylist(playlist: com.wayne.musicdeck.data.Playlist) {
@@ -265,7 +286,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         .setAlbumTitle(it.album)
                         .setArtworkUri(
                             android.content.ContentUris.withAppendedId(
-                                android.net.Uri.parse("content://media/external/audio/albumart"),
+                                android.net.Uri.parse("content://media/external/audio/album_art"),
                                 it.albumId
                             )
                         )
@@ -286,9 +307,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
     
-    fun removeSongFromPlaylist(playlistId: Long, songId: Long) {
+    fun removeSongFromPlaylist(playlistId: Long, song: Song) {
         viewModelScope.launch(Dispatchers.IO) {
-            playlistRepository.removeSongFromPlaylist(playlistId, songId)
+            playlistRepository.removeSongFromPlaylist(playlistId, song.data)
         }
     }
 
@@ -308,7 +329,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             // Get all volume names for Android 10+ to ensure SD card is included
             val volumeNames = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
                 try {
-                    MediaStore.getExternalVolumeNames(getApplication())
+                    MediaStore.getExternalVolumeNames(application)
                 } catch (e: Exception) {
                     setOf(MediaStore.VOLUME_EXTERNAL)
                 }
@@ -338,7 +359,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
                 }
 
-                getApplication<Application>().contentResolver.query(
+                application.contentResolver.query(
                     collection,
                     projection,
                     selection,
@@ -379,12 +400,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             songs
         }
         
-        // Apply custom metadata overrides from local database
+        // Apply custom metadata overrides from local database (Mapped by File Path for stability)
         val customMetadataMap = withContext(Dispatchers.IO) {
-            customMetadataDao.getAllCustomMetadata().associateBy { it.songId }
+            customMetadataDao.getAllCustomMetadata().associateBy { it.filePath }
         }
         val songsWithOverrides = songList.map { song ->
-            val override = customMetadataMap[song.id]
+            val override = customMetadataMap[song.data]
             if (override != null) {
                 song.copy(
                     title = override.customTitle ?: song.title,
@@ -392,26 +413,50 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     album = override.customAlbum ?: song.album
                 )
             } else {
-                song
+                // AUTO-FIX: Apply Smart Splitter for "Artist - Title" junk
+                val rawTitle = song.title
+                val rawArtist = song.artist
+                val isJunkArtist = rawArtist == "<unknown>" || rawArtist.contains("@") || rawArtist.contains("topic", ignoreCase = true)
+                
+                if (isJunkArtist && rawTitle.contains(" - ")) {
+                    val parts = rawTitle.split(" - ", limit = 2)
+                    if (parts.size == 2) {
+                        song.copy(
+                            artist = parts[0].trim(),
+                            title = parts[1].trim()
+                        )
+                    } else {
+                        song
+                    }
+                } else {
+                    song
+                }
             }
         }
         
         // Apply default title sort
         val sortedSongs = songsWithOverrides.sortedWith(titleComparator)
         
-        originalSongs = sortedSongs
-        _songs.postValue(sortedSongs)
+        // Partition into visible and hidden songs
+        val hiddenIds = withContext(Dispatchers.IO) {
+            hiddenSongDao.getHiddenSongIds().toSet()
+        }
+        val (hiddenList, visibleList) = sortedSongs.partition { it.id in hiddenIds }
+        
+        originalSongs = visibleList
+        _songs.postValue(visibleList)
+        _hiddenSongs.postValue(hiddenList)
         
         // Refresh favorites now that songs are loaded
         if (favoritesPlaylistId != -1L) {
             refreshFavoritesList()
         }
         
-        // Generate artists and albums lists
-        generateArtistsList(sortedSongs)
-        generateAlbumsList(sortedSongs)
+        // Generate artists and albums lists (only from visible songs)
+        generateArtistsList(visibleList)
+        generateAlbumsList(visibleList)
         
-        return sortedSongs
+        return visibleList
     }
     
     // Shared title comparator for consistent sorting
@@ -435,7 +480,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             Artist(
                 name = artistName,
                 songCount = artistSongs.size,
-                albumArtId = artistSongs.firstOrNull()?.albumId ?: 0L
+                album_artId = artistSongs.firstOrNull()?.albumId ?: 0L
             )
         }.sortedBy { it.name.lowercase() }
         _artists.postValue(artistsList)
@@ -489,11 +534,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
         try {
             val sessionToken = SessionToken(
-                getApplication(),
-                ComponentName(getApplication(), MusicService::class.java)
+                application,
+                ComponentName(application, MusicService::class.java)
             )
 
-            controllerFuture = MediaController.Builder(getApplication(), sessionToken).buildAsync()
+            controllerFuture = MediaController.Builder(application, sessionToken).buildAsync()
             controllerFuture?.addListener(
                 {
                     try {
@@ -521,25 +566,33 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         if (startIndex == -1) return
 
         // Convert Song objects to MediaItems
-        val mediaItems = currentList.map { 
-            val customCoverPath = customCoverRepository.getCustomCover(it.id)
+        val mediaItems = currentList.map { it ->
+            val customCoverPath = it.data.let { path -> customCoverRepository.getCustomCover(path) }
             val artUri = if (customCoverPath != null) {
                 Uri.fromFile(java.io.File(customCoverPath))
-            } else {
+            } else if (it.albumId > 0 && it.album != "Unknown Album") {
                 ContentUris.withAppendedId(
-                    Uri.parse("content://media/external/audio/albumart"),
+                    Uri.parse("content://media/external/audio/album_art"),
                     it.albumId
                 )
+            } else {
+                // Fallback: Use the file URI itself if system album_art is unavailable or generic
+                it.uri 
             }
 
             MediaItem.Builder()
-                .setMediaId(it.id.toString())
+                .setMediaId(it.data)
                 .setUri(it.uri)
                 .setMediaMetadata(
                     MediaMetadata.Builder()
                         .setTitle(it.title)
                         .setArtist(it.artist)
                         .setArtworkUri(artUri)
+                        .build()
+                )
+                .setRequestMetadata(
+                    androidx.media3.common.MediaItem.RequestMetadata.Builder()
+                        .setExtras(android.os.Bundle().apply { putLong("songId", it.id) })
                         .build()
                 )
                 .build()
@@ -552,31 +605,43 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         controller.play()
         
         // Save last played song and reset position (new song started from beginning)
-        lastPlayedSongId = song.id
+        lastPlayedSongPath = song.data
         lastPlayedPosition = 0
     }
     
     fun playSongFromPosition(song: Song, positionMs: Long) {
         val controller = mediaController.value ?: return
         val currentList = _songs.value ?: return
-        val startIndex = currentList.indexOfFirst { it.id == song.id }
+        val startIndex = currentList.indexOfFirst { it.data == song.data }
         
         if (startIndex == -1) return
 
-        val mediaItems = currentList.map { 
+        val mediaItems = currentList.map { it ->
+            val customCoverPath = it.data.let { path -> customCoverRepository.getCustomCover(path) }
+            val artUri = if (customCoverPath != null) {
+                Uri.fromFile(java.io.File(customCoverPath))
+            } else if (it.albumId > 0 && it.album != "Unknown Album") {
+                ContentUris.withAppendedId(
+                    Uri.parse("content://media/external/audio/album_art"),
+                    it.albumId
+                )
+            } else {
+                it.uri
+            }
+
             MediaItem.Builder()
-                .setMediaId(it.id.toString())
+                .setMediaId(it.data)
                 .setUri(it.uri)
                 .setMediaMetadata(
                     MediaMetadata.Builder()
                         .setTitle(it.title)
                         .setArtist(it.artist)
-                        .setArtworkUri(
-                            ContentUris.withAppendedId(
-                                Uri.parse("content://media/external/audio/albumart"),
-                                it.albumId
-                            )
-                        )
+                        .setArtworkUri(artUri)
+                        .build()
+                )
+                .setRequestMetadata(
+                    androidx.media3.common.MediaItem.RequestMetadata.Builder()
+                        .setExtras(android.os.Bundle().apply { putLong("songId", it.id) })
                         .build()
                 )
                 .build()
@@ -587,7 +652,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         controller.prepare()
         controller.play()
         
-        lastPlayedSongId = song.id
+        lastPlayedSongPath = song.data
         
         // Remove manual increment, handled by Service Heartbeat now
     }
@@ -597,22 +662,22 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         lastPlayedPosition = controller.currentPosition
     }
     
-    // Play Count Tracking
-    fun incrementPlayCount(songId: Long) {
+    // Play Count Tracking (Mapped by File Path for stability)
+    fun incrementPlayCount(song: Song) {
         viewModelScope.launch(Dispatchers.IO) {
-            playCountDao.ensureExists(songId)
-            playCountDao.incrementPlayCount(songId)
+            playCountDao.ensureExists(song.data, song.id)
+            playCountDao.incrementPlayCount(song.data)
         }
     }
     
-    suspend fun getPlayCount(songId: Long): Int {
-        return playCountDao.getPlayCount(songId) ?: 0
+    suspend fun getPlayCount(song: Song): Int {
+        return playCountDao.getPlayCount(song.data) ?: 0
     }
     
     suspend fun getMostPlayedSongs(limit: Int = 20): List<Song> {
         val playCounts = playCountDao.getMostPlayed(limit)
         val allSongs = _songs.value ?: return emptyList()
-        return playCounts.mapNotNull { pc -> allSongs.find { it.id == pc.songId } }
+        return playCounts.mapNotNull { pc -> allSongs.find { it.data == pc.filePath } }
     }
     
     fun loadMostPlayed() {
@@ -711,6 +776,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 // This works around Android 10+ restrictions
                 withContext(Dispatchers.IO) {
                     val customMetadata = com.wayne.musicdeck.data.CustomMetadata(
+                        filePath = song.data,
                         songId = song.id,
                         customTitle = title,
                         customArtist = artist,
@@ -727,12 +793,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     val updatedSong = song.copy(title = title, artist = artist, album = album)
                     syncQueueOnUpdate(updatedSong, freshSortedList)
                     
-                    android.widget.Toast.makeText(getApplication(), "Tags saved! (Changes visible in app only)", android.widget.Toast.LENGTH_SHORT).show()
+                    android.widget.Toast.makeText(application, "Tags saved! (Changes visible in app only)", android.widget.Toast.LENGTH_SHORT).show()
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
                 withContext(Dispatchers.Main) {
-                    android.widget.Toast.makeText(getApplication(), "Failed to save: ${e.message}", android.widget.Toast.LENGTH_LONG).show()
+                    android.widget.Toast.makeText(application, "Failed to save: ${e.message}", android.widget.Toast.LENGTH_LONG).show()
                 }
             }
         }
@@ -758,7 +824,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         put(MediaStore.Audio.Media.ARTIST, artist)
                         put(MediaStore.Audio.Media.ALBUM, album)
                     }
-                    getApplication<Application>().contentResolver.update(uri, values, null, null)
+                    application.contentResolver.update(uri, values, null, null)
                 }
                 
                 if (rowsUpdated > 0) {
@@ -769,16 +835,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     withContext(Dispatchers.Main) {
                         val updatedSong = song.copy(title = title, artist = artist, album = album)
                         syncQueueOnUpdate(updatedSong, freshSortedList)
-                        android.widget.Toast.makeText(getApplication(), "Tags updated! Refresh may take a moment.", android.widget.Toast.LENGTH_SHORT).show()
+                        android.widget.Toast.makeText(application, "Tags updated! Refresh may take a moment.", android.widget.Toast.LENGTH_SHORT).show()
                     }
                 } else {
                     withContext(Dispatchers.Main) {
-                        android.widget.Toast.makeText(getApplication(), "Update failed - Android may not allow modifying this file", android.widget.Toast.LENGTH_LONG).show()
+                        android.widget.Toast.makeText(application, "Update failed - Android may not allow modifying this file", android.widget.Toast.LENGTH_LONG).show()
                     }
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-                    android.widget.Toast.makeText(getApplication(), "Failed to update: ${e.message}", android.widget.Toast.LENGTH_LONG).show()
+                    android.widget.Toast.makeText(application, "Failed to update: ${e.message}", android.widget.Toast.LENGTH_LONG).show()
                 }
             }
         }
@@ -835,13 +901,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     Uri.fromFile(java.io.File(customCoverPath))
                 } else {
                     ContentUris.withAppendedId(
-                        Uri.parse("content://media/external/audio/albumart"),
+                        Uri.parse("content://media/external/audio/album_art"),
                         s.albumId
                     )
                 }
                 
                 MediaItem.Builder()
-                    .setMediaId(s.id.toString())
+                    .setMediaId(s.data)
                     .setUri(s.uri)
                     .setMediaMetadata(
                         MediaMetadata.Builder()
@@ -856,7 +922,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             
             // 3. Find the new index of the currently playing song
             val newIndex = if (currentMediaId != null) {
-                freshSortedList.indexOfFirst { it.id.toString() == currentMediaId }
+                freshSortedList.indexOfFirst { it.data == currentMediaId }
             } else -1
             
             // 4. Replace the entire queue
@@ -870,19 +936,19 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             // Playing a playlist or subset - just update the metadata in-place
             for (i in 0 until timeline.windowCount) {
                 val mediaItem = controller.getMediaItemAt(i)
-                if (mediaItem.mediaId == song.id.toString()) {
+                if (mediaItem.mediaId == song.data) {
                     val customCoverPath = customCoverRepository.getCustomCover(song.id)
                     val artUri = if (customCoverPath != null) {
                         Uri.fromFile(java.io.File(customCoverPath))
                     } else {
                         ContentUris.withAppendedId(
-                            Uri.parse("content://media/external/audio/albumart"),
+                            Uri.parse("content://media/external/audio/album_art"),
                             song.albumId
                         )
                     }
 
                     val newMediaItem = MediaItem.Builder()
-                        .setMediaId(song.id.toString())
+                        .setMediaId(song.data)
                         .setUri(song.uri)
                         .setMediaMetadata(
                             MediaMetadata.Builder()
@@ -913,7 +979,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     playlist to playlistRepository.getSongsForPlaylist(playlist.id)
                 }
                 val json = BackupHelper.exportToJson(playlistsWithSongs)
-                val success = BackupHelper.saveBackup(getApplication(), json)
+                val success = BackupHelper.saveBackup(application, json)
                 withContext(Dispatchers.Main) {
                     _backupResult.value = if (success) "Backup saved successfully!" else "Backup failed"
                 }
@@ -928,7 +994,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun importBackup() {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val json = BackupHelper.loadBackup(getApplication())
+                val json = BackupHelper.loadBackup(application)
                 if (json == null) {
                     withContext(Dispatchers.Main) { _backupResult.value = "No backup found" }
                     return@launch
@@ -949,8 +1015,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     val playlistId = playlistRepository.createPlaylist(playlistBackup.name)
                     
                     // Add songs
+                    val allSongs = _songs.value ?: emptyList()
                     for (songId in playlistBackup.songIds) {
-                        playlistRepository.addSongToPlaylist(playlistId, songId)
+                        val songPath = allSongs.find { it.id == songId }?.data
+                        if (songPath != null) {
+                            playlistRepository.addSongToPlaylist(playlistId, songId, songPath)
+                        }
                     }
                     imported++
                 }
@@ -970,7 +1040,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun setCustomCover(song: Song, imageUri: Uri) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val context = getApplication<Application>()
+                val context = application
                 
                 // 1. Cleanup old covers for this song
                 val filesDir = context.filesDir
@@ -992,7 +1062,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 outputStream.close()
                 
                 // 4. Save path to repository
-                customCoverRepository.saveCustomCover(song.id, customCoverFile.absolutePath)
+                customCoverRepository.setCustomCover(song.data, customCoverFile.absolutePath)
                 
                 // 5. Update UI
                 withContext(Dispatchers.Main) {
@@ -1002,7 +1072,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-                    android.widget.Toast.makeText(getApplication(), "Failed to set cover: ${e.message}", android.widget.Toast.LENGTH_SHORT).show()
+                    android.widget.Toast.makeText(application, "Failed to set cover: ${e.message}", android.widget.Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -1012,32 +1082,34 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 // Get current path and delete file
-                val path = customCoverRepository.getCustomCover(song.id)
+                val path = customCoverRepository.getCustomCover(song.data)
                 if (path != null) {
                     val file = java.io.File(path)
                     file.delete()
                 }
                 
                 // Remove from repository
-                customCoverRepository.removeCustomCover(song.id)
+                // (Need a removeCustomCover(filePath: String) in Repository)
+                // For now, setting to empty to "remove" as it's a Prefs Map.
+                customCoverRepository.setCustomCover(song.data, "")
                 
                 withContext(Dispatchers.Main) {
-                    android.widget.Toast.makeText(getApplication(), "Custom cover removed", android.widget.Toast.LENGTH_SHORT).show()
+                    android.widget.Toast.makeText(application, "Custom cover removed", android.widget.Toast.LENGTH_SHORT).show()
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-                    android.widget.Toast.makeText(getApplication(), "Failed to remove cover", android.widget.Toast.LENGTH_SHORT).show()
+                    android.widget.Toast.makeText(application, "Failed to remove cover", android.widget.Toast.LENGTH_SHORT).show()
                 }
             }
         }
     }
     
-    fun getCustomCoverPath(songId: Long): String? {
-        return customCoverRepository.getCustomCover(songId)
+    fun getCustomCoverPath(filePath: String): String? {
+        return customCoverRepository.getCustomCover(filePath)
     }
     
-    fun hasCustomCover(songId: Long): Boolean {
-        return customCoverRepository.hasCustomCover(songId)
+    fun hasCustomCover(filePath: String): Boolean {
+        return customCoverRepository.getCustomCover(filePath) != null
     }
     
     // Lyrics Management
@@ -1045,29 +1117,33 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 // Copy lyric file to internal storage
-                val inputStream = getApplication<Application>().contentResolver.openInputStream(fileUri)
-                val lyricFile = java.io.File(getApplication<Application>().filesDir, "lyric_${song.id}.lrc")
+                val inputStream = application.contentResolver.openInputStream(fileUri)
+                val lyricFile = java.io.File(application.filesDir, "lyric_${song.id}.lrc")
                 val outputStream = java.io.FileOutputStream(lyricFile)
                 inputStream?.copyTo(outputStream)
                 inputStream?.close()
                 outputStream.close()
                 
                 // Save path to repository
-                lyricsRepository.saveLyricPath(song.id, lyricFile.absolutePath)
+                lyricsRepository.saveLyricPath(song.data, lyricFile.absolutePath)
                 
                 withContext(Dispatchers.Main) {
-                    android.widget.Toast.makeText(getApplication(), "Lyric file set!", android.widget.Toast.LENGTH_SHORT).show()
+                    android.widget.Toast.makeText(application, "Lyric file set!", android.widget.Toast.LENGTH_SHORT).show()
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-                    android.widget.Toast.makeText(getApplication(), "Failed to set lyric file", android.widget.Toast.LENGTH_SHORT).show()
+                    android.widget.Toast.makeText(application, "Failed to set lyric file", android.widget.Toast.LENGTH_SHORT).show()
                 }
             }
         }
     }
-    
-    fun getLyricPath(songId: Long): String? {
-        return lyricsRepository.getLyricPath(songId)
+
+    fun saveLyricPath(filePath: String, lyricFile: java.io.File) {
+        lyricsRepository.saveLyricPath(filePath, lyricFile.absolutePath)
+    }
+
+    fun getLyricPath(filePath: String): String? {
+        return lyricsRepository.getLyricPath(filePath)
     }
     
 
@@ -1075,16 +1151,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     /**
      * Remove lyrics for a song
      */
-    fun removeLyrics(songId: Long) {
-        val path = lyricsRepository.getLyricPath(songId)
+    fun removeLyrics(filePath: String) {
+        val path = lyricsRepository.getLyricPath(filePath)
         if (path != null) {
-            try {
-                java.io.File(path).delete()
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
+            val file = java.io.File(path)
+            if (file.exists()) file.delete()
         }
-        lyricsRepository.removeLyricPath(songId)
+        lyricsRepository.removeLyricPath(filePath)
     }
     
 
@@ -1104,8 +1177,34 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+// --- Hidden Song Management ---
+    
+    fun hideSong(songId: Long) {
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                hiddenSongDao.hide(com.wayne.musicdeck.data.HiddenSong(songId = songId))
+            }
+            // Reload to refresh both visible and hidden lists
+            loadSongsInternal()
+        }
+    }
+    
+    fun unhideSong(songId: Long) {
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                hiddenSongDao.unhide(songId)
+            }
+            // Reload to refresh both visible and hidden lists
+            loadSongsInternal()
+        }
+    }
+    
+    suspend fun isSongHidden(songId: Long): Boolean {
+        return hiddenSongDao.isHidden(songId)
+    }
+    
     override fun onCleared() {
-        getApplication<Application>().contentResolver.unregisterContentObserver(contentObserver)
+        application.contentResolver.unregisterContentObserver(contentObserver)
         super.onCleared()
         controllerFuture?.let {
             MediaController.releaseFuture(it)
@@ -1151,7 +1250,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
     
     fun loadLyricsForMediaItem(mediaItem: MediaItem, forceRefetch: Boolean = false) {
-        val songId = mediaItem.mediaId.toLongOrNull() ?: return
+        val currentPath = mediaItem.mediaId // Already stable path
+        if (currentPath.isEmpty()) return
         
         // CANCEL any previous loading job immediately.
         // This prevents race conditions where multiple fetches overlap.
@@ -1162,11 +1262,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         
         lyricsJob = viewModelScope.launch {
             try {
-                android.util.Log.d("LyricsSys", "Job started for $songId (force=$forceRefetch)")
+                android.util.Log.d("LyricsSys", "Job started for $currentPath (force=$forceRefetch)")
                 
                 // 1. Check local storage (unless forcing refetch)
-                if (!forceRefetch && lyricsRepository.hasLyrics(songId)) {
-                    val path = lyricsRepository.getLyricPath(songId)
+                if (!forceRefetch && lyricsRepository.hasLyrics(currentPath)) {
+                    val path = lyricsRepository.getLyricPath(currentPath)
                     if (path != null) {
                         val lines = lyricsRepository.parseLrcFile(path)
                         if (lines.isNotEmpty()) {
@@ -1177,7 +1277,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                             return@launch
                         } else {
                             // File exist but empty/corrupt? Remove it.
-                           lyricsRepository.removeLyricPath(songId) 
+                           lyricsRepository.removeLyricPath(currentPath) 
                         }
                     }
                 }
@@ -1185,7 +1285,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 // 2. Fetch from API
                 val title = mediaItem.mediaMetadata.title?.toString() ?: "Unknown"
                 val artist = mediaItem.mediaMetadata.artist?.toString() ?: "Unknown"
-                val album = mediaItem.mediaMetadata.albumTitle?.toString()
+                // val album = mediaItem.mediaMetadata.albumTitle?.toString() // Redundant
                 val duration = mediaController.value?.duration ?: 0L
                 
                 if (title == "Unknown") {
@@ -1201,23 +1301,25 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 
                 android.util.Log.d("LyricsSys", "Fetching API: $title")
                 val result = lyricsRepository.fetchAndSaveLyrics(
-                    songId = songId,
+                    songId = mediaItem.requestMetadata.extras?.getLong("songId") ?: -1L,
                     trackName = title,
                     artistName = artist,
-                    albumName = album,
-                    durationMs = if (duration > 0) duration else null
+                    filePath = currentPath,
+                    durationMs = mediaItem.requestMetadata.extras?.getLong("duration")
                 )
                 
                 when (result) {
                     is com.wayne.musicdeck.data.FetchResult.Success -> {
-                        android.util.Log.d("LyricsSys", "API Success")
-                        val path = lyricsRepository.getLyricPath(songId)
-                        if (path != null) {
-                             val lines = lyricsRepository.parseLrcFile(path)
-                             _lyrics.postValue(lines)
-                             _lyricsStatus.postValue(LyricsStatus.Success(result.isSynced))
-                        } else {
-                            _lyricsStatus.postValue(LyricsStatus.Error("Save failed"))
+                        if (coroutineContext[kotlinx.coroutines.Job]?.isActive == true) {
+                            android.util.Log.d("LyricsSys", "API Success")
+                            val path = lyricsRepository.getLyricPath(currentPath)
+                            if (path != null) {
+                                 val lines = lyricsRepository.parseLrcFile(path)
+                                 _lyrics.postValue(lines)
+                                 _lyricsStatus.postValue(LyricsStatus.Success(result.isSynced))
+                            } else {
+                                _lyricsStatus.postValue(LyricsStatus.Error("Save failed"))
+                            }
                         }
                     }
                     is com.wayne.musicdeck.data.FetchResult.NotFound -> {
@@ -1240,14 +1342,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     
     // --- Helpers for Menu / Manual Fetch ---
     
-    fun hasLyrics(songId: Long): Boolean {
-        return lyricsRepository.hasLyrics(songId)
+    fun hasLyrics(filePath: String): Boolean {
+        return lyricsRepository.hasLyrics(filePath)
     }
     
     fun fetchLyrics(song: Song) {
         val controller = mediaController.value ?: return
-        // Only fetch if it's the current song (simplification)
-        if (controller.currentMediaItem?.mediaId == song.id.toString()) {
+        // Match by stable path
+        if (controller.currentMediaItem?.mediaId == song.data) {
             loadLyricsForMediaItem(controller.currentMediaItem!!, forceRefetch = true)
         }
     }
@@ -1376,7 +1478,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         val match = webMatch
                         if (match != null && !match.artistName.isNullOrBlank()) {
                             if (suggestedArtist != match.artistName || suggestedAlbum != match.albumName) {
-                                suggestedArtist = match.artistName!!
+                                suggestedArtist = match.artistName
                                 suggestedAlbum = match.albumName ?: suggestedAlbum
                                 suggestedTitle = match.trackName ?: suggestedTitle
                                 reasons.add("Web-Synced (Elite Sync)")
@@ -1388,6 +1490,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
                     val suggestion = com.wayne.musicdeck.data.OrganizationSuggestion(
                         songId = song.id,
+                        filePath = song.data,
                         currentTitle = song.title,
                         currentArtist = song.artist,
                         currentAlbum = song.album,
@@ -1420,12 +1523,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun applyOrganizationSuggestions(suggestions: List<com.wayne.musicdeck.data.OrganizationSuggestion>) {
         viewModelScope.launch {
             withContext(Dispatchers.IO) {
-                for (sug in suggestions) {
+                suggestions.forEach { suggestion ->
                     val metadata = com.wayne.musicdeck.data.CustomMetadata(
-                        songId = sug.songId,
-                        customTitle = sug.suggestedTitle,
-                        customArtist = sug.suggestedArtist,
-                        customAlbum = sug.suggestedAlbum
+                        filePath = suggestion.filePath,
+                        songId = suggestion.songId,
+                        customTitle = suggestion.suggestedTitle,
+                        customArtist = suggestion.suggestedArtist,
+                        customAlbum = suggestion.suggestedAlbum
                     )
                     customMetadataDao.insertOrUpdate(metadata)
                 }

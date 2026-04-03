@@ -21,12 +21,13 @@ import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.slider.Slider
 import com.wayne.musicdeck.databinding.FragmentPlayerBottomSheetBinding
 import java.util.Locale
+import org.koin.androidx.viewmodel.ext.android.activityViewModel
 
 class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
 
     private var _binding: FragmentPlayerBottomSheetBinding? = null
     private val binding get() = _binding!!
-    private lateinit var viewModel: MainViewModel
+    private val viewModel: MainViewModel by activityViewModel()
     private var isTracking = false
 
     // Playback mode: 0=Off, 1=Single Loop, 2=Shuffle, 3=Playlist Loop
@@ -43,8 +44,9 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         androidx.activity.result.contract.ActivityResultContracts.GetContent()
     ) { uri ->
         uri?.let {
-            val currentSong = viewModel.mediaController.value?.currentMediaItem?.mediaId?.toLongOrNull()?.let { id ->
-                viewModel.songs.value?.find { song -> song.id == id }
+            val currentPath = viewModel.mediaController.value?.currentMediaItem?.mediaId
+            val currentSong = currentPath?.let { path ->
+                viewModel.songs.value?.find { song -> song.data == path }
             }
             currentSong?.let { song ->
                 viewModel.setLyricFile(song, it)
@@ -82,7 +84,6 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        viewModel = ViewModelProvider(requireActivity())[MainViewModel::class.java]
     }
 
     override fun onCreateView(
@@ -114,7 +115,7 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
                 val diffX = e2.x - e1.x
                 val diffY = e2.y - e1.y
                 if (Math.abs(diffX) > Math.abs(diffY)) { // Horizontal swipe
-                    if (Math.abs(diffX) > 100 && Math.abs(velocityX) > 100) {
+                    if (Math.abs(diffX) > 150 && Math.abs(velocityX) > 150) {
                         if (diffX > 0) {
                             // Right Swipe -> Show Cover (sync toggle)
                             selectButton(true)
@@ -129,7 +130,13 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
             }
         })
         
-        val touchListener = View.OnTouchListener { _, event -> 
+        val touchListener = View.OnTouchListener { v, event -> 
+            if (event.action == MotionEvent.ACTION_MOVE) {
+                // If we detect horizontal intent, lock out the bottom sheet's dismissal gesture
+                // so we don't 'jump' or dismiss the layer by accident
+                v.parent.requestDisallowInterceptTouchEvent(true)
+            }
+            
             if (gestureDetector.onTouchEvent(event)) true else false
         }
         
@@ -169,18 +176,18 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         
         // Favorites
         viewModel.favorites.observe(viewLifecycleOwner) { favorites ->
-            val currentId = viewModel.mediaController.value?.currentMediaItem?.mediaId?.toLongOrNull() ?: return@observe
-            val isFav = favorites.any { it.id == currentId }
+            val currentPath = viewModel.mediaController.value?.currentMediaItem?.mediaId ?: return@observe
+            val isFav = favorites.any { it.data == currentPath }
             updateFavoriteIcon(isFav)
         }
         
         binding.btnFavorite.setOnClickListener {
-            val currentId = viewModel.mediaController.value?.currentMediaItem?.mediaId?.toLongOrNull() ?: return@setOnClickListener
-            val song = viewModel.songs.value?.find { it.id == currentId }
+            val currentPath = viewModel.mediaController.value?.currentMediaItem?.mediaId ?: return@setOnClickListener
+            val song = viewModel.songs.value?.find { it.data == currentPath }
             if (song != null) {
                viewModel.toggleFavorite(song)
             } else {
-                Toast.makeText(context, "Error: Song not found", Toast.LENGTH_SHORT).show()
+                android.widget.Toast.makeText(context, "Error: Song not found", android.widget.Toast.LENGTH_SHORT).show()
             }
         }
         
@@ -540,21 +547,18 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         
         // Favorite button
         binding.btnFavorite.setOnClickListener {
-            val currentId = player.currentMediaItem?.mediaId?.toLongOrNull()
-            if (currentId != null) {
-                val song = viewModel.songs.value?.find { it.id == currentId }
-                if (song != null) {
-                    val wasFavorite = viewModel.favorites.value?.any { it.id == currentId } == true
-                    viewModel.toggleFavorite(song)
-                    updateFavoriteIcon(!wasFavorite, animate = true)
-                }
-            }
+            val currentPath = player.currentMediaItem?.mediaId ?: return@setOnClickListener
+            val song = viewModel.songs.value?.find { it.data == currentPath } ?: return@setOnClickListener
+            
+            val wasFavorite = viewModel.favorites.value?.any { it.data == currentPath } == true
+            viewModel.toggleFavorite(song)
+            updateFavoriteIcon(!wasFavorite, animate = true)
         }
         
         // Set initial favorite state
-        val initialId = player.currentMediaItem?.mediaId?.toLongOrNull()
-        if (initialId != null) {
-            val isFav = viewModel.favorites.value?.any { it.id == initialId } == true
+        val initialPath = player.currentMediaItem?.mediaId
+        if (initialPath != null) {
+            val isFav = viewModel.favorites.value?.any { it.data == initialPath } == true
             updateFavoriteIcon(isFav)
         }
 
@@ -608,11 +612,9 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
             val player = viewModel.mediaController.value ?: return
             binding.tvTotalTime.text = formatTime(player.duration)
             
-            val currentId = mediaItem?.mediaId?.toLongOrNull()
-            if (currentId != null) {
-                val isFav = viewModel.favorites.value?.any { it.id == currentId } == true
-                updateFavoriteIcon(isFav)
-            }
+            val currentPath = mediaItem?.mediaId
+            val isFav = viewModel.favorites.value?.any { it.data == currentPath } == true
+            updateFavoriteIcon(isFav)
             // Lyrics are now observed automatically via viewModel.lyrics logic
         }
         override fun onIsPlayingChanged(isPlaying: Boolean) {
@@ -659,32 +661,32 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         binding.tvFullTitle.text = title
         binding.tvFullArtist.text = artist
         
-        val currentId = mediaItem?.mediaId?.toLongOrNull()
-        var embeddedArt: ByteArray? = null
+        val currentPath = mediaItem?.mediaId
         val ctx = context ?: return
         
-        if (currentId != null) {
-            val uri = android.content.ContentUris.withAppendedId(
-                android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
-                currentId
-            )
-            try {
-                val retriever = android.media.MediaMetadataRetriever()
-                retriever.setDataSource(ctx, uri)
-                embeddedArt = retriever.embeddedPicture
-                retriever.release()
-            } catch (e: Exception) {
-               // ignore
-            }
+        // Resolve song object for deeper metadata (albumId, custom art)
+        val song = if (currentPath != null) viewModel.songs.value?.find { it.data == currentPath } else null
+        
+        // Smart art resolution logic (sync with ImageUtils)
+        val customCoverPath = song?.data?.let { path -> 
+            val prefs = ctx.getSharedPreferences("custom_covers", android.content.Context.MODE_PRIVATE)
+            prefs.getString(path, null)
         }
         
-        // Load image with Palette extraction
-        val imageData: Any = embeddedArt ?: mediaItem?.mediaMetadata?.artworkUri ?: R.drawable.default_album_art
+        val imageData: Any = if (customCoverPath != null) {
+            java.io.File(customCoverPath)
+        } else if (song != null) {
+            java.io.File(song.data) // PRIORITY: Load as File so custom CoilAudioFetcher intercepts it!
+        } else {
+            mediaItem?.mediaMetadata?.artworkUri ?: R.drawable.default_album_art
+        }
         
         val request = coil.request.ImageRequest.Builder(ctx)
             .data(imageData)
             .crossfade(true)
             .allowHardware(false) // Required for Palette
+            .placeholder(R.drawable.default_album_art)
+            .error(R.drawable.default_album_art)
             .target(
                 onSuccess = { result ->
                     binding.ivFullArt.setImageDrawable(result)
@@ -704,7 +706,9 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
             )
             .transformations(RoundedCornersTransformation(32f))
             .build()
-        coil.ImageLoader(ctx).enqueue(request)
+        // CRITICAL: We must use the global Coil ImageLoader which has our custom MP3 Audio Fetcher attached!
+        // Instantiating a new ImageLoader() bypasses our initialization in MusicApp.kt.
+        coil.Coil.imageLoader(ctx).enqueue(request)
     }
     
     private fun applyDynamicBackground(palette: androidx.palette.graphics.Palette?) {

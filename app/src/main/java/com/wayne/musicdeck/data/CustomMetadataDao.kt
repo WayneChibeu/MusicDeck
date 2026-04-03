@@ -8,8 +8,8 @@ import androidx.room.Query
 @Dao
 interface CustomMetadataDao {
     
-    @Query("SELECT * FROM custom_metadata WHERE songId = :songId")
-    suspend fun getCustomMetadata(songId: Long): CustomMetadata?
+    @Query("SELECT * FROM custom_metadata WHERE filePath = :filePath")
+    suspend fun getCustomMetadata(filePath: String): CustomMetadata?
     
     @Query("SELECT * FROM custom_metadata")
     suspend fun getAllCustomMetadata(): List<CustomMetadata>
@@ -17,8 +17,8 @@ interface CustomMetadataDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertOrUpdate(metadata: CustomMetadata)
     
-    @Query("DELETE FROM custom_metadata WHERE songId = :songId")
-    suspend fun delete(songId: Long)
+    @Query("DELETE FROM custom_metadata WHERE filePath = :filePath")
+    suspend fun delete(filePath: String)
     
     @Query("DELETE FROM custom_metadata")
     suspend fun deleteAll()

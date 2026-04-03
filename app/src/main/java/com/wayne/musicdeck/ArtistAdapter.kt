@@ -37,8 +37,8 @@ class ArtistAdapter(
             tvCount.text = "${artist.songCount} songs"
 
             val albumArtUri = ContentUris.withAppendedId(
-                Uri.parse("content://media/external/audio/albumart"),
-                artist.albumArtId
+                Uri.parse("content://media/external/audio/album_art"),
+                artist.album_artId
             )
 
             ivArt.load(albumArtUri) {

@@ -44,12 +44,12 @@ class AlbumAdapter(
                 // For unknown album, we could potentially try to load from a specific song in that group
                 // But simplified for now: stick to MediaStore then fallback to embedded in future revisions if needed.
                 ContentUris.withAppendedId(
-                    Uri.parse("content://media/external/audio/albumart"),
+                    Uri.parse("content://media/external/audio/album_art"),
                     album.id
                 )
             } else {
                 ContentUris.withAppendedId(
-                    Uri.parse("content://media/external/audio/albumart"),
+                    Uri.parse("content://media/external/audio/album_art"),
                     album.id
                 )
             }

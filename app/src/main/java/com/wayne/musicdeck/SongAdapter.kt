@@ -28,13 +28,12 @@ class SongAdapter(
     var onFolderClick: ((SongListItem.FolderItem) -> Unit)? = null
     var onSongMenuClick: ((Song, String) -> Unit)? = null
     var showRemoveFromPlaylistOption: Boolean = false
-    var currentlyPlayingId: Long = -1L
+    var currentlyPlayingPath: String? = null
         set(value) {
             val oldValue = field
             field = value
             if (oldValue != value) {
-                // Find and refresh the old and new items
-                notifyDataSetChanged() // Simple approach, or find specific positions
+                notifyDataSetChanged()
             }
         }
     
@@ -103,8 +102,8 @@ class SongAdapter(
             binding.tvTitle.text = song.title
             binding.tvArtist.text = song.artist
             
-            // Highlight currently playing song
-            val isCurrentSong = song.id == currentlyPlayingId
+            // Highlight currently playing song using stable path
+            val isCurrentSong = song.data == currentlyPlayingPath
             val context = binding.root.context
             if (isCurrentSong) {
                 val primaryColor = com.google.android.material.color.MaterialColors.getColor(context, com.google.android.material.R.attr.colorPrimary, 0)

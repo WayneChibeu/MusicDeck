@@ -68,7 +68,7 @@ class SongActionBottomSheet : BottomSheetDialogFragment() {
         
         // Load album art
         val albumArtUri = android.content.ContentUris.withAppendedId(
-            Uri.parse("content://media/external/audio/albumart"),
+            Uri.parse("content://media/external/audio/album_art"),
             albumId
         )
         view.findViewById<ImageView>(R.id.ivSongArt).load(albumArtUri) {

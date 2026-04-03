@@ -37,19 +37,20 @@ class SongInfoBottomSheet : BottomSheetDialogFragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val songId = arguments?.getLong(ARG_SONG_ID) ?: -1L
-        if (songId != -1L) {
-            // We can't access viewModel.songs here easily if it's LiveData and we are in onCreate (not observed yet)
-            // But we can observe in onViewCreated or just grab value if available. 
-            // Better to do it in onViewCreated.
+        val songPath = arguments?.getString(ARG_SONG_PATH)
+        if (songPath != null) {
+            // Find song by path
+            currentSong = viewModel.songs.value?.find { it.data == songPath }
         }
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         
-        val songId = arguments?.getLong(ARG_SONG_ID) ?: -1L
-        currentSong = viewModel.songs.value?.find { it.id == songId }
+        val songPath = arguments?.getString(ARG_SONG_PATH)
+        if (currentSong == null && songPath != null) {
+            currentSong = viewModel.songs.value?.find { it.data == songPath }
+        }
         
         val song = currentSong
         
@@ -97,7 +98,7 @@ class SongInfoBottomSheet : BottomSheetDialogFragment() {
         val view = view ?: return
         val tvLyricPath = view.findViewById<TextView>(R.id.tvLyricPath)
         
-        val lyricPath = viewModel.getLyricPath(song.id)
+        val lyricPath = viewModel.getLyricPath(song.data)
         tvLyricPath.text = if (lyricPath != null) {
             lyricPath.substringAfterLast("/")
         } else {
@@ -112,12 +113,12 @@ class SongInfoBottomSheet : BottomSheetDialogFragment() {
     }
 
     companion object {
-        private const val ARG_SONG_ID = "song_id"
+        private const val ARG_SONG_PATH = "song_path"
 
         fun newInstance(song: Song): SongInfoBottomSheet {
             return SongInfoBottomSheet().apply {
                 arguments = Bundle().apply {
-                    putLong(ARG_SONG_ID, song.id)
+                    putString(ARG_SONG_PATH, song.data)
                 }
             }
         }

@@ -12,8 +12,12 @@ class CustomCoverRepository(context: Context) {
      * @param songId The unique song ID
      * @param filePath Absolute path to the custom cover image in internal storage
      */
-    fun saveCustomCover(songId: Long, filePath: String) {
-        prefs.edit().putString(songId.toString(), filePath).apply()
+    fun getCustomCover(filePath: String): String? {
+        return prefs.getString(filePath, null)
+    }
+
+    fun setCustomCover(filePath: String, coverPath: String) {
+        prefs.edit().putString(filePath, coverPath).apply()
     }
     
     /**

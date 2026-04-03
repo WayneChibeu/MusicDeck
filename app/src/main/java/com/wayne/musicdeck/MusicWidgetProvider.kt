@@ -15,9 +15,9 @@ class MusicWidgetProvider : AppWidgetProvider() {
         appWidgetManager: AppWidgetManager,
         appWidgetIds: IntArray
     ) {
-        val prefs = context.getSharedPreferences("musicdeck_prefs", Context.MODE_PRIVATE)
-        val lastTitle = prefs.getString("last_title", "Not Playing") ?: "Not Playing"
-        val lastArtist = prefs.getString("last_artist", "MusicDeck") ?: "MusicDeck"
+        val kv = com.tencent.mmkv.MMKV.defaultMMKV()
+        val lastTitle = kv.decodeString("last_title", "Not Playing") ?: "Not Playing"
+        val lastArtist = kv.decodeString("last_artist", "MusicDeck") ?: "MusicDeck"
         
         for (appWidgetId in appWidgetIds) {
             updateAppWidget(context, appWidgetManager, appWidgetId, title = lastTitle, artist = lastArtist)
@@ -61,7 +61,7 @@ class MusicWidgetProvider : AppWidgetProvider() {
             isPlaying: Boolean = false,
             isFavorite: Boolean = false,
             albumArtUri: android.net.Uri? = null,
-            albumArtBitmap: android.graphics.Bitmap? = null
+            album_artBitmap: android.graphics.Bitmap? = null
         ) {
             val views = RemoteViews(context.packageName, R.layout.widget_music_control)
             
@@ -96,8 +96,8 @@ class MusicWidgetProvider : AppWidgetProvider() {
             // Album art - ALWAYS set explicitly to prevent launcher caching issues
             // First clear any cached bitmap by setting default, then set actual
             views.setImageViewResource(R.id.ivWidgetArt, R.drawable.default_album_art)
-            if (albumArtBitmap != null) {
-                 views.setImageViewBitmap(R.id.ivWidgetArt, albumArtBitmap)
+            if (album_artBitmap != null) {
+                 views.setImageViewBitmap(R.id.ivWidgetArt, album_artBitmap)
             }
 
             appWidgetManager.updateAppWidget(appWidgetId, views)
@@ -111,12 +111,12 @@ class MusicWidgetProvider : AppWidgetProvider() {
             return PendingIntent.getBroadcast(context, reqCode, intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
         }
         
-        fun pushUpdate(context: Context, title: String, artist: String, isPlaying: Boolean, isFavorite: Boolean, albumArtUri: android.net.Uri?, albumArtBitmap: android.graphics.Bitmap? = null) {
+        fun pushUpdate(context: Context, title: String, artist: String, isPlaying: Boolean, isFavorite: Boolean, albumArtUri: android.net.Uri?, album_artBitmap: android.graphics.Bitmap? = null) {
             val manager = AppWidgetManager.getInstance(context)
             val component = ComponentName(context, MusicWidgetProvider::class.java)
             val ids = manager.getAppWidgetIds(component)
             for (id in ids) {
-                updateAppWidget(context, manager, id, title, artist, isPlaying, isFavorite, albumArtUri, albumArtBitmap)
+                updateAppWidget(context, manager, id, title, artist, isPlaying, isFavorite, albumArtUri, album_artBitmap)
             }
         }
     }

@@ -19,12 +19,13 @@ class PlaylistRepository(private val playlistDao: PlaylistDao) {
         playlistDao.deletePlaylist(playlist)
     }
 
-    suspend fun addSongToPlaylist(playlistId: Long, songId: Long) {
+    suspend fun addSongToPlaylist(playlistId: Long, songId: Long, songPath: String) {
         // Get current count to determine order
         val count = playlistDao.getSongCountForPlaylist(playlistId)
         val playlistSong = PlaylistSong(
             playlistId = playlistId,
             songId = songId,
+            songPath = songPath,
             orderIndex = count
         )
         playlistDao.addSongToPlaylist(playlistSong)
@@ -42,8 +43,8 @@ class PlaylistRepository(private val playlistDao: PlaylistDao) {
         return playlistDao.getSongCountForPlaylist(playlistId)
     }
     
-    suspend fun removeSongFromPlaylist(playlistId: Long, songId: Long) {
-        playlistDao.removeSongFromPlaylist(playlistId, songId)
+    suspend fun removeSongFromPlaylist(playlistId: Long, songPath: String) {
+        playlistDao.removeSongFromPlaylist(playlistId, songPath)
     }
 
     suspend fun reorderPlaylist(playlistId: Long, fromPos: Int, toPos: Int) {
@@ -71,8 +72,8 @@ class PlaylistRepository(private val playlistDao: PlaylistDao) {
         val id = playlistDao.createPlaylist(Playlist(name = "Favorites", createdAt = System.currentTimeMillis()))
         return Playlist(id = id, name = "Favorites", createdAt = System.currentTimeMillis())
     }
-    suspend fun isSongInPlaylist(playlistId: Long, songId: Long): Boolean {
+    suspend fun isSongInPlaylist(playlistId: Long, songPath: String): Boolean {
         // Efficient enough for now
-        return playlistDao.getSongsForPlaylist(playlistId).any { it.songId == songId }
+        return playlistDao.getSongsForPlaylist(playlistId).any { it.songPath == songPath }
     }
 }

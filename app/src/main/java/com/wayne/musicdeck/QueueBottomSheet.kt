@@ -6,16 +6,16 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import android.widget.Toast
-import androidx.lifecycle.ViewModelProvider
 import androidx.media3.common.MediaItem
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
+import org.koin.androidx.viewmodel.ext.android.activityViewModel
 
 class QueueBottomSheet : BottomSheetDialogFragment() {
 
-    private lateinit var viewModel: MainViewModel
+    private val viewModel: MainViewModel by activityViewModel()
     private lateinit var adapter: QueueAdapter
     private lateinit var recyclerView: RecyclerView
     private lateinit var tvQueueCount: TextView
@@ -31,8 +31,6 @@ class QueueBottomSheet : BottomSheetDialogFragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        
-        viewModel = ViewModelProvider(requireActivity())[MainViewModel::class.java]
         
         tvQueueCount = view.findViewById(R.id.tvQueueCount)
         recyclerView = view.findViewById(R.id.rvQueue)

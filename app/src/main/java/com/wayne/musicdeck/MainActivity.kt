@@ -16,11 +16,14 @@ import coil.load
 import coil.transform.RoundedCornersTransformation
 import com.wayne.musicdeck.databinding.ActivityMainBinding
 import androidx.activity.addCallback
+import org.koin.androidx.viewmodel.ext.android.viewModel
+import org.koin.android.ext.android.inject
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
-    private val viewModel: MainViewModel by viewModels()
+    private val viewModel: MainViewModel by viewModel()
+    private val settingsManager: com.wayne.musicdeck.utils.SettingsManager by inject()
     private val adapter = SongAdapter { song ->
         viewModel.playSong(song)
     }
@@ -278,11 +281,11 @@ class MainActivity : AppCompatActivity() {
                 player.addListener(object : Player.Listener {
                     override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
                         updateMiniPlayer(mediaItem)
-                        // Save new song ID when auto-advancing
-                        mediaItem?.mediaId?.toLongOrNull()?.let { id ->
-                            viewModel.lastPlayedSongId = id
+                        // Save new song path when auto-advancing
+                        mediaItem?.mediaId?.let { path ->
+                            viewModel.lastPlayedSongPath = path
                             viewModel.lastPlayedPosition = 0
-                            adapter.currentlyPlayingId = id
+                            adapter.currentlyPlayingPath = path
                         }
                     }
 
@@ -312,14 +315,14 @@ class MainActivity : AppCompatActivity() {
                 updatePlayPauseIcon(player.isPlaying)
                 if (player.isPlaying) binding.miniPlayer.miniPlayerProgress.post(progressRunnable)
                 
-                // Sync currently playing song ID to adapter for highlight
-                val currentId = player.currentMediaItem?.mediaId?.toLongOrNull()
-                if (currentId != null) {
-                    adapter.currentlyPlayingId = currentId
+                // Sync currently playing song path to adapter for highlight
+                val currentPath = player.currentMediaItem?.mediaId
+                if (currentPath != null) {
+                    adapter.currentlyPlayingPath = currentPath
                 } else {
-                    val lastId = viewModel.lastPlayedSongId
-                    if (lastId != -1L) {
-                        adapter.currentlyPlayingId = lastId
+                    val lastPath = viewModel.lastPlayedSongPath
+                    if (lastPath != null) {
+                        adapter.currentlyPlayingPath = lastPath
                     }
                 }
             }
@@ -333,7 +336,6 @@ class MainActivity : AppCompatActivity() {
         setupPermissions()
         setupTabs()
         setupPersonalizedHeader()
-        // Removed Rescan and MoreMenu
         
         viewModel.favorites.observe(this) {
             updateMiniPlayerFavoriteIcon()
@@ -352,6 +354,7 @@ class MainActivity : AppCompatActivity() {
     private var currentViewingPlaylistId = -1L
     private var isViewingArtistDetails = false
     private var isViewingAlbumDetails = false
+    private var isViewingHiddenTab = false
 
     private fun setupTabs() {
         val tabLayout = binding.topBar.findViewById<com.google.android.material.tabs.TabLayout>(R.id.tabLayout)
@@ -363,6 +366,7 @@ class MainActivity : AppCompatActivity() {
         tabLayout.addTab(tabLayout.newTab().setText("Favorites"))
         tabLayout.addTab(tabLayout.newTab().setText("Most Played"))
         tabLayout.addTab(tabLayout.newTab().setText("Folders"))
+        tabLayout.addTab(tabLayout.newTab().setText("Hidden"))
         
         // Initialize Adapters
         artistAdapter = ArtistAdapter { artist ->
@@ -467,7 +471,7 @@ class MainActivity : AppCompatActivity() {
                 )
                 
                 // Setup Drag
-                val callback = QueueTouchHelperCallback { from, to ->
+                val _callback = QueueTouchHelperCallback { _, _ ->
                     try {
                         // Adjust for Header (Item 0)
                         // Wait, Adapter indices include Header.
@@ -559,6 +563,7 @@ class MainActivity : AppCompatActivity() {
                 isViewingPlaylistDetails = false
                 isViewingArtistDetails = false
                 isViewingAlbumDetails = false
+                isViewingHiddenTab = false
                 adapter.showRemoveFromPlaylistOption = false
                 playlistTouchHelper?.attachToRecyclerView(null)
                 
@@ -653,6 +658,27 @@ class MainActivity : AppCompatActivity() {
                         currentFolder = null
                         showFoldersList()
                     }
+                    7 -> { // Hidden Songs
+                        isPlaylistTab = false
+                        isViewingHiddenTab = true
+                        binding.fastScroller.visibility = View.GONE
+                        binding.fabAddPlaylist.visibility = View.GONE
+                        
+                        viewModel.hiddenSongs.observe(this@MainActivity) { hiddenSongs ->
+                            val tabLayout2 = binding.topBar.findViewById<com.google.android.material.tabs.TabLayout>(R.id.tabLayout)
+                            if (tabLayout2.selectedTabPosition == 7) {
+                                if (hiddenSongs.isEmpty()) {
+                                    adapter.submitList(emptyList())
+                                    binding.recyclerView.adapter = adapter
+                                    android.widget.Toast.makeText(this@MainActivity, "No hidden songs", android.widget.Toast.LENGTH_SHORT).show()
+                                } else {
+                                    val items = hiddenSongs.map { com.wayne.musicdeck.SongListItem.SongItem(it) }
+                                    adapter.submitList(items)
+                                    binding.recyclerView.adapter = adapter
+                                }
+                            }
+                        }
+                    }
                 }
             }
             override fun onTabUnselected(tab: com.google.android.material.tabs.TabLayout.Tab?) {
@@ -731,6 +757,42 @@ class MainActivity : AppCompatActivity() {
     
 
     
+    private fun setupPersonalizedHeader() {
+        val userName = settingsManager.userName
+        
+        if (userName.isNullOrEmpty()) {
+            // First run - ask for name
+            showNameDialog()
+        } else {
+            // Set personalized greeting
+            updateHeaderWithName(userName)
+        }
+        
+        // Long-press header to change name
+        binding.tvMyMusic.setOnLongClickListener {
+            showNameDialog()
+            true
+        }
+    }
+    
+    private fun showNameDialog() {
+        val sheet = InputBottomSheetFragment.newInstance(
+            title = "What's your name?",
+            hint = "Your name",
+            initialValue = settingsManager.userName ?: ""
+        )
+        sheet.onSaveListener = { name ->
+            settingsManager.userName = name
+            updateHeaderWithName(name)
+            android.widget.Toast.makeText(this, "Welcome, $name!", android.widget.Toast.LENGTH_SHORT).show()
+        }
+        sheet.show(supportFragmentManager, "NameDialog")
+    }
+    
+    private fun updateHeaderWithName(name: String) {
+        binding.tvMyMusic.text = if (name.isNullOrEmpty() || name == "My Music") "My Music" else "$name's Music"
+    }
+
     // setupMoreMenu removed
     // setupRescan removed
     
@@ -745,10 +807,10 @@ class MainActivity : AppCompatActivity() {
                 val controller = viewModel.mediaController.value
                 if (controller != null) {
                     val allSongs = viewModel.songs.value ?: listOf(song)
-                    val startIndex = allSongs.indexOfFirst { it.id == song.id }.coerceAtLeast(0)
+                    val startIndex = allSongs.indexOfFirst { it.data == song.data }.coerceAtLeast(0)
                     val mediaItems = allSongs.map { s ->
                         MediaItem.Builder()
-                            .setMediaId(s.id.toString())
+                            .setMediaId(s.data)
                             .setUri(s.uri)
                             .setMediaMetadata(
                                 androidx.media3.common.MediaMetadata.Builder()
@@ -780,7 +842,7 @@ class MainActivity : AppCompatActivity() {
             // Play in current sorted order (not shuffled)
             val mediaItems = songs.map { song ->
                 MediaItem.Builder()
-                    .setMediaId(song.id.toString())
+                    .setMediaId(song.data)
                     .setUri(song.uri)
                     .setMediaMetadata(
                         androidx.media3.common.MediaMetadata.Builder()
@@ -809,7 +871,7 @@ class MainActivity : AppCompatActivity() {
             val shuffled = songs.shuffled()
             val mediaItems = shuffled.map { song ->
                 MediaItem.Builder()
-                    .setMediaId(song.id.toString())
+                    .setMediaId(song.data)
                     .setUri(song.uri)
                     .setMediaMetadata(
                         androidx.media3.common.MediaMetadata.Builder()
@@ -909,20 +971,17 @@ class MainActivity : AppCompatActivity() {
             binding.cardTools.setCardBackgroundColor(androidx.core.content.ContextCompat.getColor(this, R.color.colorOcean))
         }
 
-        // Equalizer Card (Violet) - hide if device doesn't support it
-        if (!AudioEffectManager.isSupported(this)) {
-            binding.cardEqualizer.visibility = android.view.View.GONE
-        } else {
-            binding.cardEqualizer.setOnClickListener {
-                 val controller = viewModel.mediaController.value
-                 val sessionId = controller?.connectedToken?.extras?.getInt("AUDIO_SESSION_ID", 0) ?: 0
-                 
-                 if (sessionId != 0) {
-                     EqualizerBottomSheet.newInstance(sessionId).show(supportFragmentManager, "EqBottomSheet")
-                 } else {
-                     android.widget.Toast.makeText(this, "Start playback to use Equalizer", android.widget.Toast.LENGTH_SHORT).show()
-                 }
-            }
+        // Equalizer Card (Violet) - always visible as requested
+        binding.cardEqualizer.visibility = android.view.View.VISIBLE
+        binding.cardEqualizer.setOnClickListener {
+             val controller = viewModel.mediaController.value
+             val sessionId = controller?.connectedToken?.extras?.getInt("AUDIO_SESSION_ID", 0) ?: 0
+             
+             if (sessionId != 0) {
+                 EqualizerBottomSheet.newInstance(sessionId).show(supportFragmentManager, "EqBottomSheet")
+             } else {
+                 android.widget.Toast.makeText(this, "Start playback to use Equalizer", android.widget.Toast.LENGTH_SHORT).show()
+             }
         }
         
         // Sleep Timer Card (Mint)
@@ -947,52 +1006,24 @@ class MainActivity : AppCompatActivity() {
     
     private fun restoreLastSong(songs: List<Song>) {
         if (hasRestored) return
-        val lastId = viewModel.lastPlayedSongId
-        if (lastId == -1L) return
+        val lastPath = viewModel.lastPlayedSongPath ?: return
         
-        val lastSong = songs.find { it.id == lastId }
+        val lastSong = songs.find { it.data == lastPath }
         lastSong?.let { song ->
             hasRestored = true
             binding.miniPlayer.tvMiniTitle.text = song.title
             binding.miniPlayer.tvMiniArtist.text = song.artist
             
-            var embeddedArt: ByteArray? = null
-            val uri = song.uri
-            
-            try {
-                val retriever = android.media.MediaMetadataRetriever()
-                retriever.setDataSource(this, uri)
-                embeddedArt = retriever.embeddedPicture
-                retriever.release()
-            } catch (e: Exception) {
-               // ignore
-            }
-            
-            if (embeddedArt != null) {
-                binding.miniPlayer.ivMiniArt.load(embeddedArt) {
-                    crossfade(true)
-                    transformations(RoundedCornersTransformation(12f))
-                }
-            } else {
-                val albumArtUri = android.content.ContentUris.withAppendedId(
-                    android.net.Uri.parse("content://media/external/audio/albumart"),
-                    song.albumId
-                )
-                binding.miniPlayer.ivMiniArt.load(albumArtUri) {
-                    crossfade(true)
-                    placeholder(R.drawable.default_album_art)
-                    error(R.drawable.default_album_art)
-                    transformations(RoundedCornersTransformation(12f))
-                }
-            }
+            // Restore art immediately
+            binding.miniPlayer.ivMiniArt.loadSongCover(song)
         }
     }
     
     private fun playLastSong() {
-        val lastId = viewModel.lastPlayedSongId
-        if (lastId == -1L) return
+        val lastPath = viewModel.lastPlayedSongPath ?: return
         val items = adapter.currentList
-        val songItem = items.filterIsInstance<SongListItem.SongItem>().find { it.song.id == lastId }
+        // Find by path
+        val songItem = items.filterIsInstance<SongListItem.SongItem>().find { it.song.data == lastPath }
         val lastSong = songItem?.song ?: return
         val lastPosition = viewModel.lastPlayedPosition
         viewModel.playSongFromPosition(lastSong, lastPosition)
@@ -1002,43 +1033,6 @@ class MainActivity : AppCompatActivity() {
         // Moved to Rescan Long Click for now, or just unused
     }
     
-    private fun setupPersonalizedHeader() {
-        val prefs = getSharedPreferences("musicdeck_prefs", MODE_PRIVATE)
-        val userName = prefs.getString("user_name", null)
-        
-        if (userName.isNullOrEmpty()) {
-            // First run - ask for name
-            showNameDialog(prefs)
-        } else {
-            // Set personalized greeting
-            updateHeaderWithName(userName)
-        }
-        
-        // Long-press header to change name
-        binding.tvMyMusic.setOnLongClickListener {
-            showNameDialog(prefs)
-            true
-        }
-    }
-    
-    private fun showNameDialog(prefs: android.content.SharedPreferences) {
-        val sheet = InputBottomSheetFragment.newInstance(
-            title = "What's your name?",
-            hint = "Your Name",
-            positiveButtonText = "Let's Go!"
-        )
-        sheet.onSaveListener = { name ->
-            prefs.edit().putString("user_name", name).apply()
-            updateHeaderWithName(name)
-            android.widget.Toast.makeText(this, "Welcome, $name!", android.widget.Toast.LENGTH_SHORT).show()
-        }
-        sheet.show(supportFragmentManager, "NameInputSheet")
-    }
-    
-    private fun updateHeaderWithName(name: String) {
-        binding.tvMyMusic.text = if (name == "My Music") "My Music" else "$name's Music"
-    }
-
     private fun setupRecyclerView() {
         binding.recyclerView.layoutManager = LinearLayoutManager(this)
         binding.recyclerView.adapter = adapter
@@ -1157,7 +1151,8 @@ class MainActivity : AppCompatActivity() {
 
     private fun updateMiniPlayer(mediaItem: MediaItem?) {
         if (mediaItem == null) {
-            if (hasRestored && viewModel.lastPlayedSongId != -1L) {
+            val lastPath = viewModel.lastPlayedSongPath
+            if (hasRestored && !lastPath.isNullOrEmpty()) {
                  updateMiniPlayerFavoriteIcon()
                  return
             }
@@ -1170,30 +1165,14 @@ class MainActivity : AppCompatActivity() {
         binding.miniPlayer.tvMiniTitle.text = mediaItem.mediaMetadata.title ?: "Unknown Title"
         binding.miniPlayer.tvMiniArtist.text = mediaItem.mediaMetadata.artist ?: "Unknown Artist"
         
-        var embeddedArt: ByteArray? = null
-        val currentId = mediaItem.mediaId.toLongOrNull()
+        // Find song object to use centralized art loader
+        val currentPath = mediaItem.mediaId
+        val song = viewModel.songs.value?.find { it.data == currentPath }
         
-        if (currentId != null) {
-            val uri = android.content.ContentUris.withAppendedId(
-                android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
-                currentId
-            )
-            try {
-                val retriever = android.media.MediaMetadataRetriever()
-                retriever.setDataSource(this, uri)
-                embeddedArt = retriever.embeddedPicture
-                retriever.release()
-            } catch (e: Exception) {
-               // ignore
-            }
-        }
-        
-        if (embeddedArt != null) {
-            binding.miniPlayer.ivMiniArt.load(embeddedArt) {
-                crossfade(true)
-                transformations(RoundedCornersTransformation(12f))
-            }
+        if (song != null) {
+            binding.miniPlayer.ivMiniArt.loadSongCover(song)
         } else {
+            // Fallback for when list isn't loaded or song not found
             binding.miniPlayer.ivMiniArt.load(mediaItem.mediaMetadata.artworkUri) {
                 crossfade(true)
                 placeholder(R.drawable.default_album_art)
@@ -1205,22 +1184,23 @@ class MainActivity : AppCompatActivity() {
     }
     
     private fun updateMiniPlayerFavoriteIcon() {
-        val currentId = viewModel.mediaController.value?.currentMediaItem?.mediaId?.toLongOrNull() 
-                       ?: viewModel.lastPlayedSongId
+        val currentPath = viewModel.mediaController.value?.currentMediaItem?.mediaId 
+                       ?: viewModel.lastPlayedSongPath
         
         val btnFav = binding.miniPlayer.btnMiniFavorite
         
-        if (currentId == -1L) {
+        if (currentPath == null) {
             btnFav.setColorFilter(getColor(android.R.color.darker_gray))
             btnFav.setImageResource(R.drawable.ic_favorite_border)
             return
         }
 
-        val isFav = viewModel.favorites.value?.any { it.id == currentId } == true
+        val isFav = viewModel.favorites.value?.any { it.data == currentPath } == true
         val icon = if (isFav) R.drawable.ic_favorite else R.drawable.ic_favorite_border
         
         btnFav.setImageResource(icon)
-        btnFav.setColorFilter(getColor(if (isFav) R.color.teal_200 else android.R.color.darker_gray))
+        val tint = if (isFav) getColor(R.color.colorRose) else getColor(android.R.color.darker_gray)
+        btnFav.setColorFilter(tint)
     }
 
     private fun updatePlayPauseIcon(isPlaying: Boolean) {
@@ -1241,7 +1221,7 @@ class MainActivity : AppCompatActivity() {
                 // We know 'isViewingPlaylistDetails' is true if this option is visible.
                 // But we need the ID. We can store `currentViewingPlaylistId`.
                 if (currentViewingPlaylistId != -1L) {
-                    viewModel.removeSongFromPlaylist(currentViewingPlaylistId, song.id)
+                    viewModel.removeSongFromPlaylist(currentViewingPlaylistId, song)
                     // Refresh handled by observing? See below.
                     // Ideally we remove from list immediately for UX.
                     // Adapter update will happen if we reload from DB.
@@ -1354,6 +1334,30 @@ class MainActivity : AppCompatActivity() {
             dialog.dismiss()
         }
 
+        // Hide / Unhide Song
+        val hideSongView = view.findViewById<android.widget.TextView>(R.id.action_hide_song)
+        val unhideSongView = view.findViewById<android.widget.TextView>(R.id.action_unhide_song)
+        
+        if (isViewingHiddenTab) {
+            // Viewing hidden songs — show "Unhide" instead of "Hide"
+            hideSongView.visibility = android.view.View.GONE
+            unhideSongView.visibility = android.view.View.VISIBLE
+            unhideSongView.setOnClickListener {
+                viewModel.unhideSong(song.id)
+                android.widget.Toast.makeText(this, "\"${song.title}\" is back!", android.widget.Toast.LENGTH_SHORT).show()
+                dialog.dismiss()
+            }
+        } else {
+            // Normal context — show "Hide"
+            hideSongView.visibility = android.view.View.VISIBLE
+            unhideSongView.visibility = android.view.View.GONE
+            hideSongView.setOnClickListener {
+                viewModel.hideSong(song.id)
+                android.widget.Toast.makeText(this, "\"${song.title}\" hidden", android.widget.Toast.LENGTH_SHORT).show()
+                dialog.dismiss()
+            }
+        }
+
         // Delete (from device)
         view.findViewById<android.widget.TextView>(R.id.action_delete).setOnClickListener {
             dialog.dismiss()
@@ -1365,7 +1369,7 @@ class MainActivity : AppCompatActivity() {
         if (currentViewingPlaylistId != -1L) {
             removeView.visibility = android.view.View.VISIBLE
             removeView.setOnClickListener {
-                viewModel.removeSongFromPlaylist(currentViewingPlaylistId, song.id)
+                viewModel.removeSongFromPlaylist(currentViewingPlaylistId, song)
                 android.widget.Toast.makeText(this, "Removed from playlist", android.widget.Toast.LENGTH_SHORT).show()
                 dialog.dismiss()
             }
@@ -1413,7 +1417,7 @@ class MainActivity : AppCompatActivity() {
             playlistDialogObserver?.let { viewModel.playlists.removeObserver(it) }
             playlistDialogObserver = null
             
-            val list = playlists ?: emptyList()
+            val list = playlists
             if (list.isEmpty()) {
                 android.widget.Toast.makeText(this@MainActivity, "No playlists found", android.widget.Toast.LENGTH_SHORT).show()
                 return@Observer

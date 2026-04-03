@@ -78,15 +78,8 @@ class ToolsBottomSheetFragment : BottomSheetDialogFragment() {
         }
         
         val message = """
-            |Version: $version
-            |
-            |🎵 Smart Services
-            |Lyrics and official album metadata are powered by Lrclib.net - A free, open database.
-            |
-            |🔒 Privacy
-            |MusicDeck plays your local music files. We do not collect or store any personal data. "Elite Sync" and Lyrics fetch data from Lrclib using only song metadata (title, artist).
-            |
-            |Made with ❤️ by Wayne Chibeu
+            |MusicDeck v$version
+            |Made with ❤️ by MusicDeck Team
         """.trimMargin()
         
         com.google.android.material.dialog.MaterialAlertDialogBuilder(ctx)

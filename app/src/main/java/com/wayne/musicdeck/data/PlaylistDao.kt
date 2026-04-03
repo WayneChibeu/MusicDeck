@@ -41,6 +41,6 @@ interface PlaylistDao {
     @Query("SELECT COUNT(*) FROM playlist_songs WHERE playlistId = :playlistId")
     suspend fun getSongCountForPlaylist(playlistId: Long): Int
 
-    @Query("DELETE FROM playlist_songs WHERE playlistId = :playlistId AND songId = :songId")
-    suspend fun removeSongFromPlaylist(playlistId: Long, songId: Long)
+    @Query("DELETE FROM playlist_songs WHERE playlistId = :playlistId AND songPath = :songPath")
+    suspend fun removeSongFromPlaylist(playlistId: Long, songPath: String)
 }

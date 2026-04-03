@@ -8,19 +8,20 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import android.widget.Toast
-import androidx.lifecycle.ViewModelProvider
+import org.koin.androidx.viewmodel.ext.android.activityViewModel
+import org.koin.android.ext.android.inject
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 
 class PlayerMenuBottomSheet : BottomSheetDialogFragment() {
 
-    private lateinit var viewModel: MainViewModel
+    private val viewModel: MainViewModel by activityViewModel()
+    private val settingsManager: com.wayne.musicdeck.utils.SettingsManager by inject()
     private var currentPlaybackSpeed = 1.0f
     private val speeds = floatArrayOf(0.5f, 0.75f, 1.0f, 1.25f, 1.5f, 2.0f)
     private var currentSpeedIndex = 2
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        viewModel = ViewModelProvider(requireActivity())[MainViewModel::class.java]
     }
 
     override fun onCreateView(
@@ -70,15 +71,15 @@ class PlayerMenuBottomSheet : BottomSheetDialogFragment() {
         val tvFetchLyricsLabel = view.findViewById<TextView>(R.id.tvFetchLyricsLabel)
         
         // Update label based on whether song already has lyrics
-        val currentId = viewModel.mediaController.value?.currentMediaItem?.mediaId?.toLongOrNull()
-        val hasLyrics = currentId?.let { viewModel.hasLyrics(it) } ?: false
+        val currentPath = viewModel.mediaController.value?.currentMediaItem?.mediaId
+        val hasLyrics = currentPath?.let { viewModel.hasLyrics(it) } ?: false
         if (hasLyrics) {
             tvFetchLyricsLabel.text = "Re-fetch Lyrics"
         }
         
         menuFetchLyrics.setOnClickListener {
-            val songId = viewModel.mediaController.value?.currentMediaItem?.mediaId?.toLongOrNull()
-            val song = viewModel.songs.value?.find { it.id == songId }
+            val songPath = viewModel.mediaController.value?.currentMediaItem?.mediaId
+            val song = viewModel.songs.value?.find { it.data == songPath }
             if (song != null) {
                 progressFetchLyrics.visibility = View.VISIBLE
                 tvFetchLyricsLabel.text = "Fetching..."
@@ -119,8 +120,8 @@ class PlayerMenuBottomSheet : BottomSheetDialogFragment() {
 
         // Add to Playlist
         view.findViewById<View>(R.id.menuAddToPlaylist).setOnClickListener {
-            val currentId = viewModel.mediaController.value?.currentMediaItem?.mediaId?.toLongOrNull()
-            val song = viewModel.songs.value?.find { it.id == currentId }
+            val currentPath = viewModel.mediaController.value?.currentMediaItem?.mediaId
+            val song = viewModel.songs.value?.find { it.data == currentPath }
             if (song != null) {
                 dismiss()
                 AddToPlaylistBottomSheet.newInstance(song).show(parentFragmentManager, "AddToPlaylist")
@@ -131,8 +132,8 @@ class PlayerMenuBottomSheet : BottomSheetDialogFragment() {
 
         // Song Info
         view.findViewById<View>(R.id.menuSongInfo).setOnClickListener {
-            val currentId = viewModel.mediaController.value?.currentMediaItem?.mediaId?.toLongOrNull()
-            val song = viewModel.songs.value?.find { it.id == currentId }
+            val currentPath = viewModel.mediaController.value?.currentMediaItem?.mediaId
+            val song = viewModel.songs.value?.find { it.data == currentPath }
             if (song != null) {
                 dismiss()
                 SongInfoBottomSheet.newInstance(song).show(parentFragmentManager, "SongInfo")
@@ -143,8 +144,8 @@ class PlayerMenuBottomSheet : BottomSheetDialogFragment() {
 
         // Set Ringtone
         view.findViewById<View>(R.id.menuSetRingtone).setOnClickListener {
-            val currentId = viewModel.mediaController.value?.currentMediaItem?.mediaId?.toLongOrNull()
-            val song = viewModel.songs.value?.find { it.id == currentId }
+            val currentPath = viewModel.mediaController.value?.currentMediaItem?.mediaId
+            val song = viewModel.songs.value?.find { it.data == currentPath }
             if (song != null) {
                 try {
                     android.media.RingtoneManager.setActualDefaultRingtoneUri(
@@ -152,30 +153,30 @@ class PlayerMenuBottomSheet : BottomSheetDialogFragment() {
                         android.media.RingtoneManager.TYPE_RINGTONE,
                         song.uri
                     )
-                    Toast.makeText(context, "Set as ringtone: ${song.title}", Toast.LENGTH_SHORT).show()
+                    android.widget.Toast.makeText(context, "Set as ringtone: ${song.title}", android.widget.Toast.LENGTH_SHORT).show()
                 } catch (e: Exception) {
-                    Toast.makeText(context, "Failed to set ringtone. Check permissions.", Toast.LENGTH_SHORT).show()
+                    android.widget.Toast.makeText(context, "Failed to set ringtone. Check permissions.", android.widget.Toast.LENGTH_SHORT).show()
                 }
                 dismiss()
             } else {
-                Toast.makeText(context, "No song playing", Toast.LENGTH_SHORT).show()
+                android.widget.Toast.makeText(context, "No song playing", android.widget.Toast.LENGTH_SHORT).show()
             }
         }
 
         // Share
         view.findViewById<View>(R.id.menuShare).setOnClickListener {
-            val currentId = viewModel.mediaController.value?.currentMediaItem?.mediaId?.toLongOrNull()
-            val song = viewModel.songs.value?.find { it.id == currentId }
+            val currentPath = viewModel.mediaController.value?.currentMediaItem?.mediaId
+            val song = viewModel.songs.value?.find { it.data == currentPath }
             if (song != null) {
-                val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                val shareIntent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
                     type = "audio/*"
-                    putExtra(Intent.EXTRA_STREAM, song.uri)
-                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    putExtra(android.content.Intent.EXTRA_STREAM, song.uri)
+                    addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 }
-                startActivity(Intent.createChooser(shareIntent, "Share ${song.title}"))
+                startActivity(android.content.Intent.createChooser(shareIntent, "Share ${song.title}"))
                 dismiss()
             } else {
-                Toast.makeText(context, "No song playing", Toast.LENGTH_SHORT).show()
+                android.widget.Toast.makeText(context, "No song playing", android.widget.Toast.LENGTH_SHORT).show()
             }
         }
 
@@ -199,12 +200,11 @@ class PlayerMenuBottomSheet : BottomSheetDialogFragment() {
 
         // Sunset Transition Toggle
         val sunsetSwitch = view.findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.switchSunset)
-        val prefs = requireContext().getSharedPreferences("musicdeck_prefs", android.content.Context.MODE_PRIVATE)
-        val isSunsetEnabled = prefs.getBoolean("sunset_transition_enabled", false)
+        val isSunsetEnabled = settingsManager.isSunsetTransitionEnabled
         sunsetSwitch.isChecked = isSunsetEnabled
-
+ 
         sunsetSwitch.setOnCheckedChangeListener { _, isChecked ->
-            prefs.edit().putBoolean("sunset_transition_enabled", isChecked).apply()
+            settingsManager.isSunsetTransitionEnabled = isChecked
             val msg = if (isChecked) "Sunset Transition enabled" else "Sunset Transition disabled"
             Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
         }

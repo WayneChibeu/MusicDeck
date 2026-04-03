@@ -14,9 +14,8 @@ import java.io.File
 fun ImageView.loadSongCover(song: Song) {
     val context = this.context
     // Directly access SharedPreferences to avoid dependency injection complexity in Views
-    // This matches logic in CustomCoverRepository
     val prefs = context.getSharedPreferences("custom_covers", Context.MODE_PRIVATE)
-    val customPath = prefs.getString(song.id.toString(), null)
+    val customPath = prefs.getString(song.data, null) // Use filePath for stability
     
     if (customPath != null) {
         val file = File(customPath)
@@ -26,38 +25,18 @@ fun ImageView.loadSongCover(song: Song) {
                 placeholder(R.drawable.default_album_art)
                 error(R.drawable.default_album_art)
                 transformations(RoundedCornersTransformation(12f))
-                memoryCacheKey("custom_cover_${song.id}_${file.lastModified()}")
             }
             return
         }
     }
     
-    // For "Unknown Album", MediaStore returns a shared ID that leads to "leaking" covers.
-    // We prioritize embedded art for these cases.
-    if (song.album == "Unknown Album") {
-        this.load(song.data) { // Load directly from file path (Coil handles MediaMetadataRetriever internally for audio)
-            crossfade(150)
-            placeholder(R.drawable.default_album_art)
-            error(R.drawable.default_album_art)
-            transformations(RoundedCornersTransformation(12f))
-            memoryCacheKey("embedded_cover_${song.id}")
-            diskCacheKey("embedded_cover_${song.id}")
-        }
-        return
-    }
-
-    // Standard behavior for songs with actual album tags
-    val albumArtUri = ContentUris.withAppendedId(
-        Uri.parse("content://media/external/audio/albumart"),
-        song.albumId
-    )
-    
-    this.load(albumArtUri) {
+    // PRIORITY: Embedded Art from File
+    // We use the file path directly (song.data) as Coil is extremely stable at extracting embedded art.
+    // We avoid the system URI (MediaStore album_art) entirely because it can trigger IllegalStateException on some devices.
+    this.load(song.data) {
         crossfade(150)
         placeholder(R.drawable.default_album_art)
-        error(R.drawable.default_album_art)
+        error(R.drawable.default_album_art) // Non-crashing default fallback
         transformations(RoundedCornersTransformation(12f))
-        memoryCacheKey("album_art_${song.albumId}")
-        diskCacheKey("album_art_${song.albumId}")
     }
 }

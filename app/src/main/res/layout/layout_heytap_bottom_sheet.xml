@@ -125,6 +125,33 @@
         android:gravity="center_vertical"/>
 
     <TextView
+        android:id="@+id/action_hide_song"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Hide Song"
+        android:textColor="#FFFFFF"
+        android:padding="16dp"
+        android:drawableStart="@drawable/ic_hide_modern"
+        android:drawablePadding="16dp"
+        android:drawableTint="#FFFFFF"
+        android:background="?attr/selectableItemBackground"
+        android:gravity="center_vertical"/>
+
+    <TextView
+        android:id="@+id/action_unhide_song"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Unhide Song"
+        android:textColor="#4CAF50"
+        android:padding="16dp"
+        android:drawableStart="@drawable/ic_unhide_modern"
+        android:drawablePadding="16dp"
+        android:drawableTint="#4CAF50"
+        android:background="?attr/selectableItemBackground"
+        android:gravity="center_vertical"
+        android:visibility="gone"/>
+
+    <TextView
         android:id="@+id/action_delete"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

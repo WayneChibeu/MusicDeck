@@ -18,29 +18,29 @@ class LyricsRepository(private val context: Context) {
     /**
      * Save lyric file path for a specific song
      */
-    fun saveLyricPath(songId: Long, filePath: String) {
-        prefs.edit().putString(songId.toString(), filePath).apply()
+    fun saveLyricPath(filePath: String, lyricPath: String) {
+        prefs.edit().putString(filePath, lyricPath).apply()
     }
     
     /**
      * Get lyric file path for a song
      */
-    fun getLyricPath(songId: Long): String? {
-        return prefs.getString(songId.toString(), null)
+    fun getLyricPath(filePath: String): String? {
+        return prefs.getString(filePath, null)
     }
     
     /**
      * Remove lyric file for a song
      */
-    fun removeLyricPath(songId: Long) {
-        prefs.edit().remove(songId.toString()).apply()
+    fun removeLyricPath(filePath: String) {
+        prefs.edit().remove(filePath).apply()
     }
     
     /**
      * Check if a song has lyrics
      */
-    fun hasLyrics(songId: Long): Boolean {
-        return prefs.contains(songId.toString())
+    fun hasLyrics(filePath: String): Boolean {
+        return prefs.contains(filePath)
     }
     
     /**
@@ -51,6 +51,7 @@ class LyricsRepository(private val context: Context) {
         songId: Long,
         trackName: String,
         artistName: String,
+        filePath: String, // Use path for stabilization
         albumName: String? = null,
         durationMs: Long? = null
     ): FetchResult {
@@ -83,7 +84,7 @@ class LyricsRepository(private val context: Context) {
                     }
                     
                     // Save path to prefs
-                    saveLyricPath(songId, file.absolutePath)
+                    saveLyricPath(filePath, file.absolutePath)
                     
                     Log.d(TAG, "Lyrics saved successfully (synced: ${result.isSynced})")
                     FetchResult.Success(isSynced = result.isSynced)

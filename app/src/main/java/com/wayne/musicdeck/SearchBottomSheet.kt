@@ -9,17 +9,17 @@ import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.TextView
-import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
+import org.koin.androidx.viewmodel.ext.android.activityViewModel
 
 class SearchBottomSheet : BottomSheetDialogFragment() {
 
-    private lateinit var viewModel: MainViewModel
+    private val viewModel: MainViewModel by activityViewModel()
     private lateinit var adapter: SongAdapter
     
     private lateinit var etSearch: EditText
@@ -51,8 +51,6 @@ class SearchBottomSheet : BottomSheetDialogFragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        
-        viewModel = ViewModelProvider(requireActivity())[MainViewModel::class.java]
         
         // Find views
         etSearch = view.findViewById(R.id.etSearch)

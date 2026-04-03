@@ -22,5 +22,6 @@ data class PlaylistSong(
     val id: Long = 0,
     val playlistId: Long,
     val songId: Long,
+    val songPath: String,
     val orderIndex: Int
 )

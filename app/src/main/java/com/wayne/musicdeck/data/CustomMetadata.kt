@@ -11,7 +11,8 @@ import androidx.room.PrimaryKey
 @Entity(tableName = "custom_metadata")
 data class CustomMetadata(
     @PrimaryKey
-    val songId: Long,
+    val filePath: String,
+    val songId: Long, // Keep as reference
     val customTitle: String? = null,
     val customArtist: String? = null,
     val customAlbum: String? = null,

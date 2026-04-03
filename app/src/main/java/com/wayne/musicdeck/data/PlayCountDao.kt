@@ -7,8 +7,8 @@ import androidx.room.Query
 
 @Dao
 interface PlayCountDao {
-    @Query("SELECT playCount FROM song_play_counts WHERE songId = :songId")
-    suspend fun getPlayCount(songId: Long): Int?
+    @Query("SELECT playCount FROM song_play_counts WHERE filePath = :filePath")
+    suspend fun getPlayCount(filePath: String): Int?
     
     @Query("SELECT * FROM song_play_counts ORDER BY playCount DESC LIMIT :limit")
     suspend fun getMostPlayed(limit: Int = 20): List<SongPlayCount>
@@ -16,11 +16,12 @@ interface PlayCountDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(playCount: SongPlayCount)
     
-    @Query("UPDATE song_play_counts SET playCount = playCount + 1, lastPlayed = :timestamp WHERE songId = :songId")
-    suspend fun incrementPlayCount(songId: Long, timestamp: Long = System.currentTimeMillis())
+    @Query("UPDATE song_play_counts SET playCount = playCount + 1, lastPlayed = :timestamp WHERE filePath = :filePath")
+    suspend fun incrementPlayCount(filePath: String, timestamp: Long = System.currentTimeMillis())
     
-    @Query("INSERT OR IGNORE INTO song_play_counts (songId, playCount, lastPlayed) VALUES (:songId, 0, :timestamp)")
-    suspend fun ensureExists(songId: Long, timestamp: Long = System.currentTimeMillis())
+    @Query("INSERT OR IGNORE INTO song_play_counts (filePath, songId, playCount, lastPlayed) VALUES (:filePath, :songId, 0, :timestamp)")
+    suspend fun ensureExists(filePath: String, songId: Long, timestamp: Long = System.currentTimeMillis())
+    
     @Query("SELECT * FROM song_play_counts")
     suspend fun getAllPlayCounts(): List<SongPlayCount>
 }
