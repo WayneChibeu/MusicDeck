@@ -5,6 +5,14 @@
     android:layout_height="match_parent"
     android:background="?attr/colorSurface">
 
+    <!-- LYRICS DIMMER: Smoothly darkens the background when reading lyrics -->
+    <View
+        android:id="@+id/lyricsDimmer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#000000"
+        android:alpha="0" />
+
     <!-- COVER VIEW - Main player layout -->
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/coverView"

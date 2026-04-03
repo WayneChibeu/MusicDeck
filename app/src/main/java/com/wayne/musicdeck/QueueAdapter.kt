@@ -64,7 +64,14 @@ class QueueAdapter(
                 playingIndicator.visibility = View.INVISIBLE
             }
             
-            ivArt.load(item.mediaMetadata.artworkUri) {
+            val uriStr = item.mediaMetadata.artworkUri?.toString()
+            val imageData: Any = if (uriStr != null && uriStr.startsWith("file://")) {
+                item.mediaMetadata.artworkUri!!
+            } else {
+                java.io.File(item.mediaId)
+            }
+            
+            ivArt.load(imageData) {
                 crossfade(true)
                 placeholder(R.drawable.default_album_art)
                 error(R.drawable.default_album_art)

@@ -808,21 +808,7 @@ class MainActivity : AppCompatActivity() {
                 if (controller != null) {
                     val allSongs = viewModel.songs.value ?: listOf(song)
                     val startIndex = allSongs.indexOfFirst { it.data == song.data }.coerceAtLeast(0)
-                    val mediaItems = allSongs.map { s ->
-                        MediaItem.Builder()
-                            .setMediaId(s.data)
-                            .setUri(s.uri)
-                            .setMediaMetadata(
-                                androidx.media3.common.MediaMetadata.Builder()
-                                    .setTitle(s.title)
-                                    .setArtist(s.artist)
-                                    .build()
-                            )
-                            .build()
-                    }
-                    controller.setMediaItems(mediaItems, startIndex, 0)
-                    controller.prepare()
-                    controller.play()
+                    viewModel.playPlaylist(allSongs, startIndex)
                 }
             }
             searchSheet.show(supportFragmentManager, "SearchBottomSheet")
@@ -837,24 +823,7 @@ class MainActivity : AppCompatActivity() {
                 android.widget.Toast.makeText(this, "No songs available", android.widget.Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
-            val controller = viewModel.mediaController.value ?: return@setOnClickListener
-            
-            // Play in current sorted order (not shuffled)
-            val mediaItems = songs.map { song ->
-                MediaItem.Builder()
-                    .setMediaId(song.data)
-                    .setUri(song.uri)
-                    .setMediaMetadata(
-                        androidx.media3.common.MediaMetadata.Builder()
-                            .setTitle(song.title)
-                            .setArtist(song.artist)
-                            .build()
-                    )
-                    .build()
-            }
-            controller.setMediaItems(mediaItems)
-            controller.prepare()
-            controller.play()
+            viewModel.playPlaylist(songs, 0)
             android.widget.Toast.makeText(this, "Playing ${songs.size} songs", android.widget.Toast.LENGTH_SHORT).show()
         }
         
@@ -865,25 +834,8 @@ class MainActivity : AppCompatActivity() {
                 android.widget.Toast.makeText(this, "No songs available", android.widget.Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
-            val controller = viewModel.mediaController.value ?: return@setOnClickListener
-            
-            // Shuffle songs
             val shuffled = songs.shuffled()
-            val mediaItems = shuffled.map { song ->
-                MediaItem.Builder()
-                    .setMediaId(song.data)
-                    .setUri(song.uri)
-                    .setMediaMetadata(
-                        androidx.media3.common.MediaMetadata.Builder()
-                            .setTitle(song.title)
-                            .setArtist(song.artist)
-                            .build()
-                    )
-                    .build()
-            }
-            controller.setMediaItems(mediaItems)
-            controller.prepare()
-            controller.play()
+            viewModel.playPlaylist(shuffled, 0)
             android.widget.Toast.makeText(this, "Shuffling ${songs.size} songs", android.widget.Toast.LENGTH_SHORT).show()
         }
         

@@ -239,19 +239,32 @@ class MainViewModel(
         if (startIndex < 0 || startIndex >= songs.size) return
         
         val mediaItems = songs.map { 
+            val customCoverPath = it.data.let { path -> customCoverRepository.getCustomCover(path) }
+            val artUri = if (customCoverPath != null) {
+                android.net.Uri.fromFile(java.io.File(customCoverPath))
+            } else if (it.albumId > 0 && it.album != "Unknown Album") {
+                android.content.ContentUris.withAppendedId(
+                    android.net.Uri.parse("content://media/external/audio/album_art"),
+                    it.albumId
+                )
+            } else {
+                it.uri
+            }
+
             androidx.media3.common.MediaItem.Builder()
-                .setMediaId(it.id.toString())
+                .setMediaId(it.data)
                 .setUri(it.uri)
                 .setMediaMetadata(
                     androidx.media3.common.MediaMetadata.Builder()
                         .setTitle(it.title)
                         .setArtist(it.artist)
-                        .setArtworkUri(
-                            android.content.ContentUris.withAppendedId(
-                                android.net.Uri.parse("content://media/external/audio/album_art"),
-                                it.albumId
-                            )
-                        )
+                        .setAlbumTitle(it.album)
+                        .setArtworkUri(artUri)
+                        .build()
+                )
+                .setRequestMetadata(
+                    androidx.media3.common.MediaItem.RequestMetadata.Builder()
+                        .setExtras(android.os.Bundle().apply { putLong("songId", it.id) })
                         .build()
                 )
                 .build()
@@ -276,20 +289,32 @@ class MainViewModel(
     fun addToQueue(songs: List<Song>) {
         val controller = mediaController.value ?: return
         val mediaItems = songs.map { 
+            val customCoverPath = it.data.let { path -> customCoverRepository.getCustomCover(path) }
+            val artUri = if (customCoverPath != null) {
+                android.net.Uri.fromFile(java.io.File(customCoverPath))
+            } else if (it.albumId > 0 && it.album != "Unknown Album") {
+                android.content.ContentUris.withAppendedId(
+                    android.net.Uri.parse("content://media/external/audio/album_art"),
+                    it.albumId
+                )
+            } else {
+                it.uri
+            }
+
             androidx.media3.common.MediaItem.Builder()
-                .setMediaId(it.id.toString())
+                .setMediaId(it.data)
                 .setUri(it.uri)
                 .setMediaMetadata(
                     androidx.media3.common.MediaMetadata.Builder()
                         .setTitle(it.title)
                         .setArtist(it.artist)
                         .setAlbumTitle(it.album)
-                        .setArtworkUri(
-                            android.content.ContentUris.withAppendedId(
-                                android.net.Uri.parse("content://media/external/audio/album_art"),
-                                it.albumId
-                            )
-                        )
+                        .setArtworkUri(artUri)
+                        .build()
+                )
+                .setRequestMetadata(
+                    androidx.media3.common.MediaItem.RequestMetadata.Builder()
+                        .setExtras(android.os.Bundle().apply { putLong("songId", it.id) })
                         .build()
                 )
                 .build()
