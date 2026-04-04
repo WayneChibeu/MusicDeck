@@ -190,8 +190,19 @@ class MainActivity : AppCompatActivity() {
             }
         })
         
+        var isFirstLoad = true
         viewModel.songs.observe(this) { songs ->
-            adapter.submitList(processHeaders(songs))
+            adapter.submitList(processHeaders(songs), Runnable {
+                if (isFirstLoad) {
+                    val prefs = getSharedPreferences("ui_state", MODE_PRIVATE)
+                    val savedPosition = prefs.getInt("tracks_scroll_position", 0)
+                    if (savedPosition > 0) {
+                        (binding.recyclerView.layoutManager as? LinearLayoutManager)
+                            ?.scrollToPositionWithOffset(savedPosition, 0)
+                    }
+                    isFirstLoad = false
+                }
+            })
             restoreLastSong(songs)
             // Update song count in header
             binding.tvSongCount.text = "${songs.size} songs"
@@ -559,6 +570,10 @@ class MainActivity : AppCompatActivity() {
 
         tabLayout.addOnTabSelectedListener(object : com.google.android.material.tabs.TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: com.google.android.material.tabs.TabLayout.Tab?) {
+                val position = tab?.position ?: 0
+                // Save tab selection persistently
+                getSharedPreferences("ui_state", MODE_PRIVATE).edit().putInt("last_selected_tab", position).apply()
+                
                 // Reset states
                 isViewingPlaylistDetails = false
                 isViewingArtistDetails = false
@@ -567,7 +582,7 @@ class MainActivity : AppCompatActivity() {
                 adapter.showRemoveFromPlaylistOption = false
                 playlistTouchHelper?.attachToRecyclerView(null)
                 
-                when (tab?.position) {
+                when (position) {
                     0 -> { // Tracks
                         isPlaylistTab = false
                         currentViewingPlaylistId = -1L
@@ -576,7 +591,7 @@ class MainActivity : AppCompatActivity() {
                         binding.fastScroller.visibility = View.VISIBLE
                         binding.fabAddPlaylist.visibility = View.GONE
                         
-                        // Restore scroll position
+                        // Restore scroll position from transition cache if available
                         tracksScrollPosition?.let { savedPosition ->
                             binding.recyclerView.post {
                                 binding.recyclerView.layoutManager?.onRestoreInstanceState(savedPosition)
@@ -692,6 +707,12 @@ class MainActivity : AppCompatActivity() {
         
         binding.fabAddPlaylist.setOnClickListener {
             showCreatePlaylistDialog()
+        }
+        
+        // Restore last selected tab
+        val lastTab = getSharedPreferences("ui_state", MODE_PRIVATE).getInt("last_selected_tab", 0)
+        tabLayout.post {
+            tabLayout.getTabAt(lastTab)?.select()
         }
         
         // Mini Player Heart handled by PlayerSheetManager
@@ -996,14 +1017,7 @@ class MainActivity : AppCompatActivity() {
     private var hasRestoredScrollOnce = false
     
     private fun restoreScrollPosition() {
-        val prefs = getSharedPreferences("ui_state", MODE_PRIVATE)
-        val savedPosition = prefs.getInt("tracks_scroll_position", 0)
-        if (savedPosition > 0 && !hasRestoredScrollOnce) {
-            binding.recyclerView.post {
-                (binding.recyclerView.layoutManager as? LinearLayoutManager)?.scrollToPosition(savedPosition)
-                hasRestoredScrollOnce = true
-            }
-        }
+        // Handled in viewModel.songs.observe callback for better timing
     }
     
     override fun onPause() {

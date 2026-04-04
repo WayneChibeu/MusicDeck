@@ -47,7 +47,8 @@ class CoilAudioFetcher(
         override fun create(data: File, options: Options, imageLoader: ImageLoader): Fetcher? {
             val ext = data.extension.lowercase()
             // Only intercept audio files
-            if (ext == "mp3" || ext == "flac" || ext == "m4a" || ext == "ogg" || ext == "wav") {
+            if (ext == "mp3" || ext == "flac" || ext == "m4a" || ext == "ogg" || ext == "wav" || 
+                ext == "opus" || ext == "webm" || ext == "aac" || ext == "mkv" || ext == "mp4") {
                 return CoilAudioFetcher(data, options)
             }
             return null // Let Coil handle regular images

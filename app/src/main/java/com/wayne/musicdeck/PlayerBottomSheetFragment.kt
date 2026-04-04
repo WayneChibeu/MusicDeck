@@ -6,6 +6,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.GestureDetector
 import android.view.MotionEvent
+import android.view.ViewConfiguration
 import android.widget.Toast
 import androidx.lifecycle.ViewModelProvider
 import androidx.media3.common.MediaItem
@@ -130,14 +131,44 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
             }
         })
         
+        var startX = 0f
+        var startY = 0f
+        var isHorizontalLock = false
+        var isVerticalLock = false
+        val touchSlop = ViewConfiguration.get(requireContext()).scaledTouchSlop
+        
         val touchListener = View.OnTouchListener { v, event -> 
-            if (event.action == MotionEvent.ACTION_MOVE) {
-                // If we detect horizontal intent, lock out the bottom sheet's dismissal gesture
-                // so we don't 'jump' or dismiss the layer by accident
-                v.parent.requestDisallowInterceptTouchEvent(true)
+            when (event.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    startX = event.rawX
+                    startY = event.rawY
+                    isHorizontalLock = false
+                    isVerticalLock = false
+                    gestureDetector.onTouchEvent(event)
+                }
+                MotionEvent.ACTION_MOVE -> {
+                    val dx = Math.abs(event.rawX - startX)
+                    val dy = Math.abs(event.rawY - startY)
+                    
+                    if (!isHorizontalLock && !isVerticalLock) {
+                        if (dx > touchSlop && dx > dy) {
+                            isHorizontalLock = true
+                            v.parent.requestDisallowInterceptTouchEvent(true)
+                        } else if (dy > touchSlop && dy > dx) {
+                            isVerticalLock = true
+                            // Let parent (BottomSheetBehavior) intercept for dismissal
+                        }
+                    } else if (isHorizontalLock) {
+                        v.parent.requestDisallowInterceptTouchEvent(true)
+                    }
+                    
+                    gestureDetector.onTouchEvent(event)
+                }
+                else -> {
+                    gestureDetector.onTouchEvent(event)
+                }
             }
-            
-            if (gestureDetector.onTouchEvent(event)) true else false
+            true // Consuming touch so we handle the entire gesture
         }
         
         // Robust RecyclerView Gesture Handling
