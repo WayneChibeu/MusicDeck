@@ -25,7 +25,36 @@ class MainActivity : AppCompatActivity() {
     private val viewModel: MainViewModel by viewModel()
     private val settingsManager: com.wayne.musicdeck.utils.SettingsManager by inject()
     private val adapter = SongAdapter { song ->
-        viewModel.playSong(song)
+        playInContext(song)
+    }
+
+    private fun playInContext(song: Song) {
+        when {
+            currentFolder != null -> {
+                val folderSongs = viewModel.getSongsInFolder(currentFolder!!).map { it.song }
+                val index = folderSongs.indexOfFirst { it.data == song.data }.coerceAtLeast(0)
+                viewModel.playPlaylist(folderSongs, index)
+            }
+            isViewingArtistDetails -> {
+                val artistSongs = viewModel.songs.value?.filter { it.artist == song.artist } ?: emptyList()
+                val index = artistSongs.indexOfFirst { it.data == song.data }.coerceAtLeast(0)
+                viewModel.playPlaylist(artistSongs, index)
+            }
+            isViewingAlbumDetails -> {
+                val albumSongs = viewModel.songs.value?.filter { it.albumId == song.albumId } ?: emptyList()
+                val index = albumSongs.indexOfFirst { it.data == song.data }.coerceAtLeast(0)
+                viewModel.playPlaylist(albumSongs, index)
+            }
+            isViewingPlaylistDetails && currentViewingPlaylistId != -1L -> {
+                 // Already handled by PlaylistDetailFragment or similar if separate, 
+                 // but let's be safe if it's using the main adapter
+                 viewModel.getPlaylistSongs(currentViewingPlaylistId).observe(this) { songs ->
+                     val index = songs.indexOfFirst { it.data == song.data }.coerceAtLeast(0)
+                     viewModel.playPlaylist(songs, index)
+                 }
+            }
+            else -> viewModel.playSong(song)
+        }
     }
     
     // Modern ActivityResultLauncher for MediaStore delete requests (Android 11+)
@@ -579,6 +608,7 @@ class MainActivity : AppCompatActivity() {
                 isViewingArtistDetails = false
                 isViewingAlbumDetails = false
                 isViewingHiddenTab = false
+                currentFolder = null // Reset folder context when switching tabs
                 adapter.showRemoveFromPlaylistOption = false
                 playlistTouchHelper?.attachToRecyclerView(null)
                 
@@ -973,6 +1003,32 @@ class MainActivity : AppCompatActivity() {
         binding.cardTools.setOnClickListener {
              ToolsBottomSheetFragment().show(supportFragmentManager, "ToolsSheet")
         }
+
+        // Live Sleep Timer Observer (Countdown & Active State)
+        viewModel.sleepTimerRemainingMillis.observe(this) { remainingMs ->
+            if (remainingMs != null && remainingMs > 0) {
+                // ACTIVE STATE: Show Countdown & Subtle Border
+                binding.ivSleepTimer.visibility = android.view.View.GONE
+                binding.tvSleepTimerCountdown.visibility = android.view.View.VISIBLE
+                binding.tvSleepTimerCountdown.text = formatTimer(remainingMs)
+                
+                // Add a subtle border to indicate it's active
+                binding.cardSleepTimer.strokeWidth = 4
+                binding.cardSleepTimer.setStrokeColor(android.content.res.ColorStateList.valueOf(violetColor))
+            } else {
+                // INACTIVE STATE: Reset to Icon
+                binding.ivSleepTimer.visibility = android.view.View.VISIBLE
+                binding.tvSleepTimerCountdown.visibility = android.view.View.GONE
+                binding.cardSleepTimer.strokeWidth = 0
+            }
+        }
+    }
+
+    private fun formatTimer(millis: Long): String {
+        val totalSeconds = millis / 1000
+        val minutes = totalSeconds / 60
+        val seconds = totalSeconds % 60
+        return String.format(java.util.Locale.getDefault(), "%02d:%02d", minutes, seconds)
     }
     
     private var hasRestored = false

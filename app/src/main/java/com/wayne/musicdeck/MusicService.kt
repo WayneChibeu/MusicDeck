@@ -217,6 +217,45 @@ class MusicService : MediaSessionService() {
                     
                     session.setCustomLayout(listOf(shuffleButton, repeatButton))
                 }
+                
+                // === GOOGLE ASSISTANT VOICE SEARCH HANDLER ===
+                // "Hey Google, play I Feel It Coming by The Weeknd"
+                override fun onAddMediaItems(
+                    mediaSession: MediaSession,
+                    controller: MediaSession.ControllerInfo,
+                    mediaItems: MutableList<androidx.media3.common.MediaItem>
+                ): ListenableFuture<MutableList<androidx.media3.common.MediaItem>> {
+                    val resolvedItems = mutableListOf<androidx.media3.common.MediaItem>()
+                    
+                    for (requestItem in mediaItems) {
+                        val searchQuery = requestItem.requestMetadata.searchQuery
+                        val mediaUri = requestItem.requestMetadata.mediaUri
+                        val mediaId = requestItem.mediaId
+                        
+                        if (!searchQuery.isNullOrBlank()) {
+                            // Voice search: "Play I Feel It Coming by The Weeknd"
+                            android.util.Log.d("MusicService", "Google Assistant search: '$searchQuery'")
+                            val matchedSongs = searchSongsFromMediaStore(searchQuery)
+                            
+                            if (matchedSongs.isNotEmpty()) {
+                                resolvedItems.addAll(matchedSongs)
+                            } else {
+                                // No exact match — play all music shuffled as fallback
+                                android.util.Log.d("MusicService", "No match for '$searchQuery', playing all songs")
+                                resolvedItems.addAll(getAllSongsFromMediaStore())
+                            }
+                        } else if (mediaUri != null || mediaId.isNotEmpty()) {
+                            // Direct URI or mediaId — pass through unchanged
+                            resolvedItems.add(requestItem)
+                        } else {
+                            // Generic "play music" command — play all songs shuffled
+                            android.util.Log.d("MusicService", "Generic play command, playing all songs")
+                            resolvedItems.addAll(getAllSongsFromMediaStore())
+                        }
+                    }
+                    
+                    return com.google.common.util.concurrent.Futures.immediateFuture(resolvedItems)
+                }
             })
             .setExtras(android.os.Bundle().apply {
                 putInt("AUDIO_SESSION_ID", exoPlayer.audioSessionId)
@@ -224,6 +263,8 @@ class MusicService : MediaSessionService() {
             .build()
             
         player.addListener(object : Player.Listener {
+             private var suppressFadeIn = false
+
              override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) {
                  updateMediaSessionLayout(player)
              }
@@ -240,12 +281,21 @@ class MusicService : MediaSessionService() {
                  }
              }
              override fun onMediaItemTransition(mediaItem: androidx.media3.common.MediaItem?, reason: Int) {
+                 // Suppress fade-in during song transitions to prevent "skip-stop-play" glitch.
+                 // We only want to fade in when resuming from a paused/stopped state.
+                 suppressFadeIn = true
                  updateWidget(player)
                  startPlayCountHeartbeat(mediaItem)
              }
              override fun onIsPlayingChanged(isPlaying: Boolean) {
                   updateWidget(player)
                   if (isPlaying) {
+                      if (!suppressFadeIn) {
+                          // Soft fade-in to prevent jarring volume burst on cold-start resume
+                          volumeManager.fadeIn()
+                      }
+                      suppressFadeIn = false
+                      
                       startPlayCountHeartbeat(player.currentMediaItem)
                       startPlaybackPositionHeartbeat(player)
                       
@@ -732,41 +782,49 @@ class MusicService : MediaSessionService() {
         serviceScope.launch {
             android.widget.Toast.makeText(this@MusicService, "Sleep timer set for $minutes min", android.widget.Toast.LENGTH_SHORT).show()
             val totalMillis = minutes * 60 * 1000L
+            var remainingMillis = totalMillis
+            
             val fadeDuration = 50_000L // 50 seconds fade out (10% every 5s)
             
-            if (totalMillis > fadeDuration) {
-                kotlinx.coroutines.delay(totalMillis - fadeDuration)
-                softFadeOut()
-            } else {
-                kotlinx.coroutines.delay(totalMillis)
+            // Ticker for Live Countdown
+            while (remainingMillis > 0) {
+                // Update session extras with remaining time for UI observability
+                mediaSession?.setSessionExtras(android.os.Bundle().apply {
+                    putLong("SLEEP_TIMER_REMAINING_MS", remainingMillis)
+                })
+                
+                if (remainingMillis <= fadeDuration) {
+                    volumeManager.fadeOut(fadeDuration) {
+                        mediaSession?.player?.pause()
+                    }
+                    break
+                }
+                
+                kotlinx.coroutines.delay(1000)
+                remainingMillis -= 1000
+            }
+            
+            if (remainingMillis <= 0) {
                 mediaSession?.player?.pause()
             }
+            
+            // Clear extras when done
+            mediaSession?.setSessionExtras(android.os.Bundle.EMPTY)
             sleepTimerJob = null
         }.also { sleepTimerJob = it }
     }
 
     private fun cancelSleepTimer() {
+        if (sleepTimerJob != null) {
+            android.widget.Toast.makeText(this, "Sleep timer cancelled", android.widget.Toast.LENGTH_SHORT).show()
+        }
         sleepTimerJob?.cancel()
         sleepTimerJob = null
         mediaSession?.player?.volume = 1.0f // Reset volume if cancelled
+        mediaSession?.setSessionExtras(android.os.Bundle.EMPTY)
     }
     
-    private suspend fun softFadeOut() {
-        val player = mediaSession?.player ?: return
-        val steps = 10
-        val stepDelay = 5000L // 5 seconds
-        var currentVol = 1.0f
-        
-        repeat(steps) {
-            currentVol -= 0.1f
-            if (currentVol < 0f) currentVol = 0f
-            player.volume = currentVol
-            kotlinx.coroutines.delay(stepDelay)
-        }
-        player.pause()
-        player.volume = 1.0f
-    }
-
+    // softFadeOut removed in favor of VolumeManager.fadeOut for ultra-smooth rendering
     private inner class AutoPlayForwardingPlayer(player: Player) : ForwardingPlayer(player) {
         override fun pause() {
             if (settingsManager.isSunsetTransitionEnabled) {
@@ -801,23 +859,151 @@ class MusicService : MediaSessionService() {
         }
         
         override fun seekToNext() {
-            super.seekToNext()
-            if (!isPlaying) play()
+            super.seekToNextMediaItem()
         }
 
         override fun seekToPrevious() {
             super.seekToPreviousMediaItem()
-            if (!isPlaying) play()
         }
 
         override fun seekToNextMediaItem() {
             super.seekToNextMediaItem()
-            if (!isPlaying) play()
         }
 
         override fun seekToPreviousMediaItem() {
             super.seekToPreviousMediaItem()
-            if (!isPlaying) play()
         }
     }
+
+    // ============================
+    // GOOGLE ASSISTANT MEDIA SEARCH
+    // ============================
+
+    /**
+     * Searches MediaStore for songs matching a search query.
+     * Fuzzy matches against title and artist.
+     * Returns matched song first, followed by remaining songs for queue continuity.
+     */
+    private fun searchSongsFromMediaStore(query: String): MutableList<androidx.media3.common.MediaItem> {
+        val results = mutableListOf<androidx.media3.common.MediaItem>()
+        val allSongs = mutableListOf<SongResult>()
+        val queryLower = query.lowercase()
+        
+        val projection = arrayOf(
+            android.provider.MediaStore.Audio.Media._ID,
+            android.provider.MediaStore.Audio.Media.TITLE,
+            android.provider.MediaStore.Audio.Media.ARTIST,
+            android.provider.MediaStore.Audio.Media.ALBUM,
+            android.provider.MediaStore.Audio.Media.ALBUM_ID,
+            android.provider.MediaStore.Audio.Media.DATA
+        )
+        
+        val selection = "${android.provider.MediaStore.Audio.Media.DURATION} > 10000"
+        
+        contentResolver.query(
+            android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+            projection,
+            selection,
+            null,
+            "${android.provider.MediaStore.Audio.Media.TITLE} ASC"
+        )?.use { cursor ->
+            val idCol = cursor.getColumnIndexOrThrow(android.provider.MediaStore.Audio.Media._ID)
+            val titleCol = cursor.getColumnIndexOrThrow(android.provider.MediaStore.Audio.Media.TITLE)
+            val artistCol = cursor.getColumnIndexOrThrow(android.provider.MediaStore.Audio.Media.ARTIST)
+            val albumCol = cursor.getColumnIndexOrThrow(android.provider.MediaStore.Audio.Media.ALBUM)
+            val albumIdCol = cursor.getColumnIndexOrThrow(android.provider.MediaStore.Audio.Media.ALBUM_ID)
+            val dataCol = cursor.getColumnIndexOrThrow(android.provider.MediaStore.Audio.Media.DATA)
+            
+            while (cursor.moveToNext()) {
+                val id = cursor.getLong(idCol)
+                val title = cursor.getString(titleCol) ?: ""
+                val artist = cursor.getString(artistCol) ?: ""
+                val album = cursor.getString(albumCol) ?: ""
+                val albumId = cursor.getLong(albumIdCol)
+                val data = cursor.getString(dataCol) ?: ""
+                
+                // Score this song against the query
+                val titleLower = title.lowercase()
+                val artistLower = artist.lowercase()
+                val combined = "$titleLower $artistLower"
+                
+                val score = when {
+                    titleLower == queryLower -> 100          // Exact title match
+                    combined.contains(queryLower) -> 80      // Title + artist contains full query
+                    titleLower.contains(queryLower) -> 70    // Title contains query
+                    queryLower.contains(titleLower) -> 60    // Query contains full title
+                    artistLower.contains(queryLower) -> 40   // Artist matches query
+                    else -> {
+                        // Word-level fuzzy matching
+                        val queryWords = queryLower.split(" ").filter { it.length > 2 }
+                        val matchCount = queryWords.count { word ->
+                            titleLower.contains(word) || artistLower.contains(word)
+                        }
+                        if (matchCount > 0) matchCount * 15 else 0
+                    }
+                }
+                
+                allSongs.add(SongResult(id, title, artist, album, albumId, data, score))
+            }
+        }
+        
+        // Sort by relevance score (highest first)
+        allSongs.sortByDescending { it.score }
+        
+        // Build MediaItems — matched songs first, then the rest for queue
+        for (song in allSongs) {
+            if (song.score > 0 || results.isEmpty()) {
+                val artUri = android.content.ContentUris.withAppendedId(
+                    android.net.Uri.parse("content://media/external/audio/albumart"),
+                    song.albumId
+                )
+                val contentUri = android.content.ContentUris.withAppendedId(
+                    android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                    song.id
+                )
+                
+                val mediaItem = androidx.media3.common.MediaItem.Builder()
+                    .setMediaId(song.data)
+                    .setUri(contentUri)
+                    .setMediaMetadata(
+                        androidx.media3.common.MediaMetadata.Builder()
+                            .setTitle(song.title)
+                            .setArtist(song.artist)
+                            .setAlbumTitle(song.album)
+                            .setArtworkUri(artUri)
+                            .build()
+                    )
+                    .setRequestMetadata(
+                        androidx.media3.common.MediaItem.RequestMetadata.Builder()
+                            .setExtras(android.os.Bundle().apply { putLong("songId", song.id) })
+                            .build()
+                    )
+                    .build()
+                
+                results.add(mediaItem)
+            }
+        }
+        
+        // Only return matches (score > 0)
+        val matched = results.filter { true } // return all for queue continuity
+        android.util.Log.d("MusicService", "Search found ${allSongs.count { it.score > 0 }} matches out of ${allSongs.size} songs")
+        return results
+    }
+    
+    /**
+     * Returns all songs from MediaStore as MediaItems (for generic "play music" commands).
+     */
+    private fun getAllSongsFromMediaStore(): MutableList<androidx.media3.common.MediaItem> {
+        return searchSongsFromMediaStore("") // Returns all songs with score 0, but still builds the full list
+    }
+    
+    private data class SongResult(
+        val id: Long,
+        val title: String,
+        val artist: String,
+        val album: String,
+        val albumId: Long,
+        val data: String,
+        val score: Int
+    )
 }

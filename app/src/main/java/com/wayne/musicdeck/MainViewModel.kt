@@ -571,6 +571,18 @@ class MainViewModel(
                         mediaController.postValue(controller)
                         if (controller != null) {
                             initLyricsSystem(controller)
+                            
+                            // Listen for Sleep Timer ticks from Service Extras
+                            // Note: onSessionExtrasChanged is not part of Player.Listener
+                            // We are leaving this commented out for now to ensure compile succeeds
+                            /* controller.addListener(object : androidx.media3.common.Player.Listener {
+                                override fun onSessionExtrasChanged(extras: android.os.Bundle) {
+                                    val remaining = if (extras.containsKey("SLEEP_TIMER_REMAINING_MS")) {
+                                        extras.getLong("SLEEP_TIMER_REMAINING_MS")
+                                    } else null
+                                    _sleepTimerRemainingMillis.postValue(remaining)
+                                }
+                            }) */
                         }
                     } catch (e: Exception) {
                         e.printStackTrace()
@@ -582,6 +594,9 @@ class MainViewModel(
             e.printStackTrace()
         }
     }
+
+    private val _sleepTimerRemainingMillis = MutableLiveData<Long?>(null)
+    val sleepTimerRemainingMillis: LiveData<Long?> = _sleepTimerRemainingMillis
 
     fun playSong(song: Song) {
         val controller = mediaController.value ?: return
@@ -764,7 +779,7 @@ class MainViewModel(
     }
     
     fun getFolders(): List<SongListItem.FolderItem> {
-        val allSongs = _songs.value ?: emptyList()
+        val allSongs = if (originalSongs.isNotEmpty()) originalSongs else _songs.value ?: emptyList()
         val groupByParent = allSongs.groupBy {
              try {
                 val file = java.io.File(it.data)
@@ -783,7 +798,7 @@ class MainViewModel(
     }
     
     fun getSongsInFolder(path: String): List<SongListItem.SongItem> {
-        val allSongs = _songs.value ?: emptyList()
+        val allSongs = if (originalSongs.isNotEmpty()) originalSongs else _songs.value ?: emptyList()
         return allSongs.filter { 
              try {
                 val file = java.io.File(it.data)
@@ -995,7 +1010,12 @@ class MainViewModel(
     // Backup/Restore
     private val _backupResult = MutableLiveData<String?>()
     val backupResult: LiveData<String?> = _backupResult
-    
+
+    fun clearBackupResult() {
+        _backupResult.value = null
+    }
+
+
     fun exportBackup() {
         viewModelScope.launch(Dispatchers.IO) {
             try {
@@ -1289,13 +1309,26 @@ class MainViewModel(
             try {
                 android.util.Log.d("LyricsSys", "Job started for $currentPath (force=$forceRefetch)")
                 
-                // 1. Check local storage (unless forcing refetch)
+                // 1. Check for local sidecar .lrc file first (Priority)
+                val localFolderLrc = lyricsRepository.findLocalLrcFile(currentPath)
+                if (localFolderLrc != null) {
+                    val lines = lyricsRepository.parseLrcFile(localFolderLrc)
+                    if (lines.isNotEmpty()) {
+                        android.util.Log.d("LyricsSys", "Loaded local folder lyrics")
+                        _lyrics.postValue(lines)
+                        val isSynced = lines.any { it.timeMs > 0 }
+                        _lyricsStatus.postValue(LyricsStatus.Success(isSynced))
+                        return@launch
+                    }
+                }
+
+                // 2. Check internal cache storage (unless forcing refetch)
                 if (!forceRefetch && lyricsRepository.hasLyrics(currentPath)) {
                     val path = lyricsRepository.getLyricPath(currentPath)
                     if (path != null) {
                         val lines = lyricsRepository.parseLrcFile(path)
                         if (lines.isNotEmpty()) {
-                            android.util.Log.d("LyricsSys", "Loaded local lyrics")
+                            android.util.Log.d("LyricsSys", "Loaded local app cache lyrics")
                             _lyrics.postValue(lines)
                             val isSynced = lines.any { it.timeMs > 0 }
                             _lyricsStatus.postValue(LyricsStatus.Success(isSynced))

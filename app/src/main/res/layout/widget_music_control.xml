@@ -5,14 +5,14 @@
     android:layout_height="match_parent"
     android:background="@drawable/widget_background"
     android:orientation="horizontal"
-    android:padding="12dp"
+    android:padding="14dp"
     android:gravity="center_vertical">
 
-    <!-- Circular Album Art on Left -->
+    <!-- Album Art on Left -->
     <ImageView
         android:id="@+id/ivWidgetArt"
-        android:layout_width="56dp"
-        android:layout_height="56dp"
+        android:layout_width="60dp"
+        android:layout_height="60dp"
         android:src="@drawable/default_album_art"
         android:scaleType="centerCrop"
         android:background="@drawable/circle_album_art"
@@ -24,7 +24,7 @@
         android:layout_height="wrap_content"
         android:layout_weight="1"
         android:orientation="vertical"
-        android:layout_marginStart="12dp"
+        android:layout_marginStart="14dp"
         android:gravity="center">
 
         <!-- Song Title - Artist -->
@@ -58,40 +58,44 @@
 
             <ImageButton
                 android:id="@+id/btnWidgetPrev"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
                 android:src="@drawable/ic_widget_prev"
                 android:background="?android:attr/selectableItemBackgroundBorderless"
                 android:tint="@android:color/white"
+                android:scaleType="centerInside"
                 android:contentDescription="Previous" />
 
             <ImageButton
                 android:id="@+id/btnWidgetPlayPause"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
                 android:src="@drawable/ic_widget_play"
                 android:background="?android:attr/selectableItemBackgroundBorderless"
                 android:tint="@android:color/white"
+                android:scaleType="centerInside"
                 android:contentDescription="Play/Pause"
-                android:layout_marginHorizontal="4dp"/>
+                android:layout_marginHorizontal="16dp"/>
 
             <ImageButton
                 android:id="@+id/btnWidgetNext"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
                 android:src="@drawable/ic_widget_next"
                 android:background="?android:attr/selectableItemBackgroundBorderless"
                 android:tint="@android:color/white"
+                android:scaleType="centerInside"
                 android:contentDescription="Next" />
 
             <ImageButton
                 android:id="@+id/btnWidgetFavorite"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:layout_marginStart="8dp"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_marginStart="16dp"
                 android:src="@drawable/ic_favorite_border"
                 android:background="?android:attr/selectableItemBackgroundBorderless"
                 android:tint="@android:color/white"
+                android:scaleType="centerInside"
                 android:contentDescription="Favorite" />
 
         </LinearLayout>

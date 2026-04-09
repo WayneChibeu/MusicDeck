@@ -43,7 +43,7 @@ class PlayerMenuBottomSheet : BottomSheetDialogFragment() {
         // Sleep Timer
         view.findViewById<View>(R.id.menuSleepTimer).setOnClickListener {
             dismiss()
-            SleepTimerBottomSheet().show(parentFragmentManager, "SleepTimer")
+            SleepTimerBottomSheetFragment().show(parentFragmentManager, "SleepTimer")
         }
 
         // Equalizer - hide if device doesn't support it

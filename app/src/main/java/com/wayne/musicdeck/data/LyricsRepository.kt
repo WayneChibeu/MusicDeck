@@ -37,10 +37,38 @@ class LyricsRepository(private val context: Context) {
     }
     
     /**
-     * Check if a song has lyrics
+     * Check if a song has lyrics (checks internal cache AND local storage side-by-side)
      */
     fun hasLyrics(filePath: String): Boolean {
-        return prefs.contains(filePath)
+        if (prefs.contains(filePath)) return true
+        return findLocalLrcFile(filePath) != null
+    }
+
+    /**
+     * Look for a .lrc file in the same directory as the song file.
+     */
+    fun findLocalLrcFile(songPath: String): String? {
+        return try {
+            val songFile = File(songPath)
+            if (!songFile.exists()) return null
+            
+            val parent = songFile.parentFile ?: return null
+            val songName = songFile.nameWithoutExtension
+            
+            // Check for EXACT name match (e.g., song.mp3 -> song.lrc)
+            val lrcFile = File(parent, "$songName.lrc")
+            if (lrcFile.exists()) return lrcFile.absolutePath
+            
+            // Case-insensitive check if exact fails
+            val sibs = parent.listFiles() ?: return null
+            sibs.find { 
+                it.extension.equals("lrc", ignoreCase = true) && 
+                it.nameWithoutExtension.equals(songName, ignoreCase = true) 
+            }?.absolutePath
+            
+        } catch (e: Exception) {
+            null
+        }
     }
     
     /**

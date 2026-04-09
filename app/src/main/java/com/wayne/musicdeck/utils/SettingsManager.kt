@@ -66,4 +66,9 @@ class SettingsManager(context: Context) {
     var lastPlayedArtist: String
         get() = kv.decodeString("last_artist", "MusicDeck") ?: "MusicDeck"
         set(value) { kv.encode("last_artist", value) }
+    
+    // Lyric font size index: 0=Small, 1=Default, 2=Medium, 3=Large, 4=Extra Large
+    var lyricFontSizeIndex: Int
+        get() = kv.decodeInt("lyric_font_size_index", 1) // Default
+        set(value) { kv.encode("lyric_font_size_index", value) }
 }

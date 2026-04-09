@@ -106,12 +106,28 @@
                 app:cardElevation="4dp"
                 android:clickable="true"
                 android:foreground="?attr/selectableItemBackground">
-                <ImageView
-                    android:layout_width="28dp"
-                    android:layout_height="28dp"
-                    android:layout_gravity="center"
-                    android:src="@drawable/ic_timer"
-                    app:tint="@color/colorActionIcon" />
+                <FrameLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent">
+                    <ImageView
+                        android:id="@+id/ivSleepTimer"
+                        android:layout_width="28dp"
+                        android:layout_height="28dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/ic_timer"
+                        app:tint="@color/colorActionIcon" />
+                    <TextView
+                        android:id="@+id/tvSleepTimerCountdown"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/colorActionIcon"
+                        android:visibility="gone"
+                        tools:text="15:00"
+                        tools:visibility="visible"/>
+                </FrameLayout>
             </com.google.android.material.card.MaterialCardView>
 
             <!-- Favorites (Rose) -->

@@ -54,7 +54,7 @@ class ToolsBottomSheetFragment : BottomSheetDialogFragment() {
         
         binding.btnInsights.setOnClickListener {
             dismiss()
-            InsightsBottomSheetFragment().show(parentFragmentManager, "insights")
+            startActivity(android.content.Intent(context, InsightsActivity::class.java))
         }
 
         binding.btnAbout.setOnClickListener {
@@ -65,6 +65,7 @@ class ToolsBottomSheetFragment : BottomSheetDialogFragment() {
         viewModel.backupResult.observe(viewLifecycleOwner) { result ->
             if (!result.isNullOrEmpty()) {
                 android.widget.Toast.makeText(context, result, android.widget.Toast.LENGTH_SHORT).show()
+                viewModel.clearBackupResult()
             }
         }
     }

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:padding="8dp">
+
+    <LinearLayout
+        android:id="@+id/lyricPill"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:background="@drawable/bg_glassmorphic_item"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="12dp"
+        android:elevation="8dp">
+
+        <ImageView
+            android:id="@+id/ivLyricIcon"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_music_note"
+            android:layout_marginEnd="12dp"
+            android:contentDescription="Music Icon"
+            android:alpha="0.8" />
+
+        <TextView
+            android:id="@+id/tvFloatingLyric"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:maxWidth="280dp"
+            android:text="Musicdeck Lyrics"
+            android:textColor="@android:color/white"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:singleLine="false"
+            android:maxLines="2"
+            android:ellipsize="end" />
+
+    </LinearLayout>
+</FrameLayout>

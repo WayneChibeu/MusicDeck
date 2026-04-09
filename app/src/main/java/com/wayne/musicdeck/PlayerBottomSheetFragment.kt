@@ -23,12 +23,21 @@ import com.google.android.material.slider.Slider
 import com.wayne.musicdeck.databinding.FragmentPlayerBottomSheetBinding
 import java.util.Locale
 import org.koin.androidx.viewmodel.ext.android.activityViewModel
+import com.wayne.musicdeck.utils.setupBouncyPress
+import android.view.HapticFeedbackConstants
+import android.animation.ValueAnimator
+import android.view.animation.LinearInterpolator
+import org.koin.android.ext.android.inject
+import android.graphics.Color
+import android.widget.LinearLayout
+import com.wayne.musicdeck.utils.SettingsManager
 
 class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
 
     private var _binding: FragmentPlayerBottomSheetBinding? = null
     private val binding get() = _binding!!
     private val viewModel: MainViewModel by activityViewModel()
+    private val settingsManager: SettingsManager by inject()
     private var isTracking = false
 
     // Playback mode: 0=Off, 1=Single Loop, 2=Shuffle, 3=Playlist Loop
@@ -63,6 +72,8 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
             if (_binding == null) return
             val player = viewModel.mediaController.value ?: return
             if (player.isPlaying && !isTracking) {
+                // Breathing animation sync
+                startBreathingAnimation()
                 if (player.duration > 0) {
                     val progress = (player.currentPosition.toFloat() / player.duration * 1000f)
                     binding.seekBar.progress = progress.toInt().coerceIn(0, 1000)
@@ -71,14 +82,15 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
                 
                 // Update synced lyrics
                 if (isLyricsViewActive) {
-                    val newIndex = lyricsAdapter.updateTime(player.currentPosition)
+                    // 30ms look-ahead is the "Golden Ratio" for sync
+                    val newIndex = lyricsAdapter.updateTime(player.currentPosition + 30)
                     if (newIndex != -1) {
                         smoothScrollToCenter(newIndex)
                     }
                 }
             }
             if (_binding != null) {
-                binding.seekBar.postDelayed(this, 200) // Faster updates for smoother syncing
+                binding.seekBar.postDelayed(this, 100) // 100ms for butter-smooth sync
             }
         }
     }
@@ -101,6 +113,9 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         
         // Setup RecyclerView
         setupLyricsRecyclerView()
+        
+        // Initial text size from settings
+        lyricsAdapter.setFontSizeIndex(settingsManager.lyricFontSizeIndex)
         
         // Setup view switching
         setupViewSwitching()
@@ -173,9 +188,33 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         
         // Robust RecyclerView Gesture Handling
         binding.rvLyrics.addOnItemTouchListener(object : RecyclerView.SimpleOnItemTouchListener() {
+            private var downX = 0f
+            private var downY = 0f
+            
             override fun onInterceptTouchEvent(rv: RecyclerView, e: MotionEvent): Boolean {
                 gestureDetector.onTouchEvent(e)
-                return false // Pass through to RecyclerView for scrolling
+                val slop = android.view.ViewConfiguration.get(rv.context).scaledTouchSlop
+                when (e.actionMasked) {
+                    MotionEvent.ACTION_DOWN -> {
+                        downX = e.x
+                        downY = e.y
+                    }
+                    MotionEvent.ACTION_MOVE -> {
+                        val dx = Math.abs(e.x - downX)
+                        val dy = Math.abs(e.y - downY)
+                        if (dx > slop && dx > dy) {
+                            // Horizontal dragging detected. 
+                            // Return true to intercept the touch and cancel the ghost click on the lyrics!
+                            return true
+                        }
+                    }
+                }
+                return false // Pass through to RecyclerView for vertical scrolling or children for clicking
+            }
+            
+            override fun onTouchEvent(rv: RecyclerView, e: MotionEvent) {
+                // Ensure the gesture detector gets the rest of the flick!
+                gestureDetector.onTouchEvent(e)
             }
         })
 
@@ -188,9 +227,27 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         viewModel.mediaController.observe(viewLifecycleOwner) { player ->
             player?.let { 
                 setupPlayer(it)
-                SleepTimerBottomSheet.setPauseCallback { it.pause() }
             }
         }
+        
+        // Tap-to-Seek logic for Lyrics
+        lyricsAdapter.onItemClickListener = { line ->
+            val player = viewModel.mediaController.value
+            if (player != null) {
+                player.seekTo(line.timeMs)
+                binding.rvLyrics.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+            }
+        }
+        
+        // Apply Bouncy Touches to all primary controls
+        binding.btnPlayPause.setupBouncyPress()
+        binding.btnPrev.setupBouncyPress()
+        binding.btnNext.setupBouncyPress()
+        binding.btnFavorite.setupBouncyPress()
+        binding.btnRepeat.setupBouncyPress()
+        binding.btnQueue.setupBouncyPress()
+        binding.btnMenu.setupBouncyPress()
+        binding.btnCollapse.setupBouncyPress()
 
         // Collapse buttons
         binding.btnCollapse.setOnClickListener { dismiss() }
@@ -221,6 +278,13 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
                 android.widget.Toast.makeText(context, "Error: Song not found", android.widget.Toast.LENGTH_SHORT).show()
             }
         }
+
+        // Library Update Listener: Refresh metadata if song list loads after transition
+        viewModel.songs.observe(viewLifecycleOwner) { 
+            viewModel.mediaController.value?.let { player ->
+                updateMetadata(player.currentMediaItem)
+            }
+        }
         
         // Mini player (removed in new layout but kept for safety if layout changes)
         // binding.btnMiniPlayPause.setOnClickListener... 
@@ -228,6 +292,11 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         // Manual lyric file picker
         binding.btnManuallySpecifyLyric.setOnClickListener {
             lyricFilePicker.launch("*/*")
+        }
+        
+        // Desktop Lyrics Toggle
+        binding.btnDesktopLyrics.setOnClickListener {
+            showDesktopLyricsPopup()
         }
         
         // Lyrics Observers
@@ -288,6 +357,47 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         binding.rvLyrics.apply {
             layoutManager = LinearLayoutManager(context)
             adapter = lyricsAdapter
+            
+            val hideScrubberRunnable = Runnable {
+                binding.scrollTimestampContainer.animate()
+                    .alpha(0f)
+                    .setDuration(300)
+                    .withEndAction { binding.scrollTimestampContainer.visibility = View.GONE }
+                    .start()
+            }
+            
+            addOnScrollListener(object : RecyclerView.OnScrollListener() {
+                override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
+                    super.onScrollStateChanged(recyclerView, newState)
+                    if (newState == RecyclerView.SCROLL_STATE_DRAGGING) {
+                        binding.scrollTimestampContainer.removeCallbacks(hideScrubberRunnable)
+                        if (binding.scrollTimestampContainer.visibility != View.VISIBLE) {
+                            binding.scrollTimestampContainer.visibility = View.VISIBLE
+                            binding.scrollTimestampContainer.animate().alpha(1f).setDuration(200).start()
+                        }
+                    } else if (newState == RecyclerView.SCROLL_STATE_IDLE) {
+                        // Fade out after 3 seconds
+                        binding.scrollTimestampContainer.postDelayed(hideScrubberRunnable, 3000)
+                    }
+                }
+
+                override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                    super.onScrolled(recyclerView, dx, dy)
+                    if (recyclerView.scrollState == RecyclerView.SCROLL_STATE_DRAGGING || recyclerView.scrollState == RecyclerView.SCROLL_STATE_SETTLING) {
+                        val lm = recyclerView.layoutManager as? LinearLayoutManager ?: return
+                        val firstVisible = lm.findFirstVisibleItemPosition()
+                        val lastVisible = lm.findLastVisibleItemPosition()
+                        
+                        if (firstVisible != RecyclerView.NO_POSITION && lastVisible != RecyclerView.NO_POSITION) {
+                            val centerPosition = (firstVisible + lastVisible) / 2
+                            val lyric = lyricsAdapter.getLyricAt(centerPosition)
+                            if (lyric != null) {
+                                binding.tvScrollTimestamp.text = formatTime(lyric.timeMs)
+                            }
+                        }
+                    }
+                }
+            })
         }
     }
     
@@ -481,6 +591,11 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         behavior.isDraggable = true // Allow swipe-down dismissal
         
         setupEdgeToEdge(dialog)
+
+        // Proactive Refresh: Ensure metadata is current when returning from background
+        viewModel.mediaController.value?.let { player ->
+            updateMetadata(player.currentMediaItem)
+        }
     }
     
     private fun setupEdgeToEdge(dialog: BottomSheetDialog) {
@@ -553,13 +668,21 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         binding.seekBar.post(updateProgressAction)
 
         binding.btnPlayPause.setOnClickListener {
+            playHaptic(it)
             if (player.isPlaying) player.pause() else player.play()
         }
-        binding.btnPrev.setOnClickListener { player.seekToPrevious() }
-        binding.btnNext.setOnClickListener { player.seekToNext() }
+        binding.btnPrev.setOnClickListener {
+            playHaptic(it)
+            player.seekToPrevious()
+        }
+        binding.btnNext.setOnClickListener {
+            playHaptic(it)
+            player.seekToNext()
+        }
         
         // Repeat button
         binding.btnRepeat.setOnClickListener {
+            playHaptic(it)
             playbackMode = (playbackMode + 1) % 4
             
             when (playbackMode) {
@@ -589,6 +712,7 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         
         // Favorite button
         binding.btnFavorite.setOnClickListener {
+            playHaptic(it)
             val currentPath = player.currentMediaItem?.mediaId ?: return@setOnClickListener
             val song = viewModel.songs.value?.find { it.data == currentPath } ?: return@setOnClickListener
             
@@ -662,7 +786,12 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         override fun onIsPlayingChanged(isPlaying: Boolean) {
             if (_binding == null) return
             updatePlayPauseIcon(isPlaying)
-            if (isPlaying) binding.seekBar.post(updateProgressAction)
+            if (isPlaying) {
+                binding.seekBar.post(updateProgressAction)
+                startBreathingAnimation()
+            } else {
+                stopBreathingAnimation()
+            }
         }
         override fun onPlaybackStateChanged(playbackState: Int) {
             if (_binding == null) return
@@ -837,6 +966,7 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         }
         
         updateSeekBarColor(accentColor)
+        lyricsAdapter.activeColor = android.graphics.Color.WHITE // Reverted to White for maximum readability
         updateTextColors(bgIsDark)
     }
     
@@ -897,7 +1027,7 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
 
     private fun updatePlayPauseIcon(isPlaying: Boolean) {
         if (_binding == null) return
-        val icon = if (isPlaying) androidx.media3.ui.R.drawable.exo_icon_pause else androidx.media3.ui.R.drawable.exo_icon_play
+        val icon = if (isPlaying) R.drawable.ic_pause_rounded else R.drawable.ic_play_rounded
         binding.btnPlayPause.setImageResource(icon)
     }
 
@@ -939,6 +1069,7 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
+        
         _binding?.seekBar?.removeCallbacks(updateProgressAction)
         viewModel.mediaController.value?.removeListener(playerListener)
         _binding = null
@@ -997,6 +1128,230 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         
         btn.startAnimation(animSet)
     }
+
+    private var breathingAnimator: ValueAnimator? = null
+
+    private fun startBreathingAnimation() {
+        if (breathingAnimator != null && breathingAnimator!!.isRunning) return
+        if (_binding == null) return
+        
+        breathingAnimator = ValueAnimator.ofFloat(1.0f, 1.03f).apply {
+            duration = 1800 // Lively, enthusiastic pulse
+            repeatCount = ValueAnimator.INFINITE
+            repeatMode = ValueAnimator.REVERSE
+            interpolator = android.view.animation.AccelerateDecelerateInterpolator()
+            addUpdateListener { animator ->
+                if (_binding != null) {
+                    val scale = animator.animatedValue as Float
+                    binding.ivFullArt.scaleX = scale
+                    binding.ivFullArt.scaleY = scale
+                }
+            }
+            start()
+        }
+    }
+
+    private fun stopBreathingAnimation() {
+        breathingAnimator?.cancel()
+        if (_binding != null) {
+            binding.ivFullArt.animate()
+                .scaleX(1.0f)
+                .scaleY(1.0f)
+                .setDuration(500)
+                .start()
+        }
+    }
+
+    private fun playHaptic(view: View) {
+        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+    }
+
+    @Suppress("DEPRECATION")
+    private fun isFloatingLyricServiceRunning(): Boolean {
+        val manager = requireContext().getSystemService(android.content.Context.ACTIVITY_SERVICE) as android.app.ActivityManager
+        for (service in manager.getRunningServices(Int.MAX_VALUE)) {
+            if (FloatingLyricService::class.java.name == service.service.className) {
+                return true
+            }
+        }
+        return false
+    }
+
+    private fun showDesktopLyricsPopup() {
+        val ctx = requireContext()
+        val isRunning = isFloatingLyricServiceRunning()
+        
+        // Custom vertical layout for the popup
+        val container = android.widget.LinearLayout(ctx).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            setPadding(0, 8.dpToPx(), 0, 8.dpToPx())
+        }
+        
+        // Option 1: Toggle Desktop Lyrics
+        val toggleText = if (isRunning) "Turn off Desktop Lyrics" else "Turn on Desktop Lyrics"
+        val toggleIcon = if (isRunning) R.drawable.ic_visibility_off else R.drawable.ic_visibility
+        val toggleOption = createPopupOption(ctx, toggleText, toggleIcon)
+        container.addView(toggleOption)
+        
+        // Option 2: Change font size
+        val fontOption = createPopupOption(ctx, "Change font size", R.drawable.ic_edit)
+        container.addView(fontOption)
+        
+        // Create PopupWindow
+        val popupWindow = android.widget.PopupWindow(container, 180.dpToPx(), android.view.ViewGroup.LayoutParams.WRAP_CONTENT, true)
+        popupWindow.elevation = 24.dpToPx().toFloat()
+        popupWindow.setBackgroundDrawable(androidx.core.content.ContextCompat.getDrawable(ctx, R.drawable.bg_dialog_modern))
+        
+        // Wire click handlers
+        toggleOption.setOnClickListener {
+            popupWindow.dismiss()
+            if (isRunning) {
+                FloatingLyricService.stop(ctx)
+                Toast.makeText(ctx, "Desktop Lyrics disabled", Toast.LENGTH_SHORT).show()
+            } else {
+                if (android.provider.Settings.canDrawOverlays(ctx)) {
+                    FloatingLyricService.start(ctx)
+                    Toast.makeText(ctx, "Desktop Lyrics enabled", Toast.LENGTH_SHORT).show()
+                } else {
+                    val intent = android.content.Intent(
+                        android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                        android.net.Uri.parse("package:${ctx.packageName}")
+                    )
+                    startActivity(intent)
+                    Toast.makeText(ctx, "Please grant overlay permission", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+        
+        fontOption.setOnClickListener {
+            popupWindow.dismiss()
+            showFontSizeBottomSheet()
+        }
+        
+        // Show above the icon. We offset it so it appears centered above the anchor.
+        popupWindow.showAsDropDown(binding.btnDesktopLyrics, -130.dpToPx(), -140.dpToPx())
+    }
     
+    private fun createPopupOption(ctx: android.content.Context, text: String, iconRes: Int): android.widget.LinearLayout {
+        return android.widget.LinearLayout(ctx).apply {
+            orientation = android.widget.LinearLayout.HORIZONTAL
+            gravity = android.view.Gravity.CENTER_VERTICAL
+            setPadding(16.dpToPx(), 12.dpToPx(), 16.dpToPx(), 12.dpToPx())
+            isClickable = true
+            isFocusable = true
+            
+            // Ripple background
+            val rippleAttrs = intArrayOf(android.R.attr.selectableItemBackground)
+            val typedArray = ctx.obtainStyledAttributes(rippleAttrs)
+            background = typedArray.getDrawable(0)
+            typedArray.recycle()
+            
+            // Icon
+            val icon = android.widget.ImageView(ctx).apply {
+                setImageResource(iconRes)
+                layoutParams = android.widget.LinearLayout.LayoutParams(20.dpToPx(), 20.dpToPx()).apply {
+                    marginEnd = 12.dpToPx()
+                }
+                imageTintList = android.content.res.ColorStateList.valueOf(0xB3FFFFFF.toInt()) // 70% white
+            }
+            addView(icon)
+            
+            // Text
+            val label = android.widget.TextView(ctx).apply {
+                this.text = text
+                setTextColor(0xFFFFFFFF.toInt())
+                textSize = 14f
+            }
+            addView(label)
+        }
+    }
+
+    private fun showFontSizeBottomSheet() {
+        val dialog = BottomSheetDialog(requireContext(), R.style.TransparentBottomSheetDialog)
+        val container = android.widget.LinearLayout(requireContext()).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            setPadding(24.dpToPx(), 32.dpToPx(), 24.dpToPx(), 32.dpToPx())
+            background = androidx.core.content.ContextCompat.getDrawable(context, R.drawable.bg_bottom_sheet_glassmorphic)
+        }
+        
+        // Title
+        val title = android.widget.TextView(requireContext()).apply {
+            text = "Change font size"
+            textSize = 20f
+            setTextColor(Color.WHITE)
+            gravity = android.view.Gravity.CENTER
+            setTypeface(null, android.graphics.Typeface.BOLD)
+            val lp = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, 
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+            lp.setMargins(0, 0, 0, 32.dpToPx())
+            layoutParams = lp
+        }
+        container.addView(title)
+        
+        // Slider
+        val slider = Slider(requireContext()).apply {
+            valueFrom = 0f
+            valueTo = 4f
+            stepSize = 1f
+            value = settingsManager.lyricFontSizeIndex.toFloat()
+            
+            // Premium Polish: Clean pill look without tick marks
+            isTickVisible = false
+            trackHeight = 12.dpToPx()
+            thumbRadius = 14.dpToPx()
+            haloRadius = 0 
+            
+            addOnChangeListener { _, value, _ ->
+                val index = value.toInt()
+                settingsManager.lyricFontSizeIndex = index
+                lyricsAdapter.setFontSizeIndex(index)
+            }
+        }
+        container.addView(slider)
+        
+        // Labels
+        val labelsLayout = android.widget.LinearLayout(requireContext()).apply {
+            orientation = android.widget.LinearLayout.HORIZONTAL
+            val lp = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, 
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+            lp.setMargins(0, 8.dpToPx(), 0, 0)
+            layoutParams = lp
+        }
+        val labels = listOf("Small", "Default", "Medium", "Large", "Extra")
+        labels.forEach { labelStr ->
+            val v = android.widget.TextView(requireContext()).apply {
+                text = labelStr
+                textSize = 10f
+                setTextColor(0x80FFFFFF.toInt())
+                gravity = android.view.Gravity.CENTER
+                layoutParams = LinearLayout.LayoutParams(0, android.view.ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+            }
+            labelsLayout.addView(v)
+        }
+        container.addView(labelsLayout)
+        
+        // Finish Button
+        val btnFinish = com.google.android.material.button.MaterialButton(requireContext()).apply {
+            text = "Finish"
+            setTextColor(0xFFFA6650.toInt())
+            background = null
+            val lp = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, 
+                android.view.ViewGroup.LayoutParams.WRAP_CONTENT
+            )
+            lp.setMargins(0, 24.dpToPx(), 0, 0)
+            layoutParams = lp
+            setOnClickListener { dialog.dismiss() }
+        }
+        container.addView(btnFinish)
+        
+        dialog.setContentView(container)
+        dialog.show()
+    }
 
 }
+

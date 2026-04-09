@@ -30,6 +30,17 @@ class SleepTimerBottomSheetFragment : BottomSheetDialogFragment() {
         binding.btn30Min.setOnClickListener { setTimer(30) }
         binding.btn45Min.setOnClickListener { setTimer(45) }
         binding.btn60Min.setOnClickListener { setTimer(60) }
+
+        binding.btnSetCustom.setOnClickListener {
+            val minutesStr = binding.etCustomMinutes.text.toString()
+            val minutes = minutesStr.toIntOrNull()
+            if (minutes != null && minutes > 0) {
+                setTimer(minutes)
+            } else {
+                android.widget.Toast.makeText(context, "Please enter a valid number of minutes", android.widget.Toast.LENGTH_SHORT).show()
+            }
+        }
+        
         binding.btnStop.setOnClickListener { 
             context?.startService(Intent(context, MusicService::class.java).apply {
                 action = MusicService.ACTION_CANCEL_SLEEP_TIMER
