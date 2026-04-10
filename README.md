@@ -48,7 +48,7 @@ git clone https://github.com/WayneChibeu/MusicDeck.git
 # Open in Android Studio, sync Gradle, and run
 ```
 
-## 🛠️ Technical Breakdown
+## Technical Breakdown
 
 <details>
 <summary>Click to view Technical Challenges & Solutions</summary>
