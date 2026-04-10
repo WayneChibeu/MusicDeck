@@ -525,6 +525,7 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
             
         // Sync lyrics UI based on current status (observer only fires on CHANGE)
         syncLyricsUI()
+        updateScreenOnState()
     }
     
     private fun showCoverView() {
@@ -570,6 +571,14 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
             .alpha(1f)
             .setDuration(200)
             .start()
+            
+        updateScreenOnState()
+    }
+
+    private fun updateScreenOnState() {
+        if (_binding == null) return
+        val isPlaying = viewModel.mediaController.value?.isPlaying == true
+        binding.root.keepScreenOn = isLyricsViewActive && isPlaying
     }
 
     override fun onStart() {
@@ -767,6 +776,7 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
 
         updatePlayPauseIcon(player.isPlaying)
         updatePlaybackModeIcon()
+        updateScreenOnState()
         
         player.addListener(playerListener)
     }
@@ -792,6 +802,7 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
             } else {
                 stopBreathingAnimation()
             }
+            updateScreenOnState()
         }
         override fun onPlaybackStateChanged(playbackState: Int) {
             if (_binding == null) return

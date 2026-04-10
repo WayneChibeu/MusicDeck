@@ -79,8 +79,13 @@ class ToolsBottomSheetFragment : BottomSheetDialogFragment() {
         }
         
         val message = """
-            |MusicDeck v$version
-            |Made with ❤️ by MusicDeck Team
+            |MusicDeck v${'$'}version
+            |Made with ❤️ by the MusicDeck Team
+            |
+            |Lyrics are graciously powered by LRCLIB.
+            |
+            |Privacy Policy
+            |All of your music and personal data strictly remain on your device. We do not track, collect, or share your data with any third parties. Internet access is utilized solely to provide metadata and real-time lyrics for an enhanced playback experience.
         """.trimMargin()
         
         com.google.android.material.dialog.MaterialAlertDialogBuilder(ctx)
