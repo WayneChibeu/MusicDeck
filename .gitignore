@@ -4,6 +4,9 @@
 *.ap_
 *.aab
 
+# Allow releases folder to contain tracked APKs
+!releases/*.apk
+
 # Files for the ART/Dalvik VM
 *.dex
 

@@ -1,6 +1,10 @@
-# MusicDeck
+# MusicDeck v2.5.0
 
 A modern, ad-free Android music player built with Kotlin and Jetpack Media3.
+
+## 📥 Download
+[**Download Latest APK (v2.5.0)**](releases/MusicDeck-v2.5.0.apk)
+
 
 ## Features
 
