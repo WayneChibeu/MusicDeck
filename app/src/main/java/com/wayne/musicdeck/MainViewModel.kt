@@ -1163,7 +1163,7 @@ class MainViewModel(
             try {
                 // Copy lyric file to internal storage
                 val inputStream = application.contentResolver.openInputStream(fileUri)
-                val lyricFile = java.io.File(application.filesDir, "lyric_${song.id}.lrc")
+                val lyricFile = java.io.File(application.filesDir, "manual_lyric_${song.id}.lrc")
                 val outputStream = java.io.FileOutputStream(lyricFile)
                 inputStream?.copyTo(outputStream)
                 inputStream?.close()
@@ -1174,6 +1174,10 @@ class MainViewModel(
                 
                 withContext(Dispatchers.Main) {
                     android.widget.Toast.makeText(application, "Lyric file set!", android.widget.Toast.LENGTH_SHORT).show()
+                    val controller = mediaController.value
+                    if (controller?.currentMediaItem?.mediaId == song.data) {
+                        loadLyricsForMediaItem(controller.currentMediaItem!!, forceRefetch = false)
+                    }
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
@@ -1309,7 +1313,22 @@ class MainViewModel(
             try {
                 android.util.Log.d("LyricsSys", "Job started for $currentPath (force=$forceRefetch)")
                 
-                // 1. Check for local sidecar .lrc file first (Priority)
+                // 1. Check for manual override FIRST
+                val savedPath = lyricsRepository.getLyricPath(currentPath)
+                val isManualOverride = savedPath?.contains("manual_lyric_") == true
+                
+                if (isManualOverride) {
+                    val lines = lyricsRepository.parseLrcFile(savedPath!!)
+                    if (lines.isNotEmpty()) {
+                        android.util.Log.d("LyricsSys", "Loaded manual override lyrics")
+                        _lyrics.postValue(lines)
+                        val isSynced = lines.any { it.timeMs > 0 }
+                        _lyricsStatus.postValue(LyricsStatus.Success(isSynced))
+                        return@launch
+                    }
+                }
+                
+                // 2. Check for local sidecar .lrc file (Priority for non-manual)
                 val localFolderLrc = lyricsRepository.findLocalLrcFile(currentPath)
                 if (localFolderLrc != null) {
                     val lines = lyricsRepository.parseLrcFile(localFolderLrc)
@@ -1322,10 +1341,10 @@ class MainViewModel(
                     }
                 }
 
-                // 2. Check internal cache storage (unless forcing refetch)
+                // 3. Check internal cache storage (unless forcing refetch)
                 if (!forceRefetch && lyricsRepository.hasLyrics(currentPath)) {
                     val path = lyricsRepository.getLyricPath(currentPath)
-                    if (path != null) {
+                    if (path != null && path.contains("manual_lyric_").not()) {
                         val lines = lyricsRepository.parseLrcFile(path)
                         if (lines.isNotEmpty()) {
                             android.util.Log.d("LyricsSys", "Loaded local app cache lyrics")
@@ -1340,7 +1359,7 @@ class MainViewModel(
                     }
                 }
                 
-                // 2. Fetch from API
+                // 4. Fetch from API
                 val title = mediaItem.mediaMetadata.title?.toString() ?: "Unknown"
                 val artist = mediaItem.mediaMetadata.artist?.toString() ?: "Unknown"
                 // val album = mediaItem.mediaMetadata.albumTitle?.toString() // Redundant

@@ -49,6 +49,9 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
     // Lyrics Adapter
     private val lyricsAdapter = LyricsAdapter()
     
+    // Stored as class field so we can clean it up in onDestroyView
+    private var hideScrubberRunnable: Runnable? = null
+    
     // Lyric file picker
     private val lyricFilePicker = registerForActivityResult(
         androidx.activity.result.contract.ActivityResultContracts.GetContent()
@@ -60,9 +63,6 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
             }
             currentSong?.let { song ->
                 viewModel.setLyricFile(song, it)
-                viewModel.mediaController.value?.currentMediaItem?.let { item ->
-                     viewModel.loadLyricsForMediaItem(item, forceRefetch = false)
-                }
             }
         }
     }
@@ -301,6 +301,7 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         
         // Lyrics Observers
         viewModel.lyrics.observe(viewLifecycleOwner) { lines ->
+            if (_binding == null) return@observe
             lyricsAdapter.submitList(lines)
             
             // Auto-scroll to current position if we just loaded lyrics
@@ -314,8 +315,8 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         }
         
         viewModel.lyricsStatus.observe(viewLifecycleOwner) { status ->
+            if (_binding == null) return@observe
             // Reset visibilities first to avoid flickering/overlapping
-            // But we do it carefully based on status
             
             when (status) {
                 is MainViewModel.LyricsStatus.Loading -> {
@@ -358,31 +359,37 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
             layoutManager = LinearLayoutManager(context)
             adapter = lyricsAdapter
             
-            val hideScrubberRunnable = Runnable {
-                binding.scrollTimestampContainer.animate()
+            hideScrubberRunnable = Runnable {
+                val b = _binding ?: return@Runnable
+                b.scrollTimestampContainer.animate()
                     .alpha(0f)
                     .setDuration(300)
-                    .withEndAction { binding.scrollTimestampContainer.visibility = View.GONE }
+                    .withEndAction { 
+                        _binding?.scrollTimestampContainer?.visibility = View.GONE 
+                    }
                     .start()
             }
             
             addOnScrollListener(object : RecyclerView.OnScrollListener() {
                 override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
                     super.onScrollStateChanged(recyclerView, newState)
+                    val b = _binding ?: return
+                    val runnable = hideScrubberRunnable ?: return
                     if (newState == RecyclerView.SCROLL_STATE_DRAGGING) {
-                        binding.scrollTimestampContainer.removeCallbacks(hideScrubberRunnable)
-                        if (binding.scrollTimestampContainer.visibility != View.VISIBLE) {
-                            binding.scrollTimestampContainer.visibility = View.VISIBLE
-                            binding.scrollTimestampContainer.animate().alpha(1f).setDuration(200).start()
+                        b.scrollTimestampContainer.removeCallbacks(runnable)
+                        if (b.scrollTimestampContainer.visibility != View.VISIBLE) {
+                            b.scrollTimestampContainer.visibility = View.VISIBLE
+                            b.scrollTimestampContainer.animate().alpha(1f).setDuration(200).start()
                         }
                     } else if (newState == RecyclerView.SCROLL_STATE_IDLE) {
                         // Fade out after 3 seconds
-                        binding.scrollTimestampContainer.postDelayed(hideScrubberRunnable, 3000)
+                        b.scrollTimestampContainer.postDelayed(runnable, 3000)
                     }
                 }
 
                 override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
                     super.onScrolled(recyclerView, dx, dy)
+                    val b = _binding ?: return
                     if (recyclerView.scrollState == RecyclerView.SCROLL_STATE_DRAGGING || recyclerView.scrollState == RecyclerView.SCROLL_STATE_SETTLING) {
                         val lm = recyclerView.layoutManager as? LinearLayoutManager ?: return
                         val firstVisible = lm.findFirstVisibleItemPosition()
@@ -392,7 +399,7 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
                             val centerPosition = (firstVisible + lastVisible) / 2
                             val lyric = lyricsAdapter.getLyricAt(centerPosition)
                             if (lyric != null) {
-                                binding.tvScrollTimestamp.text = formatTime(lyric.timeMs)
+                                b.tvScrollTimestamp.text = formatTime(lyric.timeMs)
                             }
                         }
                     }
@@ -438,13 +445,14 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
     }
     
     private fun smoothScrollToCenter(position: Int) {
-        val smoothScroller = object : LinearSmoothScroller(context) {
+        val ctx = context ?: return  // Fragment detached — bail out
+        val smoothScroller = object : LinearSmoothScroller(ctx) {
             override fun calculateDtToFit(viewStart: Int, viewEnd: Int, boxStart: Int, boxEnd: Int, snapPreference: Int): Int {
                 return (boxStart + (boxEnd - boxStart) / 2) - (viewStart + (viewEnd - viewStart) / 2)
             }
         }
         smoothScroller.targetPosition = position
-        binding.rvLyrics.layoutManager?.startSmoothScroll(smoothScroller)
+        _binding?.rvLyrics?.layoutManager?.startSmoothScroll(smoothScroller)
     }
     
     
@@ -494,8 +502,8 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
             .setDuration(300)
             .setInterpolator(android.view.animation.DecelerateInterpolator(2f)) // Smooth deceleration
             .withEndAction {
-                binding.coverView.visibility = View.GONE
-                binding.coverView.translationX = 0f // Reset
+                _binding?.coverView?.visibility = View.GONE
+                _binding?.coverView?.translationX = 0f // Reset
             }
             .start()
         
@@ -513,7 +521,7 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
             .alpha(0f)
             .setDuration(200)
             .withEndAction {
-                binding.toggleWrapper.visibility = View.INVISIBLE
+                _binding?.toggleWrapper?.visibility = View.INVISIBLE
             }
             .start()
         
@@ -546,8 +554,8 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
             .setDuration(300)
             .setInterpolator(android.view.animation.DecelerateInterpolator(2f))
             .withEndAction {
-                binding.lyricView.visibility = View.GONE
-                binding.lyricView.translationX = 0f // Reset
+                _binding?.lyricView?.visibility = View.GONE
+                _binding?.lyricView?.translationX = 0f // Reset
             }
             .start()
         
@@ -871,19 +879,21 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
             .error(R.drawable.default_album_art)
             .target(
                 onSuccess = { result ->
-                    binding.ivFullArt.setImageDrawable(result)
+                    _binding?.ivFullArt?.setImageDrawable(result)
                     // Extract colors for dynamic background
                     val bitmap = (result as? android.graphics.drawable.BitmapDrawable)?.bitmap
                     if (bitmap != null) {
                         androidx.palette.graphics.Palette.from(bitmap).generate { palette ->
-                            applyDynamicBackground(palette)
+                            if (_binding != null) applyDynamicBackground(palette)
                         }
                     }
                 },
                 onError = {
-                    binding.ivFullArt.setImageResource(R.drawable.default_album_art)
-                    applyDynamicBackground(null)
-                    updateSeekBarColor(android.graphics.Color.WHITE)
+                    _binding?.ivFullArt?.setImageResource(R.drawable.default_album_art)
+                    if (_binding != null) {
+                        applyDynamicBackground(null)
+                        updateSeekBarColor(android.graphics.Color.WHITE)
+                    }
                 }
             )
             .transformations(RoundedCornersTransformation(32f))
@@ -1079,11 +1089,32 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
     }
 
     override fun onDestroyView() {
-        super.onDestroyView()
+        // Cancel all view animations FIRST while binding is still valid
+        _binding?.coverView?.animate()?.cancel()
+        _binding?.lyricView?.animate()?.cancel()
+        _binding?.toggleWrapper?.animate()?.cancel()
+        _binding?.lyricsDimmer?.animate()?.cancel()
+        _binding?.scrollTimestampContainer?.animate()?.cancel()
         
+        // Stop breathing animation
+        stopBreathingAnimation()
+        
+        // Remove all pending Runnables (BEFORE super.onDestroyView detaches views)
         _binding?.seekBar?.removeCallbacks(updateProgressAction)
+        hideScrubberRunnable?.let { runnable ->
+            _binding?.scrollTimestampContainer?.removeCallbacks(runnable)
+        }
+        // Also remove from the main handler as a safety net
+        _binding?.seekBar?.handler?.removeCallbacks(updateProgressAction)
+        
+        // Remove player listener
         viewModel.mediaController.value?.removeListener(playerListener)
+        
+        // Null out binding before super to prevent any lingering callbacks
         _binding = null
+        
+        // Call super LAST — this detaches views from the window hierarchy
+        super.onDestroyView()
     }
     
     private fun updateFavoriteIcon(isFavorite: Boolean, animate: Boolean = false) {
