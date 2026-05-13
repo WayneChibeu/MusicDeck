@@ -18,9 +18,10 @@ class MusicWidgetProvider : AppWidgetProvider() {
         val kv = com.tencent.mmkv.MMKV.defaultMMKV()
         val lastTitle = kv.decodeString("last_title", "Not Playing") ?: "Not Playing"
         val lastArtist = kv.decodeString("last_artist", "MusicDeck") ?: "MusicDeck"
+        val lastIsFavorite = kv.decodeBool("last_is_favorite", false)
         
         for (appWidgetId in appWidgetIds) {
-            updateAppWidget(context, appWidgetManager, appWidgetId, title = lastTitle, artist = lastArtist)
+            updateAppWidget(context, appWidgetManager, appWidgetId, title = lastTitle, artist = lastArtist, isFavorite = lastIsFavorite)
         }
     }
 

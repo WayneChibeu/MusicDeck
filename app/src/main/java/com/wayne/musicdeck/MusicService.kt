@@ -514,6 +514,7 @@ class MusicService : MediaSessionService() {
 
                 kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
                     MusicWidgetProvider.pushUpdate(this@MusicService, title, artist, isPlaying, isFav, artUri, artBitmap)
+                    settingsManager.lastPlayedIsFavorite = isFav
                     updateMediaSessionLayout(player)
                     
                     // ALWAYS update artwork data for Notification to prevent stale cached art
@@ -586,8 +587,6 @@ class MusicService : MediaSessionService() {
                                 playlistRepository.removeSongFromPlaylist(favoritesPlaylistId, currentPath)
                             } else {
                                 // Need songId for legacy Room compatibility, but path is primary now
-                                // This is a bit tricky in Service without a direct song list, 
-                                // but we can use a dummy ID or find it if needed. 
                                 // For now, passing -1L for ID as the path-based DAO handles the lookup.
                                 playlistRepository.addSongToPlaylist(favoritesPlaylistId, -1L, currentPath)
                             }
@@ -595,6 +594,25 @@ class MusicService : MediaSessionService() {
                                  updateWidget(player)
                                  updateMediaSessionLayout(player)
                              }
+                        }
+                    } else if (player.mediaItemCount == 0) {
+                        // Restore session and THEN like the song
+                        restoreLastSession(player, startPlaying = false) {
+                            val restoredPath = player.currentMediaItem?.mediaId
+                            if (restoredPath != null && favoritesPlaylistId != -1L) {
+                                serviceScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                                    val isFav = playlistRepository.isSongInPlaylist(favoritesPlaylistId, restoredPath)
+                                    if (!isFav) {
+                                        playlistRepository.addSongToPlaylist(favoritesPlaylistId, -1L, restoredPath)
+                                    } else {
+                                        playlistRepository.removeSongFromPlaylist(favoritesPlaylistId, restoredPath)
+                                    }
+                                    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                                        updateWidget(player)
+                                        updateMediaSessionLayout(player)
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -679,85 +697,58 @@ class MusicService : MediaSessionService() {
 
 
     private fun restoreLastSession(player: Player, startPlaying: Boolean = false, onReady: (() -> Unit)? = null) {
-        try {
-            val prefs = applicationContext.getSharedPreferences("MusicDeckPrefs", android.content.Context.MODE_PRIVATE)
-            val lastPath = prefs.getString("lastPlayedSongPath", null)
-            val lastPos = prefs.getLong("lastPlayedSongPos", 0L)
-            
-            if (lastPath == null) {
-                onReady?.invoke()
-                return
-            }
-            
-            serviceScope.launch(kotlinx.coroutines.Dispatchers.IO) {
-                var title = "Unknown Title"
-                var artist = "Unknown Artist"
-                var albumId = 0L
-                var contentUri: android.net.Uri? = null
-                var songId: Long = -1L
+        serviceScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            try {
+                val lastPath = settingsManager.lastPlayedSongPath
+                val lastPos = settingsManager.lastPlayedPosition
                 
-                try {
-                    // Correctly find the song by data path in MediaStore
-                    contentResolver.query(
-                        android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
-                        arrayOf(
-                            android.provider.MediaStore.Audio.Media._ID,
-                            android.provider.MediaStore.Audio.Media.TITLE,
-                            android.provider.MediaStore.Audio.Media.ARTIST,
-                            android.provider.MediaStore.Audio.Media.ALBUM_ID
-                        ),
-                        "${android.provider.MediaStore.Audio.Media.DATA} = ?",
-                        arrayOf(lastPath),
-                        null
-                    )?.use { cursor ->
-                        if (cursor.moveToFirst()) {
-                            songId = cursor.getLong(0)
-                            title = cursor.getString(1)
-                            artist = cursor.getString(2)
-                            albumId = cursor.getLong(3)
-                            contentUri = android.content.ContentUris.withAppendedId(
-                                android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, 
-                                songId
-                            )
-                        }
+                android.util.Log.d("MusicService", "Restoring session. Last path: $lastPath, Pos: $lastPos")
+                
+                // Always load all songs so that Next/Previous works from the widget
+                val allSongs = getAllSongsFromMediaStore()
+                
+                if (allSongs.isEmpty()) {
+                    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                        onReady?.invoke()
                     }
-                } catch (e: Exception) {
-                    e.printStackTrace()
+                    return@launch
                 }
                 
-                val finalUri = contentUri ?: return@launch
+                // Find index of the last played song
+                val lastIndex = if (lastPath != null) {
+                    allSongs.indexOfFirst { it.mediaId == lastPath }
+                } else {
+                    -1
+                }
                 
-                val mediaItem = androidx.media3.common.MediaItem.Builder()
-                    .setMediaId(lastPath) // Stable file path
-                    .setUri(finalUri)
-                    .setMediaMetadata(
-                        androidx.media3.common.MediaMetadata.Builder()
-                            .setTitle(title)
-                            .setArtist(artist)
-                            .setArtworkUri(
-                                android.content.ContentUris.withAppendedId(
-                                    android.net.Uri.parse("content://media/external/audio/album_art"),
-                                    albumId
-                                )
-                            )
-                            .build()
-                    )
-                    .build()
-                
-                // If we're restoring, we should probably load the whole "All Songs" or last played playlist
-                // But for instant widget "Play", restoring the single last item and starting is the priority.
-
                 kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-                    player.setMediaItem(mediaItem)
-                    player.seekTo(lastPos)
+                    player.setMediaItems(allSongs)
+                    
+                    if (lastIndex != -1) {
+                        player.seekTo(lastIndex, lastPos)
+                    } else {
+                        // If last song not found, just start from the first one
+                        player.seekTo(0, 0L)
+                    }
+                    
                     player.prepare()
-                    if (startPlaying) player.play()
+                    if (startPlaying) {
+                        player.play()
+                    }
+                    
+                    // Small delay to ensure player state is updated before calling onReady
+                    kotlinx.coroutines.delay(100)
+                    onReady?.invoke()
+                    
+                    // Update widget to show current song info
+                    updateWidget(player)
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("MusicService", "Session restoration failed: ${e.message}")
+                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
                     onReady?.invoke()
                 }
             }
-        } catch (e: Exception) {
-            android.util.Log.e("MusicService", "Session restoration failed: ${e.message}")
-            onReady?.invoke()
         }
     }
 

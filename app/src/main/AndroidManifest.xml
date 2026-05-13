@@ -56,6 +56,7 @@
                 <action android:name="com.wayne.musicdeck.ACTION_PLAY_PAUSE" />
                 <action android:name="com.wayne.musicdeck.ACTION_NEXT" />
                 <action android:name="com.wayne.musicdeck.ACTION_PREVIOUS" />
+                <action android:name="com.wayne.musicdeck.ACTION_FAVORITE" />
                 
                 <!-- CRITICAL FOR ASSISTANT: Allow system to identify us as a Media Provider -->
                 <action android:name="android.media.browse.MediaBrowserService" />

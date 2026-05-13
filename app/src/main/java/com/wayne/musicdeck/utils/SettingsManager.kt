@@ -71,4 +71,8 @@ class SettingsManager(context: Context) {
     var lyricFontSizeIndex: Int
         get() = kv.decodeInt("lyric_font_size_index", 1) // Default
         set(value) { kv.encode("lyric_font_size_index", value) }
+
+    var lastPlayedIsFavorite: Boolean
+        get() = kv.decodeBool("last_is_favorite", false)
+        set(value) { kv.encode("last_is_favorite", value) }
 }
