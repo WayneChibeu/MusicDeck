@@ -3,7 +3,7 @@
 A modern, ad-free Android music player built with Kotlin and Jetpack Media3.
 
 ## Download
-[**Download Latest APK (v2.5.1)**](https://github.com/WayneChibeu/MusicDeck/releases)
+[**Download Latest APK (v2.6.1)**](https://github.com/WayneChibeu/MusicDeck/releases)
 
 
 ## Features
@@ -14,12 +14,12 @@ A modern, ad-free Android music player built with Kotlin and Jetpack Media3.
 - **Organization** – Tabs for Tracks, Artists, Albums, Playlists, and Favorites
 - **Shuffle & Play All** – Distinct controls for ordered and shuffled playback
 - **Queue Management** – Drag-to-reorder, clear queue, and more
-- **Lyrics Support** – Import and display LRC lyrics files
-- **Sleep Timer** – Set a timer to pause playback automatically
+- **Intelligent Lyrics Engine** – Synchronized LRC lyrics fetching with confidence scoring and anti-hallucination verification
+- **Sleep & Sunset Timer** – Dedicated audio fade-out transitions on pause
 - **Equalizer** – System equalizer integration
 - **Widget Support** – Home screen playback controls
 - **Favorites** – Quick access to your favorite tracks
-- **Dark Theme** – Easy on the eyes
+- **Studio-Grade High Contrast** – Crisp pure-white legibility across dynamic album art gradients
 
 ## Tech Stack
 
@@ -51,22 +51,27 @@ git clone https://github.com/WayneChibeu/MusicDeck.git
 ## Technical Breakdown
 
 <details>
-<summary>Click to view Technical Challenges & Solutions</summary>
+<summary>Click to view Engineering Highlights & Architecture</summary>
 
-### Background Service & MediaSession Lifecycle
-**Challenge:** Managing the transition between a foreground activity and a background MediaSessionService was a major hurdle. Ensuring that playback continued seamlessly when the app was minimized—while adhering to Android’s strict foreground service limitations—required deep dives into service lifecycles.
+### 1. Intelligent Lyrics Matching & Anti-Hallucination Engine
+**Challenge:** Online lyric APIs often return inaccurate or "hallucinated" lyrics when querying common song titles (e.g., *King* or *You*), or fail when tracks include featuring artist tags (`feat.`, `ft.`).
 
-**Solution:** I implemented a dedicated MediaSessionService using Jetpack Media3 to decouple playback logic from the UI. This involved configuring the MediaSession to persist even when the Activity was destroyed, ensuring the notification controls remained responsive.
+**Solution:** Designed an intelligent preprocessing and candidate-scoring engine in `LyricsApiService`. The pipeline sanitizes featuring artists from track titles and evaluates candidate search results across multi-factor criteria (title similarity, artist match confidence, and duration delta). Low-confidence matches are rejected to cleanly report *"Lyrics not found online"* rather than serving mismatched lyrics.
 
-### UI State Synchronization (MVVM)
-**Challenge:** Syncing the real-time playback state (position, shuffle mode, favorite status) across multiple UI components—like the Mini Player and the Full Player—without causing UI lag or memory leaks.
+### 2. Background MediaSession & Audio Lifecycle
+**Challenge:** Managing the transition between foreground UI activity and background `MediaSessionService` while ensuring instant scrub/seek responsiveness without audio stutter or silence gaps.
 
-**Solution:** I utilized LiveData and ViewModels to create a single source of truth for the playback state. By observing the Player.Listener events within the ViewModel, I ensured that UI updates were reactive and that data remained consistent across different navigation tabs.
+**Solution:** Implemented a decoupled Jetpack Media3 `MediaSessionService` with a custom forwarding player (`AutoPlayForwardingPlayer`). Seek operations utilize exact synchronization (`CLOSEST_SYNC`) and instant full-volume resume, while Sunset Mode isolates fade-out transitions strictly to pause events.
 
-### Dynamic Theming & Performance
-**Challenge:** Implementing Material 3 dynamic theming while handling high-resolution image loading for album art via Coil, which initially caused minor stuttering during list scrolls.
+### 3. Studio-Grade High-Contrast UI & Dynamic Theming
+**Challenge:** Maintaining crisp text legibility and visual hierarchy over vibrant, constantly shifting album art ambient gradients.
 
-**Solution:** I optimized image loading by implementing proper caching strategies with Coil and ensured that dynamic color extraction occurred on a background thread to prevent blocking the main UI thread.
+**Solution:** Standardized core typography, synchronized lyric lines, and transport controls on pure `#FFFFFF` white contrast tokens against dynamic dark-gradient backdrops, ensuring WCAG-grade readability without sacrificing aesthetic vibrancy.
+
+### 4. UI State Synchronization (MVVM)
+**Challenge:** Synchronizing real-time playback state across independent components (Mini Player bar, Full Player Bottom Sheet, and notifications) without UI lag.
+
+**Solution:** Established a single reactive source of truth using `ViewModel` and `LiveData` observing Jetpack Media3 `Player.Listener` events. Mini Player interaction logic decouples session initialization (`autoPlay = false`) from playback trigger events to prevent abrupt startup jumps.
 
 </details>
 
