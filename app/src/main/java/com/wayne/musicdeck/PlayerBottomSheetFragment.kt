@@ -953,48 +953,32 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         val muted = palette.getMutedColor(android.graphics.Color.TRANSPARENT)
         val lightVibrant = palette.getLightVibrantColor(android.graphics.Color.TRANSPARENT)
         
-        // Two-path strategy: determine if the album art is predominantly light or dark
+        // Flagship Apple Music / Spotify approach:
+        // Always maintain a rich, ambient dark/deep background so white text, white icons,
+        // and white lyrics pop with perfect contrast on every single album cover.
         val dominantLuminance = if (dominant != android.graphics.Color.TRANSPARENT) {
             androidx.core.graphics.ColorUtils.calculateLuminance(dominant)
         } else 0.0
         
-        val selectedColor: Int
-        val isLightMode: Boolean
-        
-        if (dominantLuminance < 0.4) {
-            // DARK PATH — album art is dark, use immersive dark background
-            isLightMode = false
-            selectedColor = when {
-                dominant != android.graphics.Color.TRANSPARENT && isColorDark(dominant) -> dominant
-                darkVibrant != android.graphics.Color.TRANSPARENT -> darkVibrant
-                darkMuted != android.graphics.Color.TRANSPARENT -> darkMuted
-                vibrant != android.graphics.Color.TRANSPARENT && isColorDark(vibrant) -> vibrant
-                muted != android.graphics.Color.TRANSPARENT && isColorDark(muted) -> muted
-                else -> defaultColor
-            }
-        } else {
-            // LIGHT PATH — album art is bright, embrace a clean light background
-            isLightMode = true
-            selectedColor = softenColor(dominant)
+        val selectedColor = when {
+            dominant != android.graphics.Color.TRANSPARENT && dominantLuminance < 0.35 -> dominant
+            dominant != android.graphics.Color.TRANSPARENT -> deepenColor(dominant)
+            darkVibrant != android.graphics.Color.TRANSPARENT -> darkVibrant
+            darkMuted != android.graphics.Color.TRANSPARENT -> darkMuted
+            vibrant != android.graphics.Color.TRANSPARENT -> darkenColor(vibrant, 0.5f)
+            else -> defaultColor
         }
         
-        // Secondary color for gradient depth
-        val secondaryColor = if (isLightMode) {
-            // Light mode: a slightly deeper version of the softened color
-            darkenColor(selectedColor, 0.85f)
-        } else {
-            // Dark mode: pick the best contrasting dark swatch
-            when {
-                darkMuted != android.graphics.Color.TRANSPARENT && darkMuted != selectedColor -> darkMuted
-                darkVibrant != android.graphics.Color.TRANSPARENT && darkVibrant != selectedColor -> darkVibrant
-                muted != android.graphics.Color.TRANSPARENT && muted != selectedColor -> muted
-                else -> darkenColor(selectedColor, 0.7f)
-            }
+        // Secondary color for rich vertical gradient depth
+        val secondaryColor = when {
+            darkMuted != android.graphics.Color.TRANSPARENT && darkMuted != selectedColor -> darkMuted
+            darkVibrant != android.graphics.Color.TRANSPARENT && darkVibrant != selectedColor -> darkVibrant
+            else -> darkenColor(selectedColor, 0.7f)
         }
         
-        applyMeshBackground(selectedColor, secondaryColor, isLightMode)
+        applyMeshBackground(selectedColor, secondaryColor, false)
         
-        // Helper to choose accent color with good contrast (WCAG >= 3.0 for graphical objects)
+        // Helper to choose accent color with good contrast against selectedColor
         fun getHighContrastAccent(bg: Int, candidates: List<Int>, fallback: Int): Int {
             for (color in candidates) {
                 if (color == android.graphics.Color.TRANSPARENT) continue
@@ -1003,19 +987,16 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
             return fallback
         }
         
-        val accentColor = if (!isLightMode) {
-            // Dark BG: Try LightVibrant, then Vibrant, else White
-            getHighContrastAccent(selectedColor, listOf(lightVibrant, vibrant), android.graphics.Color.WHITE)
-        } else {
-            // Light BG: Try DarkVibrant, then a deeply enriched version of dominant, else Dark Gray
-            val deepAccent = if (dominant != android.graphics.Color.TRANSPARENT) deepenColor(dominant) else android.graphics.Color.TRANSPARENT
-            getHighContrastAccent(selectedColor, listOf(darkVibrant, deepAccent, vibrant), android.graphics.Color.DKGRAY)
-        }
+        val accentColor = getHighContrastAccent(
+            selectedColor,
+            listOf(lightVibrant, vibrant),
+            android.graphics.Color.WHITE
+        )
         
-        updateSeekBarColor(accentColor, isLightMode)
-        // Lyrics: white on dark backgrounds for max readability, dark on light backgrounds
-        lyricsAdapter.activeColor = if (isLightMode) android.graphics.Color.BLACK else android.graphics.Color.WHITE
-        updateTextColors(!isLightMode)
+        updateSeekBarColor(accentColor, false)
+        // Lyrics: Always crisp white for flagship readability and visual unity
+        lyricsAdapter.activeColor = android.graphics.Color.WHITE
+        updateTextColors(true)
     }
     
     private fun updateTextColors(useLightText: Boolean) {
@@ -1030,12 +1011,10 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         binding.tvCurrentTime.setTextColor(secondaryColor)
         binding.tvTotalTime.setTextColor(secondaryColor)
         
-        // Update header icons
         // Update header icons (exclude Favorite, it manages its own color)
         val iconTint = android.content.res.ColorStateList.valueOf(textColor)
         binding.btnCollapse.imageTintList = iconTint
         binding.btnMenu.imageTintList = iconTint
-        // binding.btnFavorite.imageTintList = iconTint // Don't override favorite color
         binding.btnPlayPause.imageTintList = iconTint
         binding.btnPrev.imageTintList = iconTint
         binding.btnNext.imageTintList = iconTint

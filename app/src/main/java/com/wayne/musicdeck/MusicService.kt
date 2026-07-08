@@ -55,7 +55,9 @@ class MusicService : MediaSessionService() {
             .setWakeMode(C.WAKE_MODE_LOCAL)
             .setSeekBackIncrementMs(5000)
             .setSeekForwardIncrementMs(10000)
-            .build()
+            .build().apply {
+                setSeekParameters(androidx.media3.exoplayer.SeekParameters.CLOSEST_SYNC)
+            }
             
         // Initialize Audio Effects Manager eagerly. If it fails due to Session 0 hardware restrictions,
         // it will retry dynamically during onIsPlayingChanged.
@@ -265,6 +267,17 @@ class MusicService : MediaSessionService() {
         player.addListener(object : Player.Listener {
              private var suppressFadeIn = false
 
+             override fun onPositionDiscontinuity(
+                 oldPosition: Player.PositionInfo,
+                 newPosition: Player.PositionInfo,
+                 reason: Int
+             ) {
+                 if (reason == Player.DISCONTINUITY_REASON_SEEK || reason == Player.DISCONTINUITY_REASON_SEEK_ADJUSTMENT) {
+                     suppressFadeIn = true
+                     volumeManager.resetVolume()
+                 }
+             }
+
              override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) {
                  updateMediaSessionLayout(player)
              }
@@ -284,6 +297,7 @@ class MusicService : MediaSessionService() {
                  // Suppress fade-in during song transitions to prevent "skip-stop-play" glitch.
                  // We only want to fade in when resuming from a paused/stopped state.
                  suppressFadeIn = true
+                 volumeManager.resetVolume()
                  updateWidget(player)
                  startPlayCountHeartbeat(mediaItem)
              }
@@ -291,8 +305,10 @@ class MusicService : MediaSessionService() {
                   updateWidget(player)
                   if (isPlaying) {
                       if (!suppressFadeIn) {
-                          // Soft fade-in to prevent jarring volume burst on cold-start resume
-                          volumeManager.fadeIn()
+                          // Snappy 120ms micro-ramp to prevent click pop without swallowing words
+                          volumeManager.fadeIn(120L)
+                      } else {
+                          volumeManager.resetVolume()
                       }
                       suppressFadeIn = false
                       
