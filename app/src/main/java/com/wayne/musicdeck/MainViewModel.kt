@@ -649,7 +649,7 @@ class MainViewModel(
         lastPlayedPosition = 0
     }
     
-    fun playSongFromPosition(song: Song, positionMs: Long) {
+    fun playSongFromPosition(song: Song, positionMs: Long, autoPlay: Boolean = true) {
         val controller = mediaController.value ?: return
         val currentList = _songs.value ?: return
         val startIndex = currentList.indexOfFirst { it.data == song.data }
@@ -690,7 +690,9 @@ class MainViewModel(
         controller.setMediaItems(mediaItems)
         controller.seekTo(startIndex, positionMs)
         controller.prepare()
-        controller.play()
+        if (autoPlay) {
+            controller.play()
+        }
         
         lastPlayedSongPath = song.data
         

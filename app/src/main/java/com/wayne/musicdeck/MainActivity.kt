@@ -291,7 +291,7 @@ class MainActivity : AppCompatActivity() {
 
                 binding.miniPlayer.root.setOnClickListener {
                     if (player.mediaItemCount == 0) {
-                        playLastSong()
+                        playLastSong(autoPlay = false)
                     }
                     PlayerBottomSheetFragment().show(supportFragmentManager, "PlayerBottomSheet")
                 }
@@ -1048,14 +1048,14 @@ class MainActivity : AppCompatActivity() {
         }
     }
     
-    private fun playLastSong() {
+    private fun playLastSong(autoPlay: Boolean = true) {
         val lastPath = viewModel.lastPlayedSongPath ?: return
         val items = adapter.currentList
         // Find by path
         val songItem = items.filterIsInstance<SongListItem.SongItem>().find { it.song.data == lastPath }
         val lastSong = songItem?.song ?: return
         val lastPosition = viewModel.lastPlayedPosition
-        viewModel.playSongFromPosition(lastSong, lastPosition)
+        viewModel.playSongFromPosition(lastSong, lastPosition, autoPlay)
     }
 
     private fun setupDevInfo() {
