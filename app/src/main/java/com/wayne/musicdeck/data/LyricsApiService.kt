@@ -85,30 +85,25 @@ class LyricsApiService {
                 }
                 
                 // 2. Fallback to search (GET /search)
-                // Combine track and artist for better search results
                 val query = "$cleanTrack $cleanArtist"
                 val searchResponse = api.searchLyrics(query)
                 
                 if (searchResponse.isSuccessful && searchResponse.body() != null) {
                     val results = searchResponse.body()!!
                     
-                    // Filter and find best match
-                    // First priority: Synced lyrics
-                    val bestSynced = results.firstOrNull { !it.syncedLyrics.isNullOrBlank() }
-                    if (bestSynced != null) {
-                        return@withContext LyricsResult.Success(bestSynced.syncedLyrics!!, isSynced = true)
-                    }
-                    
-                    // Second priority: Plain lyrics from first result
-                    val firstPlain = results.firstOrNull { !it.plainLyrics.isNullOrBlank() }
-                    if (firstPlain != null) {
-                         return@withContext LyricsResult.Success(firstPlain.plainLyrics!!, isSynced = false)
+                    // Score and rank candidates to prevent picking unrelated songs with common titles
+                    val bestMatch = findBestMatch(results, cleanTrack, cleanArtist, durationSeconds)
+                    if (bestMatch != null) {
+                        val synced = bestMatch.syncedLyrics
+                        val plain = bestMatch.plainLyrics
+                        if (!synced.isNullOrBlank()) {
+                            return@withContext LyricsResult.Success(synced, isSynced = true)
+                        } else if (!plain.isNullOrBlank()) {
+                            return@withContext LyricsResult.Success(plain, isSynced = false)
+                        }
                     }
                 }
                 
-                // If we got here, we found nothing on this attempt, but no exception occurred.
-                // It's a "Not Found", not a network error, so strictly speaking we don't need to retry unless we think the API is flaky.
-                // But let's assume if both failed, it's just not there.
                 return@withContext LyricsResult.NotFound
                 
             } catch (e: Exception) {
@@ -126,13 +121,76 @@ class LyricsApiService {
     }
     
     /**
+     * Score search results against target title, artist, and duration so we pick the right song.
+     */
+    private fun findBestMatch(
+        candidates: List<LrclibResponse>,
+        targetTrack: String,
+        targetArtist: String,
+        targetDurationSec: Int?
+    ): LrclibResponse? {
+        val normTrack = normalizeString(targetTrack)
+        val normArtist = normalizeString(targetArtist)
+        
+        var bestCandidate: LrclibResponse? = null
+        var bestScore = -1
+        
+        for (item in candidates) {
+            val itemTrack = normalizeString(item.trackName ?: "")
+            val itemArtist = normalizeString(item.artistName ?: "")
+            
+            var score = 0
+            
+            // Track match scoring
+            if (itemTrack == normTrack) {
+                score += 50
+            } else if (itemTrack.contains(normTrack) || normTrack.contains(itemTrack)) {
+                score += 30
+            }
+            
+            // Artist match scoring (including normalization for "&" vs "and")
+            if (itemArtist == normArtist) {
+                score += 50
+            } else if (itemArtist.contains(normArtist) || normArtist.contains(itemArtist)) {
+                score += 35
+            }
+            
+            // Duration match bonus
+            if (targetDurationSec != null && item.duration != null) {
+                val diffSec = Math.abs(item.duration - targetDurationSec)
+                if (diffSec <= 3) score += 25
+                else if (diffSec <= 8) score += 10
+            }
+            
+            // Prefer synced lyrics over plain text
+            if (!item.syncedLyrics.isNullOrBlank()) {
+                score += 15
+            }
+            
+            // Require a minimum confidence threshold (e.g. at least track or artist match)
+            if (score > bestScore && score >= 45) {
+                bestScore = score
+                bestCandidate = item
+            }
+        }
+        return bestCandidate
+    }
+    
+    private fun normalizeString(input: String): String {
+        return input.lowercase()
+            .replace("&", "and")
+            .replace(Regex("[^a-z0-9\\s]"), "")
+            .replace(Regex("\\s+"), " ")
+            .trim()
+    }
+    
+    /**
      * Search for track metadata without downloading lyrics
      */
     suspend fun searchTrackMetadata(query: String): LrclibResponse? = withContext(Dispatchers.IO) {
         try {
             val response = api.searchLyrics(query)
             if (response.isSuccessful && response.body() != null) {
-                // Return the best match (first one usually)
                 return@withContext response.body()?.firstOrNull()
             }
         } catch (e: Exception) {
@@ -166,7 +224,6 @@ class LyricsApiService {
                 val potentialArtist = parts[0].trim()
                 val potentialTitle = parts[1].trim()
                 
-                // If artist is unknown, use the extracted artist
                 if (isArtistUnknown && potentialArtist.isNotBlank()) {
                     artist = potentialArtist
                     title = potentialTitle
@@ -175,18 +232,16 @@ class LyricsApiService {
         }
         
         // Remove featuring info from title for cleaner search
-        // Matches: (feat. X), (feat X), (ft. X), (ft X), [feat. X], etc.
-        title = title.replace(Regex("\\s*[\\(\\[]\\s*(feat\\.?|ft\\.?)\\s*.+[\\)\\]]", RegexOption.IGNORE_CASE), "")
+        // Matches: (feat. X), (featuring X), (ft. X), etc.
+        title = title.replace(Regex("\\s*[\\(\\[]\\s*(feat\\.?|featuring|ft\\.?)\\s*.+[\\)\\]]", RegexOption.IGNORE_CASE), "")
+        title = title.replace(Regex("\\s+(feat\\.?|featuring|ft\\.?)\\s+.+$", RegexOption.IGNORE_CASE), "")
         
-        // Also remove featuring at the end without parentheses
-        title = title.replace(Regex("\\s+(feat\\.?|ft\\.?)\\s+.+$", RegexOption.IGNORE_CASE), "")
-        
-        // Remove common garbage
+        // Remove common tags
         title = title.replace(Regex("\\(Official Video\\)", RegexOption.IGNORE_CASE), "")
         title = title.replace(Regex("\\(Official Audio\\)", RegexOption.IGNORE_CASE), "")
         title = title.replace(Regex("\\(Lyrics\\)", RegexOption.IGNORE_CASE), "")
         
-        // Clean up any double spaces
+        // Clean up double spaces
         title = title.replace(Regex("\\s+"), " ").trim()
         artist = artist.replace(Regex("\\s+"), " ").trim()
         
