@@ -304,12 +304,8 @@ class MusicService : MediaSessionService() {
              override fun onIsPlayingChanged(isPlaying: Boolean) {
                   updateWidget(player)
                   if (isPlaying) {
-                      if (!suppressFadeIn) {
-                          // Snappy 120ms micro-ramp to prevent click pop without swallowing words
-                          volumeManager.fadeIn(120L)
-                      } else {
-                          volumeManager.resetVolume()
-                      }
+                      // Always start/resume at 100% full volume instantly without stutter
+                      volumeManager.resetVolume()
                       suppressFadeIn = false
                       
                       startPlayCountHeartbeat(player.currentMediaItem)
@@ -842,26 +838,6 @@ class MusicService : MediaSessionService() {
                 }
             } else {
                 super.pause()
-            }
-        }
-
-        private fun fadeIn() {
-            if (settingsManager.isSunsetTransitionEnabled) {
-                serviceScope.launch {
-                    val steps = 10
-                    val duration = 500L
-                    val stepDelay = duration / steps
-                    var vol = 0f
-                    repeat(steps) {
-                        vol += 0.1f
-                        if (vol > 1f) vol = 1f
-                        volume = vol
-                        kotlinx.coroutines.delay(stepDelay)
-                    }
-                    volume = 1f
-                }
-            } else {
-                volume = 1f
             }
         }
         
