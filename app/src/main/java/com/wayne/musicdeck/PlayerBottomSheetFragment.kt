@@ -914,6 +914,24 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         hsv[2] *= factor // Reduce brightness
         return android.graphics.Color.HSVToColor(hsv)
     }
+    
+    /** Soften a bright color for use as a pleasant light background. */
+    private fun softenColor(color: Int, saturationFactor: Float = 0.7f): Int {
+        val hsl = FloatArray(3)
+        androidx.core.graphics.ColorUtils.colorToHSL(color, hsl)
+        hsl[1] *= saturationFactor  // Reduce saturation to avoid neon-bright backgrounds
+        hsl[2] = hsl[2].coerceIn(0.75f, 0.90f)  // Keep lightness in a pleasant range
+        return androidx.core.graphics.ColorUtils.HSLToColor(hsl)
+    }
+    
+    /** Derive a rich, dark accent from a bright dominant color (e.g., bright yellow → deep gold). */
+    private fun deepenColor(color: Int): Int {
+        val hsl = FloatArray(3)
+        androidx.core.graphics.ColorUtils.colorToHSL(color, hsl)
+        hsl[1] = (hsl[1] * 1.5f).coerceAtMost(1f)  // Boost saturation aggressively for richness
+        hsl[2] = 0.22f  // Dark enough to guarantee contrast against light backgrounds
+        return androidx.core.graphics.ColorUtils.HSLToColor(hsl)
+    }
 
     private fun applyDynamicBackground(palette: androidx.palette.graphics.Palette?) {
         val ctx = context ?: return
@@ -922,19 +940,12 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         )
         
         if (palette == null) {
-            applyMeshBackground(defaultColor, darkenColor(defaultColor, 0.7f))
-            updateSeekBarColor(android.graphics.Color.WHITE)
+            applyMeshBackground(defaultColor, darkenColor(defaultColor, 0.7f), false)
+            updateSeekBarColor(android.graphics.Color.WHITE, false)
             return
         }
         
-        // Smart Selection Priority:
-        // 1. Dominant (if dark) - Best match for cover
-        // 2. Dark Vibrant - Usually the best colored fallback
-        // 3. Dark Muted - Good fallback if vibrant is missing
-        // 4. Vibrant (if dark)
-        // 5. Muted (if dark)
-        // 6. Darken the dominant color if nothing else works
-        
+        // Extract all palette swatches
         val dominant = palette.getDominantColor(android.graphics.Color.TRANSPARENT)
         val darkVibrant = palette.getDarkVibrantColor(android.graphics.Color.TRANSPARENT)
         val darkMuted = palette.getDarkMutedColor(android.graphics.Color.TRANSPARENT)
@@ -942,31 +953,47 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         val muted = palette.getMutedColor(android.graphics.Color.TRANSPARENT)
         val lightVibrant = palette.getLightVibrantColor(android.graphics.Color.TRANSPARENT)
         
-        // Background selection: prioritizing the most immersive dark color
-        val selectedColor = when {
-            dominant != android.graphics.Color.TRANSPARENT && isColorDark(dominant) -> dominant
-            darkVibrant != android.graphics.Color.TRANSPARENT && isColorDark(darkVibrant) -> darkVibrant
-            darkMuted != android.graphics.Color.TRANSPARENT && isColorDark(darkMuted) -> darkMuted
-            vibrant != android.graphics.Color.TRANSPARENT && isColorDark(vibrant) -> vibrant
-            muted != android.graphics.Color.TRANSPARENT && isColorDark(muted) -> muted
-            darkVibrant != android.graphics.Color.TRANSPARENT -> darkVibrant
-            dominant != android.graphics.Color.TRANSPARENT -> darkenColor(dominant, 0.4f)
-            else -> defaultColor
+        // Two-path strategy: determine if the album art is predominantly light or dark
+        val dominantLuminance = if (dominant != android.graphics.Color.TRANSPARENT) {
+            androidx.core.graphics.ColorUtils.calculateLuminance(dominant)
+        } else 0.0
+        
+        val selectedColor: Int
+        val isLightMode: Boolean
+        
+        if (dominantLuminance < 0.4) {
+            // DARK PATH — album art is dark, use immersive dark background
+            isLightMode = false
+            selectedColor = when {
+                dominant != android.graphics.Color.TRANSPARENT && isColorDark(dominant) -> dominant
+                darkVibrant != android.graphics.Color.TRANSPARENT -> darkVibrant
+                darkMuted != android.graphics.Color.TRANSPARENT -> darkMuted
+                vibrant != android.graphics.Color.TRANSPARENT && isColorDark(vibrant) -> vibrant
+                muted != android.graphics.Color.TRANSPARENT && isColorDark(muted) -> muted
+                else -> defaultColor
+            }
+        } else {
+            // LIGHT PATH — album art is bright, embrace a clean light background
+            isLightMode = true
+            selectedColor = softenColor(dominant)
         }
         
-        // Secondary color for gradient (optional but creates depth)
-        val secondaryColor = when {
-            darkMuted != android.graphics.Color.TRANSPARENT && darkMuted != selectedColor -> darkMuted
-            darkVibrant != android.graphics.Color.TRANSPARENT && darkVibrant != selectedColor -> darkVibrant
-            muted != android.graphics.Color.TRANSPARENT && muted != selectedColor -> muted
-            else -> darkenColor(selectedColor, 0.7f) // Just a darker version of primary
+        // Secondary color for gradient depth
+        val secondaryColor = if (isLightMode) {
+            // Light mode: a slightly deeper version of the softened color
+            darkenColor(selectedColor, 0.85f)
+        } else {
+            // Dark mode: pick the best contrasting dark swatch
+            when {
+                darkMuted != android.graphics.Color.TRANSPARENT && darkMuted != selectedColor -> darkMuted
+                darkVibrant != android.graphics.Color.TRANSPARENT && darkVibrant != selectedColor -> darkVibrant
+                muted != android.graphics.Color.TRANSPARENT && muted != selectedColor -> muted
+                else -> darkenColor(selectedColor, 0.7f)
+            }
         }
         
-        applyMeshBackground(selectedColor, secondaryColor)
+        applyMeshBackground(selectedColor, secondaryColor, isLightMode)
         
-        val bgIsDark = isColorDark(selectedColor)
-        // For dark backgrounds, use WHITE to ensure high contrast against colored backgrounds.
-        // User requested white controls to avoid "Pink on Pink" obscurity.
         // Helper to choose accent color with good contrast (WCAG >= 3.0 for graphical objects)
         fun getHighContrastAccent(bg: Int, candidates: List<Int>, fallback: Int): Int {
             for (color in candidates) {
@@ -975,20 +1002,20 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
             }
             return fallback
         }
-
-        // val bgIsDark = isColorDark(selectedColor) // Removed duplicate
-        val accentColor = if (bgIsDark) {
-             // For Dark BG: Try LightVibrant, then Vibrant, else White
-             getHighContrastAccent(selectedColor, listOf(lightVibrant, vibrant), android.graphics.Color.WHITE)
+        
+        val accentColor = if (!isLightMode) {
+            // Dark BG: Try LightVibrant, then Vibrant, else White
+            getHighContrastAccent(selectedColor, listOf(lightVibrant, vibrant), android.graphics.Color.WHITE)
         } else {
-             // For Light BG: Try DarkVibrant, then Vibrant (darkened), else Dark Gray
-             val darkVib = if (vibrant != android.graphics.Color.TRANSPARENT) darkenColor(vibrant, 0.6f) else android.graphics.Color.TRANSPARENT
-             getHighContrastAccent(selectedColor, listOf(darkVibrant, darkVib), android.graphics.Color.DKGRAY)
+            // Light BG: Try DarkVibrant, then a deeply enriched version of dominant, else Dark Gray
+            val deepAccent = if (dominant != android.graphics.Color.TRANSPARENT) deepenColor(dominant) else android.graphics.Color.TRANSPARENT
+            getHighContrastAccent(selectedColor, listOf(darkVibrant, deepAccent, vibrant), android.graphics.Color.DKGRAY)
         }
         
-        updateSeekBarColor(accentColor)
-        lyricsAdapter.activeColor = android.graphics.Color.WHITE // Reverted to White for maximum readability
-        updateTextColors(bgIsDark)
+        updateSeekBarColor(accentColor, isLightMode)
+        // Lyrics: white on dark backgrounds for max readability, dark on light backgrounds
+        lyricsAdapter.activeColor = if (isLightMode) android.graphics.Color.BLACK else android.graphics.Color.WHITE
+        updateTextColors(!isLightMode)
     }
     
     private fun updateTextColors(useLightText: Boolean) {
@@ -1016,25 +1043,52 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         binding.btnQueue.imageTintList = iconTint
     }
     
-    private fun applyMeshBackground(primary: Int, secondary: Int) {
-        // Create a premium diagonal gradient: Top-Left to Bottom-Right
-        val gradient = android.graphics.drawable.GradientDrawable(
-            android.graphics.drawable.GradientDrawable.Orientation.TL_BR,
-            intArrayOf(primary, secondary, android.graphics.Color.BLACK) // Fades to black at bottom for contrast
-        )
-        binding.root.background = gradient
+    private fun applyMeshBackground(primary: Int, secondary: Int, isLightMode: Boolean = false) {
+        if (isLightMode) {
+            // Light mode: keep the entire gradient in the same warm color family
+            // Use HSL to darken while preserving hue (HSV-based darkenColor strips warmth)
+            val hsl = FloatArray(3)
+            androidx.core.graphics.ColorUtils.colorToHSL(primary, hsl)
+            // Mid-tone: slightly deeper and more saturated
+            val midHsl = hsl.copyOf()
+            midHsl[1] = (midHsl[1] * 1.1f).coerceAtMost(1f)
+            midHsl[2] = (midHsl[2] * 0.85f).coerceAtLeast(0.55f)
+            val midColor = androidx.core.graphics.ColorUtils.HSLToColor(midHsl)
+            // Bottom: noticeably deeper but still in-family
+            val bottomHsl = hsl.copyOf()
+            bottomHsl[1] = (bottomHsl[1] * 1.2f).coerceAtMost(1f)
+            bottomHsl[2] = (bottomHsl[2] * 0.65f).coerceAtLeast(0.35f)
+            val bottomColor = androidx.core.graphics.ColorUtils.HSLToColor(bottomHsl)
+            
+            val gradient = android.graphics.drawable.GradientDrawable(
+                android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM,
+                intArrayOf(primary, midColor, bottomColor)
+            )
+            binding.root.background = gradient
+        } else {
+            // Dark mode: diagonal gradient fading to black (existing behavior)
+            val gradient = android.graphics.drawable.GradientDrawable(
+                android.graphics.drawable.GradientDrawable.Orientation.TL_BR,
+                intArrayOf(primary, secondary, android.graphics.Color.BLACK)
+            )
+            binding.root.background = gradient
+        }
         binding.headerView.backgroundTintList = android.content.res.ColorStateList.valueOf(android.graphics.Color.TRANSPARENT)
     }
     
-    private fun updateSeekBarColor(color: Int) {
+    private fun updateSeekBarColor(color: Int, isLightMode: Boolean = false) {
         // Tint thumb
         binding.seekBar.thumb.setTint(color)
         
-        // Tint progress layer only (keep background track grey)
+        // Tint progress and adapt track background for visibility
         val progressDrawable = binding.seekBar.progressDrawable
         if (progressDrawable is android.graphics.drawable.LayerDrawable) {
             val progressLayer = progressDrawable.findDrawableByLayerId(android.R.id.progress)
             progressLayer?.setTint(color)
+            // Adaptive track: 15% black on light backgrounds, 15% white on dark backgrounds
+            val trackColor = if (isLightMode) 0x26000000.toInt() else 0x26FFFFFF.toInt()
+            val bgLayer = progressDrawable.findDrawableByLayerId(android.R.id.background)
+            bgLayer?.setTint(trackColor)
         } else {
             // Fallback if not a LayerDrawable (shouldn't happen with our XML)
             progressDrawable.setTint(color)
