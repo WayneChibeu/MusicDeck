@@ -84,3 +84,7 @@ Thumbs.db
 # Backup files
 *.bak
 *.backup
+
+# GitHub CLI
+gh-cli/
+gh.zip
