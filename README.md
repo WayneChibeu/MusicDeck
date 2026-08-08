@@ -79,6 +79,10 @@ git clone https://github.com/WayneChibeu/MusicDeck.git
 
 This project is licensed under the GNU GPLv3 License - see the [LICENSE](LICENSE) and [NOTICE](NOTICE) files for details.
 
+## Contributing
+
+Contributions, issues, and feature requests are welcome! Feel free to check the [issues page](https://github.com/WayneChibeu/MusicDeck/issues) if you want to contribute.
+
 ## Author
 
 **Wayne Chibeu** – [@WayneChibeu](https://github.com/WayneChibeu)

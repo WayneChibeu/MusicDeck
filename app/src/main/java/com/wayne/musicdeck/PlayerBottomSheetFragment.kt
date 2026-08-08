@@ -1017,8 +1017,10 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         binding.btnPlayPause.imageTintList = iconTint
         binding.btnPrev.imageTintList = iconTint
         binding.btnNext.imageTintList = iconTint
-        binding.btnRepeat.imageTintList = iconTint
         binding.btnQueue.imageTintList = iconTint
+        
+        // Re-apply repeat icon color based on new dynamic theme colors
+        updatePlaybackModeIcon()
     }
     
     private fun applyMeshBackground(primary: Int, secondary: Int, isLightMode: Boolean = false) {
@@ -1096,19 +1098,16 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         binding.btnRepeat.setImageResource(icon)
         
         val isActive = playbackMode != 0
+        
+        // Use the dynamically calculated text colors for perfect contrast
+        // Active = Solid white/black (like the title)
+        // Inactive = 70% opacity white/black (like the artist)
         val tintColor = if (isActive) {
-            com.google.android.material.color.MaterialColors.getColor(
-                requireContext(),
-                com.google.android.material.R.attr.colorPrimary,
-                0
-            )
+            binding.tvFullTitle.currentTextColor
         } else {
-            com.google.android.material.color.MaterialColors.getColor(
-                requireContext(),
-                com.google.android.material.R.attr.colorOnSurface,
-                0
-            )
+            binding.tvFullArtist.currentTextColor
         }
+        
         binding.btnRepeat.imageTintList = android.content.res.ColorStateList.valueOf(tintColor)
     }
 
