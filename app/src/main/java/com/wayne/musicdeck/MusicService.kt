@@ -503,7 +503,6 @@ class MusicService : MediaSessionService() {
             val title = mediaItem?.mediaMetadata?.title?.toString() ?: "Unknown"
             val artist = mediaItem?.mediaMetadata?.artist?.toString() ?: "Unknown Artist"
             val isPlaying = player.isPlaying
-            val isFav = isCurrentSongFavorite
             
             val currentPath = mediaItem?.mediaId ?: return
             
@@ -518,7 +517,7 @@ class MusicService : MediaSessionService() {
                 // Load Bitmap for Widget (Fixes missing art on some launchers)
                 // Tries artUri first, then fallback to embedded MP3 art
                 var artBitmap: android.graphics.Bitmap? = null
-                val artUri = mediaItem?.mediaMetadata?.artworkUri
+                val artUri = mediaItem.mediaMetadata.artworkUri
                 if (artUri != null) {
                     try {
                         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
@@ -558,13 +557,13 @@ class MusicService : MediaSessionService() {
                 }
 
                 kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-                    MusicWidgetProvider.pushUpdate(this@MusicService, title, artist, isPlaying, isFav, artUri, artBitmap)
+                    MusicWidgetProvider.pushUpdate(this@MusicService, title, artist, isPlaying, isFav, artBitmap)
                     settingsManager.lastPlayedIsFavorite = isFav
                     updateMediaSessionLayout(player)
                     
                     // ALWAYS update artwork data for Notification to prevent stale cached art
                     // This ensures each song gets its own art (or lack thereof)
-                    val mItem = mediaItem ?: return@withContext
+                    val mItem = mediaItem
                     val newMetaBuilder = mItem.mediaMetadata.buildUpon()
                         
                         if (artBitmap != null) {
@@ -1014,7 +1013,6 @@ class MusicService : MediaSessionService() {
         }
         
         // Only return matches (score > 0)
-        val matched = results.filter { true } // return all for queue continuity
         android.util.Log.d("MusicService", "Search found ${allSongs.count { it.score > 0 }} matches out of ${allSongs.size} songs")
         return results
     }

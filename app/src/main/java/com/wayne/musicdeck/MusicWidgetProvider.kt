@@ -61,7 +61,6 @@ class MusicWidgetProvider : AppWidgetProvider() {
             artist: String = "MusicDeck",
             isPlaying: Boolean = false,
             isFavorite: Boolean = false,
-            albumArtUri: android.net.Uri? = null,
             album_artBitmap: android.graphics.Bitmap? = null
         ) {
             val views = RemoteViews(context.packageName, R.layout.widget_music_control)
@@ -78,12 +77,13 @@ class MusicWidgetProvider : AppWidgetProvider() {
             // Set Favorite Icon and Color
             val favIcon = if (isFavorite) R.drawable.ic_favorite else R.drawable.ic_favorite_border
             views.setImageViewResource(R.id.btnWidgetFavorite, favIcon)
+            if (isFavorite) {
+                views.setInt(R.id.btnWidgetFavorite, "setColorFilter", android.graphics.Color.RED)
+            } else {
+                views.setInt(R.id.btnWidgetFavorite, "setColorFilter", android.graphics.Color.WHITE)
+            }
             
-            // Set tint color: RED when favorited, WHITE when not
-            val favColor = if (isFavorite) android.graphics.Color.RED else android.graphics.Color.WHITE
-            views.setInt(R.id.btnWidgetFavorite, "setColorFilter", favColor)
-            
-            // PendingIntents for buttons
+            // Wire up buttons
             views.setOnClickPendingIntent(R.id.btnWidgetPlayPause, getPendingIntent(context, ACTION_PLAY_PAUSE))
             views.setOnClickPendingIntent(R.id.btnWidgetNext, getPendingIntent(context, ACTION_NEXT))
             views.setOnClickPendingIntent(R.id.btnWidgetPrev, getPendingIntent(context, ACTION_PREVIOUS))
@@ -112,12 +112,12 @@ class MusicWidgetProvider : AppWidgetProvider() {
             return PendingIntent.getBroadcast(context, reqCode, intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
         }
         
-        fun pushUpdate(context: Context, title: String, artist: String, isPlaying: Boolean, isFavorite: Boolean, albumArtUri: android.net.Uri?, album_artBitmap: android.graphics.Bitmap? = null) {
+        fun pushUpdate(context: Context, title: String, artist: String, isPlaying: Boolean, isFavorite: Boolean, album_artBitmap: android.graphics.Bitmap? = null) {
             val manager = AppWidgetManager.getInstance(context)
             val component = ComponentName(context, MusicWidgetProvider::class.java)
             val ids = manager.getAppWidgetIds(component)
             for (id in ids) {
-                updateAppWidget(context, manager, id, title, artist, isPlaying, isFavorite, albumArtUri, album_artBitmap)
+                updateAppWidget(context, manager, id, title, artist, isPlaying, isFavorite, album_artBitmap)
             }
         }
     }

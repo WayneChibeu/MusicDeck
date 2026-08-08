@@ -950,7 +950,6 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         val darkVibrant = palette.getDarkVibrantColor(android.graphics.Color.TRANSPARENT)
         val darkMuted = palette.getDarkMutedColor(android.graphics.Color.TRANSPARENT)
         val vibrant = palette.getVibrantColor(android.graphics.Color.TRANSPARENT)
-        val muted = palette.getMutedColor(android.graphics.Color.TRANSPARENT)
         val lightVibrant = palette.getLightVibrantColor(android.graphics.Color.TRANSPARENT)
         
         // Flagship Apple Music / Spotify approach:
