@@ -28,11 +28,27 @@ class SmartPlaylistManager(
             .take(20)
             .mapNotNull { pc -> allSongs.find { it.id == pc.songId } }
     }
+    
+    fun getChillMode(): List<Song> {
+        // Heuristic: Songs longer than 4 minutes (often more atmospheric/chill in some genres)
+        return allSongs.filter { it.duration > 240000L }
+            .shuffled()
+            .take(30)
+    }
+    
+    fun getEnergyBoost(): List<Song> {
+        // Heuristic: Songs shorter than 3 minutes (often fast-paced/upbeat)
+        return allSongs.filter { it.duration < 180000L }
+            .shuffled()
+            .take(30)
+    }
 
     companion object {
         const val ID_RECENTLY_ADDED = -100L
         const val ID_HEAVY_ROTATION = -101L
         const val ID_FORGOTTEN_GEMS = -102L
+        const val ID_CHILL_MODE = -103L
+        const val ID_ENERGY_BOOST = -104L
         
         fun isSmartPlaylist(id: Long): Boolean = id <= -100L
         
@@ -40,6 +56,8 @@ class SmartPlaylistManager(
             ID_RECENTLY_ADDED -> "Fresh Arrivals"
             ID_HEAVY_ROTATION -> "Heavy Rotation"
             ID_FORGOTTEN_GEMS -> "Forgotten Gems"
+            ID_CHILL_MODE -> "Chill Mode"
+            ID_ENERGY_BOOST -> "Energy Boost"
             else -> "Auto List"
         }
     }

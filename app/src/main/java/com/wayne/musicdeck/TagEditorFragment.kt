@@ -6,13 +6,17 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.TextView
+import androidx.lifecycle.lifecycleScope
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.textfield.TextInputEditText
+import kotlinx.coroutines.launch
 import org.koin.androidx.viewmodel.ext.android.activityViewModel
+import org.koin.android.ext.android.inject
 
 class TagEditorFragment : BottomSheetDialogFragment() {
 
     private val viewModel: MainViewModel by activityViewModel()
+    private val settingsManager: com.wayne.musicdeck.utils.SettingsManager by inject()
     private var songId: Long = -1L
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -33,7 +37,13 @@ class TagEditorFragment : BottomSheetDialogFragment() {
         val etTitle = view.findViewById<TextInputEditText>(R.id.etTitle)
         val etArtist = view.findViewById<TextInputEditText>(R.id.etArtist)
         val etAlbum = view.findViewById<TextInputEditText>(R.id.etAlbum)
+        val tilNotes = view.findViewById<com.google.android.material.textfield.TextInputLayout>(R.id.tilNotes)
+        val etNotes = view.findViewById<TextInputEditText>(R.id.etNotes)
         val btnSave = view.findViewById<Button>(R.id.btnSave)
+        
+        if (!settingsManager.isSongNotesEnabled) {
+            tilNotes.visibility = android.view.View.GONE
+        }
 
         // Load song details
         val song = viewModel.songs.value?.find { it.id == songId }
@@ -41,6 +51,13 @@ class TagEditorFragment : BottomSheetDialogFragment() {
             etTitle.setText(song.title)
             etArtist.setText(song.artist)
             etAlbum.setText(song.album)
+            
+            lifecycleScope.launch {
+                val notes = viewModel.getSongNotes(song.data)
+                if (notes != null) {
+                    etNotes.setText(notes)
+                }
+            }
         } else {
             dismiss()
             return
@@ -51,8 +68,9 @@ class TagEditorFragment : BottomSheetDialogFragment() {
             val newTitle = etTitle.text.toString().trim()
             val newArtist = etArtist.text.toString().trim()
             val newAlbum = etAlbum.text.toString().trim()
+            val newNotes = etNotes.text.toString().trim().takeIf { it.isNotEmpty() }
             
-            viewModel.updateSongTags(element, newTitle, newArtist, newAlbum)
+            viewModel.updateSongTags(element, newTitle, newArtist, newAlbum, newNotes)
             dismiss()
         }
     }

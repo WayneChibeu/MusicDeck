@@ -60,6 +60,11 @@ class ToolsBottomSheetFragment : BottomSheetDialogFragment() {
         binding.btnAbout.setOnClickListener {
             showAboutDialog()
         }
+
+        binding.btnFeatures.setOnClickListener {
+            dismiss()
+            FeaturesBottomSheetFragment().show(parentFragmentManager, "features")
+        }
         
         // Observe backup result
         viewModel.backupResult.observe(viewLifecycleOwner) { result ->

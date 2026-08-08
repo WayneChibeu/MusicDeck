@@ -12,6 +12,7 @@ import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.media3.common.Player
 import androidx.media3.common.MediaItem
+import androidx.lifecycle.lifecycleScope
 import coil.load
 import coil.transform.RoundedCornersTransformation
 import com.wayne.musicdeck.databinding.ActivityMainBinding
@@ -445,6 +446,8 @@ class MainActivity : AppCompatActivity() {
         }
         
         playlistAdapter = PlaylistAdapter(
+            coroutineScope = lifecycleScope,
+            getPreviewPaths = { id -> viewModel.getPlaylistPreview(id) },
             onPlaylistClick = { playlist ->
                 isViewingPlaylistDetails = true
                 currentViewingPlaylistId = playlist.id

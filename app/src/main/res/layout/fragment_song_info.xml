@@ -143,6 +143,40 @@
                 android:layout_marginStart="16dp"
                 android:background="?attr/colorOutlineVariant" />
 
+            <!-- Notes -->
+            <LinearLayout
+                android:id="@+id/itemNotes"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Personal Notes"
+                    android:textAppearance="?attr/textAppearanceBodyMedium"
+                    android:textColor="?attr/colorOnSurface" />
+
+                <TextView
+                    android:id="@+id/tvNotes"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="Notes content"
+                    android:textAppearance="?attr/textAppearanceBodySmall"
+                    android:textColor="?attr/colorOnSurfaceVariant" />
+            </LinearLayout>
+
+            <View
+                android:id="@+id/divNotes"
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginStart="16dp"
+                android:background="?attr/colorOutlineVariant"
+                android:visibility="gone" />
+
             <!-- Duration -->
             <LinearLayout
                 android:layout_width="match_parent"

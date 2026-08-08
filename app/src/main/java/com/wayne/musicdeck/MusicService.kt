@@ -29,7 +29,9 @@ class MusicService : MediaSessionService() {
     private var sleepTimerJob: kotlinx.coroutines.Job? = null
     private var isCurrentSongFavorite = false
     private lateinit var volumeManager: com.wayne.musicdeck.utils.VolumeManager
+    private val customMetadataDao: com.wayne.musicdeck.data.CustomMetadataDao by inject()
     private val playCountDao: com.wayne.musicdeck.data.PlayCountDao by inject()
+    private val playHistoryDao: com.wayne.musicdeck.data.PlayHistoryDao by inject()
     private val settingsManager: SettingsManager by inject()
     private var playCountJob: kotlinx.coroutines.Job? = null
     private var playbackPositionJob: kotlinx.coroutines.Job? = null
@@ -295,9 +297,15 @@ class MusicService : MediaSessionService() {
              }
              override fun onMediaItemTransition(mediaItem: androidx.media3.common.MediaItem?, reason: Int) {
                  // Suppress fade-in during song transitions to prevent "skip-stop-play" glitch.
-                 // We only want to fade in when resuming from a paused/stopped state.
-                 suppressFadeIn = true
-                 volumeManager.resetVolume()
+                 // We only want to fade in when resuming from a paused/stopped state,
+                 // OR if crossfade is enabled.
+                 if (settingsManager.isCrossfadeEnabled && reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO) {
+                     suppressFadeIn = false
+                     volumeManager.fadeIn(1500)
+                 } else {
+                     suppressFadeIn = true
+                     volumeManager.resetVolume()
+                 }
                  updateWidget(player)
                  startPlayCountHeartbeat(mediaItem)
              }
@@ -435,6 +443,10 @@ class MusicService : MediaSessionService() {
             // If still active after 30s, count it!
             playCountDao.ensureExists(filePath, songId)
             playCountDao.incrementPlayCount(filePath)
+            
+            if (settingsManager.isInsightsEnabled) {
+                playHistoryDao.insertPlay(com.wayne.musicdeck.data.PlayHistoryEntry(songId = songId))
+            }
             android.util.Log.d("MusicService", "Play counted for path: $filePath (30s heartbeat reached)")
         }
     }
@@ -442,9 +454,22 @@ class MusicService : MediaSessionService() {
     private fun startPlaybackPositionHeartbeat(player: Player) {
         playbackPositionJob?.cancel()
         playbackPositionJob = serviceScope.launch {
+            var hasStartedCrossfade = false
             while (isActive) {
-                kotlinx.coroutines.delay(5000)
+                kotlinx.coroutines.delay(1000)
                 saveFinalPosition(player)
+                
+                if (settingsManager.isCrossfadeEnabled && player.isPlaying) {
+                    val pos = player.currentPosition
+                    val dur = player.duration
+                    if (dur > 0 && dur - pos <= 2000 && !hasStartedCrossfade) {
+                        hasStartedCrossfade = true
+                        volumeManager.fadeOut(dur - pos) {}
+                    }
+                    if (dur > 0 && dur - pos > 2000) {
+                        hasStartedCrossfade = false // reset for next track
+                    }
+                }
             }
         }
     }

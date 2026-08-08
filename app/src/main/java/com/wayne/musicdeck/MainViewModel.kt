@@ -179,9 +179,13 @@ class MainViewModel(
             val filteredPlaylists = allPlaylists.filter { it.name != "Favorites" }.toMutableList()
             
             // INJECT SMART PLAYLISTS
-            filteredPlaylists.add(0, com.wayne.musicdeck.data.Playlist(com.wayne.musicdeck.data.SmartPlaylistManager.ID_RECENTLY_ADDED, com.wayne.musicdeck.data.SmartPlaylistManager.getSmartPlaylistName(com.wayne.musicdeck.data.SmartPlaylistManager.ID_RECENTLY_ADDED), null, System.currentTimeMillis()))
-            filteredPlaylists.add(1, com.wayne.musicdeck.data.Playlist(com.wayne.musicdeck.data.SmartPlaylistManager.ID_HEAVY_ROTATION, com.wayne.musicdeck.data.SmartPlaylistManager.getSmartPlaylistName(com.wayne.musicdeck.data.SmartPlaylistManager.ID_HEAVY_ROTATION), null, System.currentTimeMillis()))
-            filteredPlaylists.add(2, com.wayne.musicdeck.data.Playlist(com.wayne.musicdeck.data.SmartPlaylistManager.ID_FORGOTTEN_GEMS, com.wayne.musicdeck.data.SmartPlaylistManager.getSmartPlaylistName(com.wayne.musicdeck.data.SmartPlaylistManager.ID_FORGOTTEN_GEMS), null, System.currentTimeMillis()))
+            if (settingsManager.isSmartPlaylistsEnabled) {
+                filteredPlaylists.add(0, com.wayne.musicdeck.data.Playlist(com.wayne.musicdeck.data.SmartPlaylistManager.ID_ENERGY_BOOST, com.wayne.musicdeck.data.SmartPlaylistManager.getSmartPlaylistName(com.wayne.musicdeck.data.SmartPlaylistManager.ID_ENERGY_BOOST), null, System.currentTimeMillis()))
+                filteredPlaylists.add(0, com.wayne.musicdeck.data.Playlist(com.wayne.musicdeck.data.SmartPlaylistManager.ID_CHILL_MODE, com.wayne.musicdeck.data.SmartPlaylistManager.getSmartPlaylistName(com.wayne.musicdeck.data.SmartPlaylistManager.ID_CHILL_MODE), null, System.currentTimeMillis()))
+                filteredPlaylists.add(0, com.wayne.musicdeck.data.Playlist(com.wayne.musicdeck.data.SmartPlaylistManager.ID_RECENTLY_ADDED, com.wayne.musicdeck.data.SmartPlaylistManager.getSmartPlaylistName(com.wayne.musicdeck.data.SmartPlaylistManager.ID_RECENTLY_ADDED), null, System.currentTimeMillis()))
+                filteredPlaylists.add(1, com.wayne.musicdeck.data.Playlist(com.wayne.musicdeck.data.SmartPlaylistManager.ID_HEAVY_ROTATION, com.wayne.musicdeck.data.SmartPlaylistManager.getSmartPlaylistName(com.wayne.musicdeck.data.SmartPlaylistManager.ID_HEAVY_ROTATION), null, System.currentTimeMillis()))
+                filteredPlaylists.add(2, com.wayne.musicdeck.data.Playlist(com.wayne.musicdeck.data.SmartPlaylistManager.ID_FORGOTTEN_GEMS, com.wayne.musicdeck.data.SmartPlaylistManager.getSmartPlaylistName(com.wayne.musicdeck.data.SmartPlaylistManager.ID_FORGOTTEN_GEMS), null, System.currentTimeMillis()))
+            }
 
             playlists.postValue(filteredPlaylists)
         }
@@ -214,11 +218,14 @@ class MainViewModel(
             val smartLive = MutableLiveData<List<Song>>()
             viewModelScope.launch(Dispatchers.IO) {
                 val allPlayCounts = playCountDao.getAllPlayCounts()
-                val manager = com.wayne.musicdeck.data.SmartPlaylistManager(originalSongs.ifEmpty { loadSongsInternal() }, allPlayCounts)
+                val allSongs = originalSongs.ifEmpty { loadSongsInternal() }
+                val manager = com.wayne.musicdeck.data.SmartPlaylistManager(allSongs, allPlayCounts)
                 val songs = when (playlistId) {
                     com.wayne.musicdeck.data.SmartPlaylistManager.ID_RECENTLY_ADDED -> manager.getRecentlyAdded()
                     com.wayne.musicdeck.data.SmartPlaylistManager.ID_HEAVY_ROTATION -> manager.getHeavyRotation()
                     com.wayne.musicdeck.data.SmartPlaylistManager.ID_FORGOTTEN_GEMS -> manager.getForgottenGems()
+                    com.wayne.musicdeck.data.SmartPlaylistManager.ID_CHILL_MODE -> manager.getChillMode()
+                    com.wayne.musicdeck.data.SmartPlaylistManager.ID_ENERGY_BOOST -> manager.getEnergyBoost()
                     else -> emptyList()
                 }
                 smartLive.postValue(songs)
@@ -231,6 +238,29 @@ class MainViewModel(
             playlistSongs.mapNotNull { pSong ->
                 allSongs.find { it.id == pSong.songId }
             }
+        }
+    }
+
+    suspend fun getPlaylistPreview(playlistId: Long): List<String> {
+        return withContext(Dispatchers.IO) {
+            val pSongs = playlistRepository.getSongsForPlaylist(playlistId)
+            val allSongs = originalSongs.ifEmpty { loadSongsInternal() }
+            val paths = mutableListOf<String>()
+            
+            for (ps in pSongs) {
+                val song = allSongs.find { it.id == ps.songId }
+                if (song != null) {
+                    val customCoverPath = customCoverRepository.getCustomCover(song.data)
+                    if (customCoverPath != null) {
+                        paths.add(customCoverPath)
+                    } else {
+                        // Use song path, Coil will fetch embedded art
+                        paths.add(song.data)
+                    }
+                }
+                if (paths.size >= 4) break
+            }
+            paths
         }
     }
 
@@ -811,7 +841,7 @@ class MainViewModel(
         }.sortedBy { it.title }.map { SongListItem.SongItem(it) }
     }
     
-    fun updateSongTags(song: Song, title: String, artist: String, album: String) {
+    fun updateSongTags(song: Song, title: String, artist: String, album: String, notes: String? = null) {
         viewModelScope.launch {
             try {
                 // Save to local database instead of trying to modify MediaStore
@@ -822,7 +852,8 @@ class MainViewModel(
                         songId = song.id,
                         customTitle = title,
                         customArtist = artist,
-                        customAlbum = album
+                        customAlbum = album,
+                        notes = notes
                     )
                     customMetadataDao.insertOrUpdate(customMetadata)
                 }
@@ -853,6 +884,12 @@ class MainViewModel(
     
     fun clearTagEditPermissionRequest() {
         _tagEditPermissionRequest.value = null
+    }
+    
+    suspend fun getSongNotes(filePath: String): String? {
+        return withContext(Dispatchers.IO) {
+            customMetadataDao.getCustomMetadata(filePath)?.notes
+        }
     }
     
     // Force update after permission granted

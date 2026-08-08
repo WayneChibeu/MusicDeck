@@ -75,4 +75,24 @@ class SettingsManager(context: Context) {
     var lastPlayedIsFavorite: Boolean
         get() = kv.decodeBool("last_is_favorite", false)
         set(value) { kv.encode("last_is_favorite", value) }
+        
+    var isCrossfadeEnabled: Boolean
+        get() = kv.decodeBool("crossfade_enabled", false)
+        set(value) { kv.encode("crossfade_enabled", value) }
+        
+    var isInsightsEnabled: Boolean
+        get() = kv.decodeBool("insights_enabled", true)
+        set(value) { kv.encode("insights_enabled", value) }
+        
+    var isSmartPlaylistsEnabled: Boolean
+        get() = kv.decodeBool("smart_playlists_enabled", true)
+        set(value) { kv.encode("smart_playlists_enabled", value) }
+        
+    var isPlaylistCollageEnabled: Boolean
+        get() = kv.decodeBool("playlist_collage_enabled", true)
+        set(value) { kv.encode("playlist_collage_enabled", value) }
+        
+    var isSongNotesEnabled: Boolean
+        get() = kv.decodeBool("song_notes_enabled", true)
+        set(value) { kv.encode("song_notes_enabled", value) }
 }

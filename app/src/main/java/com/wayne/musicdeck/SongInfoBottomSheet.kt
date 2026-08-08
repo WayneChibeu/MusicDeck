@@ -8,11 +8,14 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.lifecycleScope
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
-
+import kotlinx.coroutines.launch
+import org.koin.android.ext.android.inject
 class SongInfoBottomSheet : BottomSheetDialogFragment() {
 
     private val viewModel: MainViewModel by activityViewModels()
+    private val settingsManager: com.wayne.musicdeck.utils.SettingsManager by inject()
     private var currentSong: Song? = null
     
     // Lyric file picker
@@ -71,6 +74,23 @@ class SongInfoBottomSheet : BottomSheetDialogFragment() {
         view.findViewById<TextView>(R.id.tvDuration).text = formatDuration(song.duration)
         view.findViewById<TextView>(R.id.tvFileSize).text = viewModel.getSongFileSize(song)
         view.findViewById<TextView>(R.id.tvFilePath).text = song.data
+        
+        // Load Notes
+        // Load Notes
+        val itemNotes = view.findViewById<View>(R.id.itemNotes)
+        val tvNotes = view.findViewById<TextView>(R.id.tvNotes)
+        val divNotes = view.findViewById<View>(R.id.divNotes)
+        
+        if (settingsManager.isSongNotesEnabled) {
+            lifecycleScope.launch {
+                val notes = viewModel.getSongNotes(song.data)
+                if (!notes.isNullOrEmpty()) {
+                    itemNotes.visibility = View.VISIBLE
+                    divNotes.visibility = View.VISIBLE
+                    tvNotes.text = notes
+                }
+            }
+        }
         
         // Update lyric path
         updateLyricPath()

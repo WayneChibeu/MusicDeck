@@ -14,6 +14,7 @@ val appModule = module {
     single { get<MusicDatabase>().playCountDao() }
     single { get<MusicDatabase>().customMetadataDao() }
     single { get<MusicDatabase>().hiddenSongDao() }
+    single { get<MusicDatabase>().playHistoryDao() }
 
     // Repositories & Managers
     single { PlaylistRepository(get()) }

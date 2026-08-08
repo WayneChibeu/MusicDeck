@@ -212,6 +212,20 @@ class PlayerMenuBottomSheet : BottomSheetDialogFragment() {
         view.findViewById<View>(R.id.menuSunset).setOnClickListener {
             sunsetSwitch.isChecked = !sunsetSwitch.isChecked
         }
+
+        // Crossfade Transition Toggle
+        val crossfadeSwitch = view.findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.switchCrossfade)
+        crossfadeSwitch.isChecked = settingsManager.isCrossfadeEnabled
+ 
+        crossfadeSwitch.setOnCheckedChangeListener { _, isChecked ->
+            settingsManager.isCrossfadeEnabled = isChecked
+            val msg = if (isChecked) "Crossfade enabled" else "Crossfade disabled"
+            Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+        }
+
+        view.findViewById<View>(R.id.menuCrossfade).setOnClickListener {
+            crossfadeSwitch.isChecked = !crossfadeSwitch.isChecked
+        }
     }
 
     private fun formatSpeed(speed: Float): String {

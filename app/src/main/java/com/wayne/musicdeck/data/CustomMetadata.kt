@@ -16,5 +16,6 @@ data class CustomMetadata(
     val customTitle: String? = null,
     val customArtist: String? = null,
     val customAlbum: String? = null,
+    val notes: String? = null,
     val updatedAt: Long = System.currentTimeMillis()
 )

@@ -12,6 +12,10 @@ import androidx.appcompat.widget.Toolbar
 import coil.load
 import coil.transform.RoundedCornersTransformation
 import com.google.android.material.button.MaterialButton
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import androidx.lifecycle.lifecycleScope
 import org.koin.androidx.viewmodel.ext.android.viewModel
 
 class InsightsActivity : AppCompatActivity() {
@@ -32,11 +36,42 @@ class InsightsActivity : AppCompatActivity() {
         val tvTotalPlays = findViewById<TextView>(R.id.tvTotalPlays)
         val tvUniqueArtists = findViewById<TextView>(R.id.tvUniqueArtists)
         val tvUniqueAlbums = findViewById<TextView>(R.id.tvUniqueAlbums)
+        val tvStreak = findViewById<TextView>(R.id.tvStreak)
+        val tvWeeklyPlays = findViewById<TextView>(R.id.tvWeeklyPlays)
         val containerTopSongs = findViewById<LinearLayout>(R.id.containerTopSongs)
         val containerTopArtists = findViewById<LinearLayout>(R.id.containerTopArtists)
         val btnShareInsights = findViewById<MaterialButton>(R.id.btnShareInsights)
 
         var shareStatsText = "I've been listening to a lot of music! 🎧\n"
+
+        lifecycleScope.launch {
+            val db = com.wayne.musicdeck.data.MusicDatabase.getDatabase(this@InsightsActivity)
+            val dao = db.playHistoryDao()
+            
+            val sevenDaysAgo = System.currentTimeMillis() - (7L * 24 * 60 * 60 * 1000)
+            val weeklyPlays = withContext(Dispatchers.IO) { dao.getPlaysSince(sevenDaysAgo) }
+            tvWeeklyPlays.text = weeklyPlays.toString()
+            
+            // Calculate streak
+            val playDays = withContext(Dispatchers.IO) { dao.getDistinctPlayDays() }
+            var currentStreak = 0
+            val todayDay = System.currentTimeMillis() / 86400000
+            
+            var expectedDay = todayDay
+            for (day in playDays) {
+                if (day == expectedDay) {
+                    currentStreak++
+                    expectedDay--
+                } else if (day == expectedDay - 1 && currentStreak == 0) {
+                    // Didn't play today yet, but streak started yesterday
+                    currentStreak++
+                    expectedDay = day - 1
+                } else {
+                    break
+                }
+            }
+            tvStreak.text = "$currentStreak Days"
+        }
 
         viewModel.insights.observe(this) { insights ->
             tvTotalPlays.text = insights.totalPlays.toString()
