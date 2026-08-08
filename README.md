@@ -3,7 +3,7 @@
 A modern, ad-free Android music player built with Kotlin and Jetpack Media3.
 
 ## Download
-[**Download Latest APK (v2.6.1)**](https://github.com/WayneChibeu/MusicDeck/releases)
+[**Download Latest APK (v2.6.2)**](https://github.com/WayneChibeu/MusicDeck/releases)
 
 
 ## Features
