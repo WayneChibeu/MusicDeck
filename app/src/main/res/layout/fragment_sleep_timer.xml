@@ -103,10 +103,18 @@
     </LinearLayout>
 
     <Button
+        android:id="@+id/btnEndOfSong"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="End of Current Song"
+        style="@style/Widget.Material3.Button.TonalButton"/>
+
+    <Button
         android:id="@+id/btnStop"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="24dp"
+        android:layout_marginTop="8dp"
         android:text="Cancel Timer"
         style="@style/Widget.Material3.Button.TextButton"
         android:textColor="?attr/colorError"/>

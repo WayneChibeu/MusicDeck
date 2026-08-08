@@ -88,6 +88,14 @@ class SearchBottomSheet : BottomSheetDialogFragment() {
                              "add_to_playlist" -> mainActivity.showAddToPlaylistDialog(song)
                              "delete" -> mainActivity.deleteSong(song)
                              "share" -> mainActivity.shareSong(song)
+                             "play_next" -> {
+                                 mainActivity.viewModel.playNext(song)
+                                 android.widget.Toast.makeText(mainActivity, "Added to Play Next", android.widget.Toast.LENGTH_SHORT).show()
+                             }
+                             "add_to_queue" -> {
+                                 mainActivity.viewModel.addToQueue(song)
+                                 android.widget.Toast.makeText(mainActivity, "Added to Queue", android.widget.Toast.LENGTH_SHORT).show()
+                             }
                              // "ringtone" needs implementation in MainActivity or here, assuming MainActivity has it via generic handler? 
                              // Checking MainActivity, it handled "show_menu", "details", "edit", "add", "delete", "share".
                              // It didn't explicitly handle "ringtone" in the adapter callback block I read earlier.

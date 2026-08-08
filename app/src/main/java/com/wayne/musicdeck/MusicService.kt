@@ -35,10 +35,12 @@ class MusicService : MediaSessionService() {
     private val settingsManager: SettingsManager by inject()
     private var playCountJob: kotlinx.coroutines.Job? = null
     private var playbackPositionJob: kotlinx.coroutines.Job? = null
+    private var stopAtEndOfCurrentSong: Boolean = false
     
     companion object {
         private const val USER_AGENT = "MusicDeck/2.5.0"
         const val ACTION_SET_SLEEP_TIMER = "com.wayne.musicdeck.ACTION_SET_SLEEP_TIMER"
+        const val ACTION_SET_SLEEP_TIMER_END_OF_SONG = "com.wayne.musicdeck.ACTION_SET_SLEEP_TIMER_END_OF_SONG"
         const val ACTION_CANCEL_SLEEP_TIMER = "com.wayne.musicdeck.ACTION_CANCEL_SLEEP_TIMER"
         const val EXTRA_TIMER_MINUTES = "extra_timer_minutes"
     }
@@ -296,6 +298,12 @@ class MusicService : MediaSessionService() {
                  }
              }
              override fun onMediaItemTransition(mediaItem: androidx.media3.common.MediaItem?, reason: Int) {
+                 if (stopAtEndOfCurrentSong && reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO) {
+                     stopAtEndOfCurrentSong = false
+                     player.pause()
+                     cancelSleepTimer()
+                 }
+                 
                  // Suppress fade-in during song transitions to prevent "skip-stop-play" glitch.
                  // We only want to fade in when resuming from a paused/stopped state,
                  // OR if crossfade is enabled.
@@ -659,6 +667,16 @@ class MusicService : MediaSessionService() {
                         startSleepTimer(minutes)
                     }
                 }
+                ACTION_SET_SLEEP_TIMER_END_OF_SONG -> {
+                    cancelSleepTimer() // Clear any existing timer
+                    stopAtEndOfCurrentSong = true
+                    // Notify UI that we are in "End of Song" mode
+                    val extras = android.os.Bundle().apply {
+                        putLong("SLEEP_TIMER_REMAINING_MS", -1L) // -1 signifies End of Song mode
+                    }
+                    mediaSession?.setSessionExtras(extras)
+                    android.widget.Toast.makeText(this@MusicService, "Will stop after current song", android.widget.Toast.LENGTH_SHORT).show()
+                }
                 ACTION_CANCEL_SLEEP_TIMER -> {
                     cancelSleepTimer()
                 }
@@ -843,13 +861,16 @@ class MusicService : MediaSessionService() {
     }
 
     private fun cancelSleepTimer() {
-        if (sleepTimerJob != null) {
+        if (sleepTimerJob != null || stopAtEndOfCurrentSong) {
             android.widget.Toast.makeText(this, "Sleep timer cancelled", android.widget.Toast.LENGTH_SHORT).show()
         }
         sleepTimerJob?.cancel()
         sleepTimerJob = null
-        mediaSession?.player?.volume = 1.0f // Reset volume if cancelled
-        mediaSession?.setSessionExtras(android.os.Bundle.EMPTY)
+        stopAtEndOfCurrentSong = false
+        
+        val extras = android.os.Bundle()
+        // Removing the key means no timer
+        mediaSession?.setSessionExtras(extras)
     }
     
     // softFadeOut removed in favor of VolumeManager.fadeOut for ultra-smooth rendering

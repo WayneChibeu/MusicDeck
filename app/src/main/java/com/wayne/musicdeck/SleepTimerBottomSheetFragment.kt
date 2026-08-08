@@ -47,6 +47,13 @@ class SleepTimerBottomSheetFragment : BottomSheetDialogFragment() {
             })
             dismiss()
         }
+        
+        binding.btnEndOfSong.setOnClickListener {
+            context?.startService(Intent(context, MusicService::class.java).apply {
+                action = MusicService.ACTION_SET_SLEEP_TIMER_END_OF_SONG
+            })
+            dismiss()
+        }
     }
     
     private fun setTimer(minutes: Int) {

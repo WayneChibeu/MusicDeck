@@ -2,10 +2,10 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
+    android:layout_height="match_parent"
     android:orientation="vertical"
     android:background="@drawable/bg_bottom_sheet_glassmorphic"
-    android:padding="20dp">
+    android:paddingTop="20dp">
 
     <!-- Drag Handle -->
     <View
@@ -25,7 +25,19 @@
         android:gravity="center"
         android:layout_marginBottom="24dp" />
 
-    <!-- Rescan Library -->
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true">
+        
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingHorizontal="20dp"
+            android:paddingBottom="20dp">
+
+            <!-- Rescan Library -->
     <LinearLayout
         android:id="@+id/btnRescan"
         android:layout_width="match_parent"
@@ -392,7 +404,7 @@
         <ImageView
             android:layout_width="28dp"
             android:layout_height="28dp"
-            android:src="@drawable/ic_auto_fix"
+            android:src="@drawable/ic_settings"
             app:tint="?attr/colorPrimary" />
         
         <LinearLayout
@@ -425,6 +437,9 @@
             app:tint="#80FFFFFF" />
     </LinearLayout>
 
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+
     <!-- Divider -->
     <View
         android:layout_width="match_parent"
@@ -447,6 +462,7 @@
         android:textSize="11sp"
         android:textColor="?attr/colorPrimary"
         android:gravity="center"
-        android:layout_marginTop="4dp" />
+        android:layout_marginTop="4dp"
+        android:layout_marginBottom="20dp" />
 
 </LinearLayout>

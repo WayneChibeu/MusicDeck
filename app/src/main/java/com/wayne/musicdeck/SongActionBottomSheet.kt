@@ -91,6 +91,8 @@ class SongActionBottomSheet : BottomSheetDialogFragment() {
         }
         
         // Setup click listeners with haptic feedback
+        setupAction(view, R.id.actionPlayNext, "play_next")
+        setupAction(view, R.id.actionAddToQueue, "add_to_queue")
         setupAction(view, R.id.actionAddToPlaylist, "add_to_playlist")
         setupAction(view, R.id.actionRemoveFromPlaylist, "remove_from_playlist")
         setupAction(view, R.id.actionShare, "share")

@@ -23,7 +23,7 @@ import org.koin.android.ext.android.inject
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
-    private val viewModel: MainViewModel by viewModel()
+    val viewModel: MainViewModel by viewModel()
     private val settingsManager: com.wayne.musicdeck.utils.SettingsManager by inject()
     private val adapter = SongAdapter { song ->
         playInContext(song)
@@ -1018,6 +1018,15 @@ class MainActivity : AppCompatActivity() {
                 // Add a subtle border to indicate it's active
                 binding.cardSleepTimer.strokeWidth = 4
                 binding.cardSleepTimer.setStrokeColor(android.content.res.ColorStateList.valueOf(violetColor))
+            } else if (remainingMs == -1L) {
+                // ACTIVE STATE: End of Song
+                binding.ivSleepTimer.visibility = android.view.View.GONE
+                binding.tvSleepTimerCountdown.visibility = android.view.View.VISIBLE
+                binding.tvSleepTimerCountdown.text = "1 🎵"
+                
+                // Add a subtle border to indicate it's active
+                binding.cardSleepTimer.strokeWidth = 4
+                binding.cardSleepTimer.setStrokeColor(android.content.res.ColorStateList.valueOf(violetColor))
             } else {
                 // INACTIVE STATE: Reset to Icon
                 binding.ivSleepTimer.visibility = android.view.View.VISIBLE
@@ -1309,7 +1318,7 @@ class MainActivity : AppCompatActivity() {
 
         // Play Next
         view.findViewById<android.widget.TextView>(R.id.action_play_next).setOnClickListener {
-            viewModel.addToQueue(listOf(song))
+            viewModel.playNext(song)
             android.widget.Toast.makeText(this, "Added to Play Next", android.widget.Toast.LENGTH_SHORT).show()
             dialog.dismiss()
         }

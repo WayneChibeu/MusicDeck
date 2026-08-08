@@ -679,6 +679,71 @@ class MainViewModel(
         lastPlayedPosition = 0
     }
     
+    fun playNext(song: Song) {
+        val controller = mediaController.value ?: return
+        val customCoverPath = customCoverRepository.getCustomCover(song.data)
+        val artUri = if (customCoverPath != null) {
+            Uri.fromFile(java.io.File(customCoverPath))
+        } else if (song.albumId > 0 && song.album != "Unknown Album") {
+            ContentUris.withAppendedId(Uri.parse("content://media/external/audio/album_art"), song.albumId)
+        } else {
+            song.uri 
+        }
+
+        val mediaItem = MediaItem.Builder()
+            .setMediaId(song.data)
+            .setUri(song.uri)
+            .setMediaMetadata(
+                MediaMetadata.Builder()
+                    .setTitle(song.title)
+                    .setArtist(song.artist)
+                    .setArtworkUri(artUri)
+                    .build()
+            )
+            .setRequestMetadata(
+                androidx.media3.common.MediaItem.RequestMetadata.Builder()
+                    .setExtras(android.os.Bundle().apply { putLong("songId", song.id) })
+                    .build()
+            )
+            .build()
+            
+        // Insert right after the current playing item
+        val nextIndex = controller.currentMediaItemIndex + 1
+        controller.addMediaItem(nextIndex, mediaItem)
+    }
+
+    fun addToQueue(song: Song) {
+        val controller = mediaController.value ?: return
+        val customCoverPath = customCoverRepository.getCustomCover(song.data)
+        val artUri = if (customCoverPath != null) {
+            Uri.fromFile(java.io.File(customCoverPath))
+        } else if (song.albumId > 0 && song.album != "Unknown Album") {
+            ContentUris.withAppendedId(Uri.parse("content://media/external/audio/album_art"), song.albumId)
+        } else {
+            song.uri 
+        }
+
+        val mediaItem = MediaItem.Builder()
+            .setMediaId(song.data)
+            .setUri(song.uri)
+            .setMediaMetadata(
+                MediaMetadata.Builder()
+                    .setTitle(song.title)
+                    .setArtist(song.artist)
+                    .setArtworkUri(artUri)
+                    .build()
+            )
+            .setRequestMetadata(
+                androidx.media3.common.MediaItem.RequestMetadata.Builder()
+                    .setExtras(android.os.Bundle().apply { putLong("songId", song.id) })
+                    .build()
+            )
+            .build()
+            
+        // Add to end of queue
+        controller.addMediaItem(mediaItem)
+    }
+    
     fun playSongFromPosition(song: Song, positionMs: Long, autoPlay: Boolean = true) {
         val controller = mediaController.value ?: return
         val currentList = _songs.value ?: return

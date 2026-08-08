@@ -15,7 +15,12 @@ class SmartPlaylistManager(
     }
 
     fun getHeavyRotation(): List<Song> {
-        return playCounts.sortedByDescending { it.playCount }
+        val now = System.currentTimeMillis()
+        return playCounts.sortedByDescending { pc ->
+            val daysSinceLastPlay = kotlin.math.max(0L, (now - pc.lastPlayed) / TimeUnit.DAYS.toMillis(1))
+            // 5% decay per day
+            pc.playCount.toDouble() * Math.pow(0.95, daysSinceLastPlay.toDouble())
+        }
             .take(30)
             .mapNotNull { pc -> allSongs.find { it.id == pc.songId } }
     }
