@@ -1099,13 +1099,20 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         
         val isActive = playbackMode != 0
         
-        // Use the dynamically calculated text colors for perfect contrast
-        // Active = Solid white/black (like the title)
-        // Inactive = 70% opacity white/black (like the artist)
+        // Active = Theme Accent Color (colorPrimary)
+        // Inactive = Solid white/black (colorOnSurface)
         val tintColor = if (isActive) {
-            binding.tvFullTitle.currentTextColor
+            com.google.android.material.color.MaterialColors.getColor(
+                requireContext(),
+                com.google.android.material.R.attr.colorPrimary,
+                0
+            )
         } else {
-            binding.tvFullArtist.currentTextColor
+            com.google.android.material.color.MaterialColors.getColor(
+                requireContext(),
+                com.google.android.material.R.attr.colorOnSurface,
+                0
+            )
         }
         
         binding.btnRepeat.imageTintList = android.content.res.ColorStateList.valueOf(tintColor)
