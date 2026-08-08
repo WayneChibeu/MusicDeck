@@ -8,8 +8,10 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    outputs:
-      hashes: ${{ steps.hash.outputs.hashes }}
+    permissions:
+      id-token: write
+      contents: write
+      attestations: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -33,20 +35,7 @@ jobs:
         with:
           files: app/build/outputs/apk/debug/app-debug.apk
 
-      - name: Generate hash subject for SLSA provenance
-        id: hash
-        run: |
-          set -euo pipefail
-          files=$(find app/build/outputs/apk/debug -name "*.apk" -type f)
-          echo "hashes=$(sha256sum $files | base64 -w0)" >> "$GITHUB_OUTPUT"
-
-  provenance:
-    needs: [build]
-    permissions:
-      actions: read   # To read the workflow path.
-      id-token: write # To sign the provenance.
-      contents: write # To add assets to a release.
-    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v1.4.0
-    with:
-      base64-subjects: "${{ needs.build.outputs.hashes }}"
-      upload-assets: true # Uploads the provenance file directly to the GitHub release
+      - name: Generate SLSA provenance attestation
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: 'app/build/outputs/apk/debug/app-debug.apk'
