@@ -92,7 +92,7 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="This application is provided strictly for personal, non-commercial use. Users may not use MusicDeck to publicly broadcast, sell, or distribute copyrighted material."
+                android:text="This application is provided strictly for personal, non-commercial use. Users may not use MusicDeck to publicly broadcast, sell, or distribute copyrighted material. Furthermore, you are expressly prohibited from cloning, copying, or redistributing the MusicDeck application itself for commercial purposes or financial gain."
                 android:textSize="14sp"
                 android:lineSpacingExtra="4dp"
                 android:textColor="?attr/colorOnSurfaceVariant"
