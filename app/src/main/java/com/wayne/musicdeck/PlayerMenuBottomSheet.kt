@@ -40,6 +40,12 @@ class PlayerMenuBottomSheet : BottomSheetDialogFragment() {
             dismiss()
         }
 
+        // Listening History
+        view.findViewById<View>(R.id.menuHistory).setOnClickListener {
+            dismiss()
+            HistoryBottomSheetFragment().show(parentFragmentManager, "History")
+        }
+
         // Sleep Timer
         view.findViewById<View>(R.id.menuSleepTimer).setOnClickListener {
             dismiss()

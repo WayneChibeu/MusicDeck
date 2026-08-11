@@ -58,7 +58,8 @@ class ToolsBottomSheetFragment : BottomSheetDialogFragment() {
         }
 
         binding.btnAbout.setOnClickListener {
-            showAboutDialog()
+            dismiss()
+            LegalBottomSheetFragment().show(parentFragmentManager, "legal")
         }
 
         binding.btnFeatures.setOnClickListener {

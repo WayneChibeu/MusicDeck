@@ -10,6 +10,7 @@ import android.widget.TextView
 import coil.load
 import coil.transform.RoundedCornersTransformation
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
+import com.wayne.musicdeck.utils.setupBouncyPress
 
 class SongActionBottomSheet : BottomSheetDialogFragment() {
     
@@ -106,7 +107,9 @@ class SongActionBottomSheet : BottomSheetDialogFragment() {
     }
     
     private fun setupAction(view: View, viewId: Int, action: String) {
-        view.findViewById<View>(viewId).setOnClickListener {
+        val actionView = view.findViewById<View>(viewId)
+        actionView.setupBouncyPress()
+        actionView.setOnClickListener {
             // Haptic feedback - safe call
             try {
                 com.wayne.musicdeck.utils.HapticManager.performSpringClick(requireContext())

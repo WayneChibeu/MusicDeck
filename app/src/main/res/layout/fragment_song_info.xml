@@ -73,11 +73,7 @@
                     android:textColor="?attr/colorOnSurfaceVariant" />
             </LinearLayout>
 
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:layout_marginStart="16dp"
-                android:background="?attr/colorOutlineVariant" />
+            
 
             <!-- Artist -->
             <LinearLayout
@@ -105,11 +101,7 @@
                     android:textColor="?attr/colorOnSurfaceVariant" />
             </LinearLayout>
 
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:layout_marginStart="16dp"
-                android:background="?attr/colorOutlineVariant" />
+            
 
             <!-- Album -->
             <LinearLayout
@@ -137,11 +129,7 @@
                     android:textColor="?attr/colorOnSurfaceVariant" />
             </LinearLayout>
 
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:layout_marginStart="16dp"
-                android:background="?attr/colorOutlineVariant" />
+            
 
             <!-- Notes -->
             <LinearLayout
@@ -182,7 +170,11 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="16dp">
+                android:padding="16dp"
+                android:layout_marginHorizontal="16dp"
+                android:layout_marginBottom="12dp"
+                android:background="@drawable/bg_rounded_12"
+                android:elevation="1dp">
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -201,18 +193,18 @@
                     android:textColor="?attr/colorOnSurfaceVariant" />
             </LinearLayout>
 
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:layout_marginStart="16dp"
-                android:background="?attr/colorOutlineVariant" />
+            
 
             <!-- File Size -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="16dp">
+                android:padding="16dp"
+                android:layout_marginHorizontal="16dp"
+                android:layout_marginBottom="12dp"
+                android:background="@drawable/bg_rounded_12"
+                android:elevation="1dp">
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -231,11 +223,7 @@
                     android:textColor="?attr/colorOnSurfaceVariant" />
             </LinearLayout>
 
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:layout_marginStart="16dp"
-                android:background="?attr/colorOutlineVariant" />
+            
 
 
             <!-- File Path -->
@@ -243,7 +231,11 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="16dp">
+                android:padding="16dp"
+                android:layout_marginHorizontal="16dp"
+                android:layout_marginBottom="12dp"
+                android:background="@drawable/bg_rounded_12"
+                android:elevation="1dp">
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -264,11 +256,7 @@
                     android:ellipsize="end" />
             </LinearLayout>
 
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:layout_marginStart="16dp"
-                android:background="?attr/colorOutlineVariant" />
+            
 
             <!-- Manually specify lyric file -->
             <LinearLayout
