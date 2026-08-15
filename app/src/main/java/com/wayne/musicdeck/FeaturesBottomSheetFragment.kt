@@ -25,12 +25,16 @@ class FeaturesBottomSheetFragment : BottomSheetDialogFragment() {
         val switchSmartPlaylists = view.findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.switchSmartPlaylists)
         val switchPlaylistCollage = view.findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.switchPlaylistCollage)
         val switchSongNotes = view.findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.switchSongNotes)
+        val switchShakeShuffle = view.findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.switchShakeShuffle)
+        val switchEarbudShuffle = view.findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.switchEarbudShuffle)
 
         // Init values
         switchInsights.isChecked = settingsManager.isInsightsEnabled
         switchSmartPlaylists.isChecked = settingsManager.isSmartPlaylistsEnabled
         switchPlaylistCollage.isChecked = settingsManager.isPlaylistCollageEnabled
         switchSongNotes.isChecked = settingsManager.isSongNotesEnabled
+        switchShakeShuffle.isChecked = settingsManager.isShakeToShuffleEnabled
+        switchEarbudShuffle.isChecked = settingsManager.isEarbudComboShuffleEnabled
 
         // Listeners
         switchInsights.setOnCheckedChangeListener { _, isChecked ->
@@ -59,6 +63,20 @@ class FeaturesBottomSheetFragment : BottomSheetDialogFragment() {
         }
         view.findViewById<View>(R.id.menuSongNotes).setOnClickListener {
             switchSongNotes.isChecked = !switchSongNotes.isChecked
+        }
+
+        switchShakeShuffle.setOnCheckedChangeListener { _, isChecked ->
+            settingsManager.isShakeToShuffleEnabled = isChecked
+        }
+        view.findViewById<View>(R.id.menuShakeShuffle).setOnClickListener {
+            switchShakeShuffle.isChecked = !switchShakeShuffle.isChecked
+        }
+
+        switchEarbudShuffle.setOnCheckedChangeListener { _, isChecked ->
+            settingsManager.isEarbudComboShuffleEnabled = isChecked
+        }
+        view.findViewById<View>(R.id.menuEarbudShuffle).setOnClickListener {
+            switchEarbudShuffle.isChecked = !switchEarbudShuffle.isChecked
         }
     }
 }

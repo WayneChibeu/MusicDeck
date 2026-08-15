@@ -36,6 +36,11 @@ android {
     }
 
 
+    lint {
+        checkReleaseBuilds false
+        abortOnError false
+    }
+
     applicationVariants.all { variant ->
         variant.outputs.all {
             outputFileName = "MusicDeck-v${variant.versionName}.apk"

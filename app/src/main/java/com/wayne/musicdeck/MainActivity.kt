@@ -149,6 +149,9 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    // Shake to Shuffle motion sensor detector
+    private var shakeDetector: com.wayne.musicdeck.utils.ShakeDetector? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         // Apply Premium Theme Preference
         com.wayne.musicdeck.utils.ThemeHelper.applyTheme(this)
@@ -157,6 +160,19 @@ class MainActivity : AppCompatActivity() {
         
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        // Initialize Shake to Shuffle
+        shakeDetector = com.wayne.musicdeck.utils.ShakeDetector(this) {
+            if (settingsManager.isShakeToShuffleEnabled) {
+                val currentSongs = viewModel.songs.value
+                if (!currentSongs.isNullOrEmpty()) {
+                    val shuffled = currentSongs.shuffled()
+                    viewModel.playPlaylist(shuffled, 0)
+                    com.wayne.musicdeck.utils.HapticManager.performSpringClick(this)
+                    android.widget.Toast.makeText(this, "Queue Shuffled 🔀", android.widget.Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
 
         onBackPressedDispatcher.addCallback(this) {
              val tabLayout = binding.topBar.findViewById<com.google.android.material.tabs.TabLayout>(R.id.tabLayout)
@@ -1108,6 +1124,7 @@ class MainActivity : AppCompatActivity() {
     
     override fun onPause() {
         super.onPause()
+        shakeDetector?.stop()
         // Save scroll position for Tracks tab
         val layoutManager = binding.recyclerView.layoutManager as? LinearLayoutManager
         val position = layoutManager?.findFirstVisibleItemPosition() ?: 0
@@ -1556,5 +1573,10 @@ class MainActivity : AppCompatActivity() {
             addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
         startActivity(android.content.Intent.createChooser(shareIntent, "Share Song"))
+    }
+
+    override fun onResume() {
+        super.onResume()
+        shakeDetector?.start()
     }
 }

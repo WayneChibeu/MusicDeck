@@ -40,4 +40,6 @@
     <color name="pitchBlackMedium">#121212</color>
     <color name="colorSunset">#FF6B6B</color>
     <color name="colorSunsetDark">#E03131</color>
+    <color name="textPrimary">#FFFFFFFF</color>
+    <color name="textSecondary">#B3FFFFFF</color>
 </resources>

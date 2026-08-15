@@ -180,7 +180,7 @@
         android:orientation="horizontal"
         android:gravity="center_vertical"
         android:padding="16dp"
-        android:layout_marginBottom="20dp"
+        android:layout_marginBottom="8dp"
         android:background="@drawable/bg_glassmorphic_item"
         android:foreground="?attr/selectableItemBackground"
         android:clickable="true"
@@ -217,6 +217,104 @@
         
         <com.google.android.material.materialswitch.MaterialSwitch
             android:id="@+id/switchSongNotes"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+    </LinearLayout>
+
+    <!-- Shake to Shuffle -->
+    <LinearLayout
+        android:id="@+id/menuShakeShuffle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:padding="16dp"
+        android:layout_marginBottom="8dp"
+        android:background="@drawable/bg_glassmorphic_item"
+        android:foreground="?attr/selectableItemBackground"
+        android:clickable="true"
+        android:focusable="true">
+        
+        <ImageView
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:src="@drawable/ic_shuffle_on"
+            app:tint="?attr/colorPrimary" />
+        
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:layout_marginStart="16dp">
+            
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Shake to Shuffle"
+                android:textSize="16sp"
+                android:textColor="@android:color/white"
+                android:textStyle="bold" />
+            
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Shake phone to randomize playback queue"
+                android:textSize="12sp"
+                android:textColor="#80FFFFFF" />
+        </LinearLayout>
+        
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/switchShakeShuffle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+    </LinearLayout>
+
+    <!-- Earbud Smart Combo Shuffle -->
+    <LinearLayout
+        android:id="@+id/menuEarbudShuffle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:padding="16dp"
+        android:layout_marginBottom="20dp"
+        android:background="@drawable/bg_glassmorphic_item"
+        android:foreground="?attr/selectableItemBackground"
+        android:clickable="true"
+        android:focusable="true">
+        
+        <ImageView
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:src="@drawable/ic_headset"
+            app:tint="?attr/colorPrimary" />
+        
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:layout_marginStart="16dp">
+            
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Earbud Smart Shuffle"
+                android:textSize="16sp"
+                android:textColor="@android:color/white"
+                android:textStyle="bold" />
+            
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Double-tap Next on earphones to shuffle"
+                android:textSize="12sp"
+                android:textColor="#80FFFFFF" />
+        </LinearLayout>
+        
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/switchEarbudShuffle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content" />
     </LinearLayout>

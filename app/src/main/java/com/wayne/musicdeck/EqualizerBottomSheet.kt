@@ -1,17 +1,21 @@
 package com.wayne.musicdeck
 
+import android.annotation.SuppressLint
 import android.content.Context
-import android.content.SharedPreferences
 import android.os.Bundle
 import android.view.LayoutInflater
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
-import android.widget.AdapterView
-import android.widget.ArrayAdapter
+import android.widget.FrameLayout
+import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.SeekBar
-import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
+import androidx.core.content.ContextCompat
+import com.google.android.material.bottomsheet.BottomSheetBehavior
+import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.materialswitch.MaterialSwitch
 
@@ -19,6 +23,8 @@ class EqualizerBottomSheet : BottomSheetDialogFragment() {
     
     private val seekBars = mutableListOf<SeekBar>()
     private val freqLabels = mutableListOf<TextView>()
+    private val gainLabels = mutableListOf<TextView>()
+    private val presetPillViews = mutableMapOf<String, TextView>()
     
     // Presets: name -> array of band values (normalized 0-100)
     private val customPresets = mapOf(
@@ -30,7 +36,7 @@ class EqualizerBottomSheet : BottomSheetDialogFragment() {
         "Folk" to intArrayOf(60, 50, 50, 55, 60),
         "Heavy Metal" to intArrayOf(70, 60, 55, 75, 80),
         "Hip Hop" to intArrayOf(80, 65, 45, 55, 75),
-        "Jazz" to intArrayOf(60, 55, 50, 55, 65),
+        "Jazz" to intArrayOf(60, 50, 50, 55, 65),
         "Pop" to intArrayOf(55, 65, 70, 60, 55),
         "Rock" to intArrayOf(70, 60, 50, 60, 70)
     )
@@ -41,6 +47,18 @@ class EqualizerBottomSheet : BottomSheetDialogFragment() {
         savedInstanceState: Bundle?
     ): View? {
         return inflater.inflate(R.layout.fragment_equalizer, container, false)
+    }
+
+    override fun onStart() {
+        super.onStart()
+        // Configure bottom sheet to prevent accidental dismissal during slider manipulation
+        val dialog = dialog as? BottomSheetDialog
+        val bottomSheet = dialog?.findViewById<View>(com.google.android.material.R.id.design_bottom_sheet)
+        bottomSheet?.let {
+            val behavior = BottomSheetBehavior.from(it)
+            behavior.state = BottomSheetBehavior.STATE_EXPANDED
+            behavior.skipCollapsed = true
+        }
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -61,12 +79,25 @@ class EqualizerBottomSheet : BottomSheetDialogFragment() {
             setupExtremeBass(view)
             setupPresets(view)
             setupSwitch(view)
-            
-            // UI state is restored in setup methods by reading from AudioEffectManager/Prefs
-            
+            setupResetButton(view)
         } catch (e: Exception) {
             Toast.makeText(context, "Failed to initialize EQ UI: ${e.message}", Toast.LENGTH_SHORT).show()
             dismiss()
+        }
+    }
+
+    @SuppressLint("ClickableViewAccessibility")
+    private fun attachTouchDisallow(v: View) {
+        v.setOnTouchListener { target, event ->
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE -> {
+                    target.parent?.requestDisallowInterceptTouchEvent(true)
+                }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    target.parent?.requestDisallowInterceptTouchEvent(false)
+                }
+            }
+            false
         }
     }
     
@@ -78,59 +109,94 @@ class EqualizerBottomSheet : BottomSheetDialogFragment() {
         val maxLevel = eq.bandLevelRange[1]
         val range = maxLevel - minLevel
         
-        // Find the seek bars and labels
-        val seekBar1 = view.findViewById<SeekBar>(R.id.seekBand1)
-        val seekBar2 = view.findViewById<SeekBar>(R.id.seekBand2)
-        val seekBar3 = view.findViewById<SeekBar>(R.id.seekBand3)
-        val seekBar4 = view.findViewById<SeekBar>(R.id.seekBand4)
-        val seekBar5 = view.findViewById<SeekBar>(R.id.seekBand5)
+        seekBars.clear()
+        freqLabels.clear()
+        gainLabels.clear()
+
+        val sb1 = view.findViewById<SeekBar>(R.id.seekBand1)
+        val sb2 = view.findViewById<SeekBar>(R.id.seekBand2)
+        val sb3 = view.findViewById<SeekBar>(R.id.seekBand3)
+        val sb4 = view.findViewById<SeekBar>(R.id.seekBand4)
+        val sb5 = view.findViewById<SeekBar>(R.id.seekBand5)
+
+        val fl1 = view.findViewById<TextView>(R.id.labelBand1)
+        val fl2 = view.findViewById<TextView>(R.id.labelBand2)
+        val fl3 = view.findViewById<TextView>(R.id.labelBand3)
+        val fl4 = view.findViewById<TextView>(R.id.labelBand4)
+        val fl5 = view.findViewById<TextView>(R.id.labelBand5)
+
+        val gl1 = view.findViewById<TextView>(R.id.tvGainBand1)
+        val gl2 = view.findViewById<TextView>(R.id.tvGainBand2)
+        val gl3 = view.findViewById<TextView>(R.id.tvGainBand3)
+        val gl4 = view.findViewById<TextView>(R.id.tvGainBand4)
+        val gl5 = view.findViewById<TextView>(R.id.tvGainBand5)
+
+        seekBars.addAll(listOf(sb1, sb2, sb3, sb4, sb5))
+        freqLabels.addAll(listOf(fl1, fl2, fl3, fl4, fl5))
+        gainLabels.addAll(listOf(gl1, gl2, gl3, gl4, gl5))
         
-        val label1 = view.findViewById<TextView>(R.id.labelBand1)
-        val label2 = view.findViewById<TextView>(R.id.labelBand2)
-        val label3 = view.findViewById<TextView>(R.id.labelBand3)
-        val label4 = view.findViewById<TextView>(R.id.labelBand4)
-        val label5 = view.findViewById<TextView>(R.id.labelBand5)
-        
-        seekBars.addAll(listOf(seekBar1, seekBar2, seekBar3, seekBar4, seekBar5))
-        freqLabels.addAll(listOf(label1, label2, label3, label4, label5))
-        
-        // Configure each band
+        // Touch interception protection for bands container
+        view.findViewById<View>(R.id.eqBandsContainer)?.let { attachTouchDisallow(it) }
+
         for (i in 0 until minOf(bandCount, 5)) {
-            val freq = eq.getCenterFreq(i.toShort()) / 1000 // Convert to Hz
-            // Just the number as per user request (Hz label is at the bottom left)
-            freqLabels[i].text = "$freq"
+            val centerFreq = eq.getCenterFreq(i.toShort()) / 1000
+            val formattedFreq = if (centerFreq >= 1000) {
+                String.format("%.1f kHz", centerFreq / 1000f)
+            } else {
+                "$centerFreq Hz"
+            }
+            freqLabels[i].text = formattedFreq
             
             seekBars[i].max = 100
             
-            // Get current level or saved level
-            // Since AudioEffectManager restores on init, eq.getBandLevel should be correct
             val currentLevel = eq.getBandLevel(i.toShort())
             val progress = ((currentLevel - minLevel) * 100 / range)
             seekBars[i].progress = progress
+            
+            // Format dynamic dB gain label
+            updateGainLabel(i, currentLevel)
+
+            // Prevent touch drag conflict
+            attachTouchDisallow(seekBars[i])
             
             val bandIndex = i
             seekBars[i].setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                     if (fromUser) {
                         AudioEffectManager.setBandLevel(bandIndex.toShort(), progress, requireContext())
+                        val level = (minLevel + (progress * range / 100)).toShort()
+                        updateGainLabel(bandIndex, level)
                     }
                 }
-                override fun onStartTrackingTouch(seekBar: SeekBar?) {}
-                override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+                override fun onStartTrackingTouch(seekBar: SeekBar?) {
+                    seekBar?.parent?.requestDisallowInterceptTouchEvent(true)
+                }
+                override fun onStopTrackingTouch(seekBar: SeekBar?) {
+                    seekBar?.parent?.requestDisallowInterceptTouchEvent(false)
+                }
             })
         }
+    }
+
+    private fun updateGainLabel(bandIndex: Int, levelMilliBels: Short) {
+        if (bandIndex !in gainLabels.indices) return
+        val dB = levelMilliBels / 100
+        val text = if (dB > 0) "+$dB dB" else "$dB dB"
+        gainLabels[bandIndex].text = text
     }
     
     private fun setupBassBoost(view: View) {
         val bb = AudioEffectManager.getBassBoost() ?: return
+        val seekBassBoost = view.findViewById<SeekBar>(R.id.seekBassBoost)
+        val tvBassBoostLevel = view.findViewById<TextView>(R.id.tvBassBoostLevel)
+
         if (!bb.strengthSupported) {
-            view.findViewById<View>(R.id.seekBassBoost).isEnabled = false
+            seekBassBoost.isEnabled = false
             return
         }
         
-        val seekBassBoost = view.findViewById<SeekBar>(R.id.seekBassBoost)
-        val tvBassBoostLevel = view.findViewById<TextView>(R.id.tvBassBoostLevel)
-        
+        attachTouchDisallow(seekBassBoost)
+
         val currentStrength = bb.roundedStrength // 0 - 1000
         val progress = currentStrength.toInt()
         
@@ -144,22 +210,29 @@ class EqualizerBottomSheet : BottomSheetDialogFragment() {
                     tvBassBoostLevel.text = "${progress / 10}%"
                 }
             }
-
-            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
-            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {
+                seekBar?.parent?.requestDisallowInterceptTouchEvent(true)
+            }
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {
+                seekBar?.parent?.requestDisallowInterceptTouchEvent(false)
+            }
         })
     }
 
     private fun setupSwitch(view: View) {
         val switch = view.findViewById<MaterialSwitch>(R.id.switchEq)
+        val tvEqStatus = view.findViewById<TextView>(R.id.tvEqStatus)
         val eq = AudioEffectManager.getEqualizer()
         
-        switch.isChecked = eq?.enabled == true
+        val isEnabled = eq?.enabled == true
+        switch.isChecked = isEnabled
+        tvEqStatus.text = if (isEnabled) "Effects Active" else "Effects Disabled (Bypassed)"
         
         switch.setOnCheckedChangeListener { _, isChecked ->
             AudioEffectManager.setEqEnabled(isChecked, requireContext())
+            tvEqStatus.text = if (isChecked) "Effects Active" else "Effects Disabled (Bypassed)"
             val status = if (isChecked) "ON" else "OFF"
-            Toast.makeText(context, "Effects $status", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "Equalizer $status", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -173,7 +246,6 @@ class EqualizerBottomSheet : BottomSheetDialogFragment() {
             if (isChecked) {
                 Toast.makeText(context, "Extreme Bass Mode Activated", Toast.LENGTH_SHORT).show()
             }
-            // Refresh UI to reflect changes
             view.post {
                 setupEqualizer(view)
                 setupBassBoost(view)
@@ -182,49 +254,68 @@ class EqualizerBottomSheet : BottomSheetDialogFragment() {
     }
     
     private fun setupPresets(view: View) {
-        val spinner = view.findViewById<Spinner>(R.id.spinnerPresets)
-        val presetNames = customPresets.keys.toList()
-        
-        val adapter = ArrayAdapter(requireContext(), R.layout.item_spinner_modern, presetNames)
-        adapter.setDropDownViewResource(R.layout.item_spinner_dropdown_modern)
-        spinner.adapter = adapter
-        
-        // Restore saved preset selection
+        val container = view.findViewById<LinearLayout>(R.id.presetChipsContainer) ?: return
+        container.removeAllViews()
+        presetPillViews.clear()
+
         val savedPreset = AudioEffectManager.getSavedPreset(requireContext())
-        val savedIndex = presetNames.indexOf(savedPreset)
-        if (savedIndex >= 0) {
-            spinner.setSelection(savedIndex, false)
-        }
-        
-        spinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                val presetName = presetNames[position]
-                // Only apply if user triggers it (spinner initial layout might fire this?)
-                // Actually, simple_spinner usually fires onItemSelected on setup.
-                // We check if it matches saved.
-                val currentSaved = AudioEffectManager.getSavedPreset(requireContext())
-                if (presetName != currentSaved) {
-                     applyPreset(presetName)
+        val context = requireContext()
+
+        customPresets.keys.forEach { presetName ->
+            val pill = TextView(context).apply {
+                text = presetName
+                textSize = 13f
+                setPadding(dpToPx(16), dpToPx(8), dpToPx(16), dpToPx(8))
+                val params = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply {
+                    marginEnd = dpToPx(8)
+                }
+                layoutParams = params
+                isClickable = true
+                isFocusable = true
+                
+                setOnClickListener {
+                    selectPresetPill(presetName)
+                    applyPreset(presetName)
                 }
             }
-            override fun onNothingSelected(parent: AdapterView<*>?) {}
+            container.addView(pill)
+            presetPillViews[presetName] = pill
+        }
+
+        selectPresetPill(savedPreset)
+    }
+
+    private fun selectPresetPill(selectedPreset: String) {
+        presetPillViews.forEach { (name, pill) ->
+            if (name.equals(selectedPreset, ignoreCase = true)) {
+                pill.setBackgroundResource(R.drawable.bg_preset_pill_active)
+                pill.setTextColor(ContextCompat.getColor(requireContext(), R.color.white))
+            } else {
+                pill.setBackgroundResource(R.drawable.bg_preset_pill_inactive)
+                pill.setTextColor(ContextCompat.getColor(requireContext(), R.color.textSecondary))
+            }
         }
     }
     
     private fun applyPreset(presetName: String) {
         val values = customPresets[presetName] ?: return
+        val eq = AudioEffectManager.getEqualizer()
+        val minLevel = eq?.bandLevelRange?.get(0) ?: -1500
+        val maxLevel = eq?.bandLevelRange?.get(1) ?: 1500
+        val range = maxLevel - minLevel
         
-        // Update UI logic
         for (i in 0 until minOf(values.size, seekBars.size)) {
             seekBars[i].progress = values[i]
-            // Update Manager
             AudioEffectManager.setBandLevel(i.toShort(), values[i], requireContext())
+            val level = (minLevel + (values[i] * range / 100)).toShort()
+            updateGainLabel(i, level)
         }
         
-        // RE-APPLY EXTREME BASS if enabled
         if (AudioEffectManager.isExtremeBassEnabled(requireContext())) {
             AudioEffectManager.applyExtremeBass()
-            // Refresh sliders to show the boosted values
             view?.post {
                 setupEqualizer(view ?: return@post)
                 setupBassBoost(view ?: return@post)
@@ -233,11 +324,41 @@ class EqualizerBottomSheet : BottomSheetDialogFragment() {
         
         AudioEffectManager.savePreset(presetName, requireContext())
     }
+
+    private fun setupResetButton(view: View) {
+        view.findViewById<ImageView>(R.id.btnResetEq)?.setOnClickListener {
+            selectPresetPill("Flat")
+            applyPreset("Flat")
+            
+            // Reset bass boost
+            val seekBassBoost = view.findViewById<SeekBar>(R.id.seekBassBoost)
+            val tvBassBoostLevel = view.findViewById<TextView>(R.id.tvBassBoostLevel)
+            seekBassBoost?.progress = 0
+            tvBassBoostLevel?.text = "0%"
+            AudioEffectManager.setBassBoostStrength(0, requireContext())
+            
+            // Turn off extreme bass
+            val switchExtreme = view.findViewById<MaterialSwitch>(R.id.switchExtremeBass)
+            if (switchExtreme?.isChecked == true) {
+                switchExtreme.isChecked = false
+                AudioEffectManager.setExtremeBassEnabled(false, requireContext())
+            }
+            
+            Toast.makeText(context, "Equalizer reset to Flat", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun dpToPx(dp: Int): Int {
+        val density = resources.displayMetrics.density
+        return (dp * density).toInt()
+    }
     
     override fun onDestroyView() {
         super.onDestroyView()
         seekBars.clear()
         freqLabels.clear()
+        gainLabels.clear()
+        presetPillViews.clear()
     }
     
     companion object {
