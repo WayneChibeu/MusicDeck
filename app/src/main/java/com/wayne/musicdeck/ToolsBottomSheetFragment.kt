@@ -13,6 +13,18 @@ class ToolsBottomSheetFragment : BottomSheetDialogFragment() {
     private val binding get() = _binding!!
     private val viewModel: MainViewModel by activityViewModels()
 
+    private val exportBackupLauncher = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.CreateDocument("application/json")) { uri ->
+        if (uri != null) {
+            viewModel.exportBackup(uri)
+        }
+    }
+
+    private val importBackupLauncher = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            viewModel.importBackup(uri)
+        }
+    }
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -25,21 +37,19 @@ class ToolsBottomSheetFragment : BottomSheetDialogFragment() {
         super.onViewCreated(view, savedInstanceState)
         
         binding.btnRescan.setOnClickListener { 
-            viewModel.loadPlaylists() // Or loadSongs()
-            // MainViewModel has loadSongs which is triggered by Observer, but we can force it
-            // Actually viewModel.loadSongs() is public? 
-            // In step 6000: fun loadSongs() is public.
-             viewModel.loadSongs()
-             android.widget.Toast.makeText(context, "Scanning library...", android.widget.Toast.LENGTH_SHORT).show()
-             dismiss()
+            viewModel.loadPlaylists()
+            viewModel.loadSongs()
+            android.widget.Toast.makeText(context, "Scanning library...", android.widget.Toast.LENGTH_SHORT).show()
+            dismiss()
         }
         
         binding.btnBackup.setOnClickListener {
-            viewModel.exportBackup()
+            val dateStr = java.text.SimpleDateFormat("yyyyMMdd_HHmm", java.util.Locale.getDefault()).format(java.util.Date())
+            exportBackupLauncher.launch("MusicDeck_Playlists_$dateStr.json")
         }
         
         binding.btnRestore.setOnClickListener {
-             viewModel.importBackup()
+            importBackupLauncher.launch(arrayOf("application/json", "text/*", "*/*"))
         }
         
         binding.btnTheme.setOnClickListener {

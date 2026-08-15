@@ -1120,7 +1120,7 @@ class MainViewModel(
     }
 
 
-    fun exportBackup() {
+    fun exportBackup(targetUri: Uri? = null) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val allPlaylists = playlistRepository.getAllPlaylists()
@@ -1128,22 +1128,33 @@ class MainViewModel(
                     playlist to playlistRepository.getSongsForPlaylist(playlist.id)
                 }
                 val json = BackupHelper.exportToJson(playlistsWithSongs)
-                val success = BackupHelper.saveBackup(application, json)
+                val success = if (targetUri != null) {
+                    application.contentResolver.openOutputStream(targetUri)?.use { stream ->
+                        stream.write(json.toByteArray())
+                    }
+                    true
+                } else {
+                    BackupHelper.saveBackup(application, json)
+                }
                 withContext(Dispatchers.Main) {
-                    _backupResult.value = if (success) "Backup saved successfully!" else "Backup failed"
+                    _backupResult.value = if (success) "Playlists exported successfully!" else "Export failed"
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-                    _backupResult.value = "Backup error: ${e.message}"
+                    _backupResult.value = "Export error: ${e.message}"
                 }
             }
         }
     }
     
-    fun importBackup() {
+    fun importBackup(sourceUri: Uri? = null) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val json = BackupHelper.loadBackup(application)
+                val json = if (sourceUri != null) {
+                    application.contentResolver.openInputStream(sourceUri)?.bufferedReader()?.use { it.readText() }
+                } else {
+                    BackupHelper.loadBackup(application)
+                }
                 if (json == null) {
                     withContext(Dispatchers.Main) { _backupResult.value = "No backup found" }
                     return@launch
@@ -1151,7 +1162,7 @@ class MainViewModel(
                 
                 val data = BackupHelper.parseFromJson(json)
                 if (data == null) {
-                    withContext(Dispatchers.Main) { _backupResult.value = "Invalid backup format" }
+                    withContext(Dispatchers.Main) { _backupResult.value = "Invalid backup file format" }
                     return@launch
                 }
                 
@@ -1174,6 +1185,7 @@ class MainViewModel(
                     imported++
                 }
                 
+                loadPlaylists()
                 withContext(Dispatchers.Main) {
                     _backupResult.value = "Imported $imported playlists!"
                 }
