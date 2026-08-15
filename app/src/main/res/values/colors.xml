@@ -38,5 +38,6 @@
     <color name="pitchBlack">#000000</color>
     <color name="pitchBlackLight">#0D0D0D</color>
     <color name="pitchBlackMedium">#121212</color>
-    <color name="colorSunset">#FF4500</color>
+    <color name="colorSunset">#FF6B6B</color>
+    <color name="colorSunsetDark">#E03131</color>
 </resources>

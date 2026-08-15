@@ -23,6 +23,7 @@ class InsightsActivity : AppCompatActivity() {
     private val viewModel: MainViewModel by viewModel()
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        com.wayne.musicdeck.utils.ThemeHelper.applyTheme(this)
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_insights)
 
@@ -42,7 +43,8 @@ class InsightsActivity : AppCompatActivity() {
         val containerTopArtists = findViewById<LinearLayout>(R.id.containerTopArtists)
         val btnShareInsights = findViewById<MaterialButton>(R.id.btnShareInsights)
 
-        var shareStatsText = "I've been listening to a lot of music! 🎧\n"
+        var calculatedStreak = 0
+        var currentInsights: MainViewModel.ListeningInsights? = null
 
         lifecycleScope.launch {
             val db = com.wayne.musicdeck.data.MusicDatabase.getDatabase(this@InsightsActivity)
@@ -70,19 +72,15 @@ class InsightsActivity : AppCompatActivity() {
                     break
                 }
             }
+            calculatedStreak = currentStreak
             tvStreak.text = "$currentStreak Days"
         }
 
         viewModel.insights.observe(this) { insights ->
+            currentInsights = insights
             tvTotalPlays.text = insights.totalPlays.toString()
             tvUniqueArtists.text = insights.uniqueArtistsCount.toString()
             tvUniqueAlbums.text = insights.uniqueAlbumsCount.toString()
-
-            shareStatsText = "🎵 My MusicDeck Diary 🎵\n" +
-                    "Total Plays: ${insights.totalPlays}\n" +
-                    "Unique Artists: ${insights.uniqueArtistsCount}\n" +
-                    "Top Song: ${insights.topSongs.firstOrNull()?.first?.title ?: "N/A"}\n" +
-                    "Top Artist: ${insights.topArtists.firstOrNull()?.first ?: "N/A"}\n"
 
             // Populate Top Songs with SMART MATCH for Album Art
             containerTopSongs.removeAllViews()
@@ -138,13 +136,18 @@ class InsightsActivity : AppCompatActivity() {
         }
 
         btnShareInsights.setOnClickListener {
-            val sendIntent: Intent = Intent().apply {
-                action = Intent.ACTION_SEND
-                putExtra(Intent.EXTRA_TEXT, shareStatsText)
-                type = "text/plain"
+            val insights = currentInsights
+            if (insights != null) {
+                lifecycleScope.launch {
+                    val localSongs = viewModel.songs.value ?: emptyList()
+                    com.wayne.musicdeck.utils.InsightsShareHelper.generateAndShareCard(
+                        this@InsightsActivity,
+                        insights,
+                        calculatedStreak,
+                        localSongs
+                    )
+                }
             }
-            val shareIntent = Intent.createChooser(sendIntent, null)
-            startActivity(shareIntent)
         }
 
         viewModel.loadInsights()

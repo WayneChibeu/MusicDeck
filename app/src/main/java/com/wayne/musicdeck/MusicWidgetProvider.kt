@@ -6,6 +6,14 @@ import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.PorterDuff
+import android.graphics.PorterDuffXfermode
+import android.graphics.Rect
+import android.graphics.RectF
+import android.view.View
 import android.widget.RemoteViews
 
 class MusicWidgetProvider : AppWidgetProvider() {
@@ -36,14 +44,9 @@ class MusicWidgetProvider : AppWidgetProvider() {
         }
     }
     
-    // Called when the first widget is created
-    override fun onEnabled(context: Context) {
-        // Register listening logic if needed, but Service push is better
-    }
+    override fun onEnabled(context: Context) {}
 
-    override fun onDisabled(context: Context) {
-        // Enter relevant functionality for when the last widget is disabled
-    }
+    override fun onDisabled(context: Context) {}
 
     companion object {
         const val ACTION_PLAY_PAUSE = "com.wayne.musicdeck.ACTION_PLAY_PAUSE"
@@ -61,14 +64,19 @@ class MusicWidgetProvider : AppWidgetProvider() {
             artist: String = "MusicDeck",
             isPlaying: Boolean = false,
             isFavorite: Boolean = false,
-            album_artBitmap: android.graphics.Bitmap? = null
+            album_artBitmap: Bitmap? = null
         ) {
             val views = RemoteViews(context.packageName, R.layout.widget_music_control)
             
-            // ... (keep existing text/buttons setup) ...
-            // Combine title and artist for the new layout
-            val displayText = if (artist.isNotEmpty() && artist != "MusicDeck") "$title - $artist" else title
-            views.setTextViewText(R.id.tvWidgetTitle, displayText)
+            // Clean title and artist hierarchy
+            views.setTextViewText(R.id.tvWidgetTitle, title)
+            if (artist.isNotEmpty() && artist != "MusicDeck") {
+                views.setTextViewText(R.id.tvWidgetArtist, artist)
+                views.setViewVisibility(R.id.tvWidgetArtist, View.VISIBLE)
+            } else {
+                views.setTextViewText(R.id.tvWidgetArtist, "MusicDeck")
+                views.setViewVisibility(R.id.tvWidgetArtist, View.VISIBLE)
+            }
             
             // Set Play/Pause icon
             val playIcon = if (isPlaying) R.drawable.ic_widget_pause else R.drawable.ic_widget_play
@@ -88,22 +96,50 @@ class MusicWidgetProvider : AppWidgetProvider() {
             views.setOnClickPendingIntent(R.id.btnWidgetNext, getPendingIntent(context, ACTION_NEXT))
             views.setOnClickPendingIntent(R.id.btnWidgetPrev, getPendingIntent(context, ACTION_PREVIOUS))
             views.setOnClickPendingIntent(R.id.btnWidgetFavorite, getPendingIntent(context, ACTION_FAVORITE))
-            
+
             // Open App on click
             val appIntent = Intent(context, MainActivity::class.java)
             val appPendingIntent = PendingIntent.getActivity(context, 0, appIntent, PendingIntent.FLAG_IMMUTABLE)
             views.setOnClickPendingIntent(R.id.widgetBox, appPendingIntent)
 
-            // Album art - ALWAYS set explicitly to prevent launcher caching issues
-            // First clear any cached bitmap by setting default, then set actual
+            // Album art - ALWAYS set explicitly with scaled squircle transformation
             views.setImageViewResource(R.id.ivWidgetArt, R.drawable.default_album_art)
             if (album_artBitmap != null) {
-                 views.setImageViewBitmap(R.id.ivWidgetArt, album_artBitmap)
+                val roundedArt = getRoundedCornerBitmap(album_artBitmap, 12f, context)
+                views.setImageViewBitmap(R.id.ivWidgetArt, roundedArt)
             }
 
             appWidgetManager.updateAppWidget(appWidgetId, views)
         }
-        
+
+        private fun getRoundedCornerBitmap(bitmap: Bitmap, cornerRadiusDp: Float, context: Context): Bitmap {
+            return try {
+                val density = context.resources.displayMetrics.density
+                val targetSizePx = (56 * density).toInt().coerceAtLeast(100)
+                
+                // Downscale to target widget size first so corner radius scales accurately
+                val scaledBitmap = if (bitmap.width > targetSizePx || bitmap.height > targetSizePx) {
+                    Bitmap.createScaledBitmap(bitmap, targetSizePx, targetSizePx, true)
+                } else {
+                    bitmap
+                }
+
+                val radiusPx = cornerRadiusDp * density
+                val output = Bitmap.createBitmap(scaledBitmap.width, scaledBitmap.height, Bitmap.Config.ARGB_8888)
+                val canvas = Canvas(output)
+                val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+                val rect = Rect(0, 0, scaledBitmap.width, scaledBitmap.height)
+                val rectF = RectF(rect)
+                
+                canvas.drawRoundRect(rectF, radiusPx, radiusPx, paint)
+                paint.xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_IN)
+                canvas.drawBitmap(scaledBitmap, rect, rect, paint)
+                output
+            } catch (e: Exception) {
+                bitmap
+            }
+        }
+
         private fun getPendingIntent(context: Context, action: String): PendingIntent {
             val intent = Intent(context, MusicWidgetProvider::class.java).apply {
                 this.action = action
@@ -111,8 +147,8 @@ class MusicWidgetProvider : AppWidgetProvider() {
             val reqCode = action.hashCode()
             return PendingIntent.getBroadcast(context, reqCode, intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
         }
-        
-        fun pushUpdate(context: Context, title: String, artist: String, isPlaying: Boolean, isFavorite: Boolean, album_artBitmap: android.graphics.Bitmap? = null) {
+
+        fun pushUpdate(context: Context, title: String, artist: String, isPlaying: Boolean, isFavorite: Boolean, album_artBitmap: Bitmap? = null) {
             val manager = AppWidgetManager.getInstance(context)
             val component = ComponentName(context, MusicWidgetProvider::class.java)
             val ids = manager.getAppWidgetIds(component)

@@ -1,0 +1,489 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/cardRoot"
+    android:layout_width="380dp"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/bg_share_card_canvas"
+    android:padding="24dp">
+
+    <!-- Header: MusicDeck Brand -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="20dp">
+
+        <ImageView
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:src="@drawable/ic_music_note"
+            app:tint="?attr/colorPrimary" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:layout_marginStart="10dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="MUSICDECK"
+                android:textSize="14sp"
+                android:letterSpacing="0.15"
+                android:textStyle="bold"
+                android:textColor="@android:color/white" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="LISTENING INSIGHTS"
+                android:textSize="10sp"
+                android:letterSpacing="0.1"
+                android:textColor="?attr/colorPrimary"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Accent Pill Dot -->
+        <View
+            android:layout_width="10dp"
+            android:layout_height="10dp"
+            android:background="@drawable/bg_color_circle"
+            android:backgroundTint="?attr/colorPrimary" />
+    </LinearLayout>
+
+    <!-- Hero Card: #1 Top Song -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:padding="16dp"
+        android:background="@drawable/bg_share_pill"
+        android:layout_marginBottom="16dp">
+
+        <com.google.android.material.imageview.ShapeableImageView
+            android:id="@+id/ivHeroCover"
+            android:layout_width="78dp"
+            android:layout_height="78dp"
+            android:scaleType="centerCrop"
+            android:src="@drawable/default_album_art"
+            app:shapeAppearanceOverlay="@style/RoundedCorner12" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:layout_marginStart="14dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="TOP TRACK"
+                android:textSize="10sp"
+                android:letterSpacing="0.1"
+                android:textStyle="bold"
+                android:textColor="?attr/colorPrimary" />
+
+            <TextView
+                android:id="@+id/tvHeroTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:textSize="17sp"
+                android:textStyle="bold"
+                android:textColor="@android:color/white"
+                tools:text="Midnight City" />
+
+            <TextView
+                android:id="@+id/tvHeroArtist"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:textSize="13sp"
+                android:textColor="#B3FFFFFF"
+                tools:text="M83" />
+
+            <TextView
+                android:id="@+id/tvHeroPlays"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:textSize="11sp"
+                android:textColor="#80FFFFFF"
+                tools:text="48 plays this month" />
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <!-- 3-Pill Stats Grid -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:weightSum="3"
+        android:layout_marginBottom="18dp">
+
+        <!-- Total Plays -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="12dp"
+            android:background="@drawable/bg_share_pill"
+            android:layout_marginEnd="6dp">
+
+            <TextView
+                android:id="@+id/tvStatTotalPlays"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:textColor="@android:color/white"
+                tools:text="342" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Total Plays"
+                android:textSize="11sp"
+                android:textColor="#80FFFFFF" />
+        </LinearLayout>
+
+        <!-- Streak -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="12dp"
+            android:background="@drawable/bg_share_pill"
+            android:layout_marginHorizontal="3dp">
+
+            <TextView
+                android:id="@+id/tvStatStreak"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:textColor="?attr/colorPrimary"
+                tools:text="7 Days" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Streak 🔥"
+                android:textSize="11sp"
+                android:textColor="#80FFFFFF" />
+        </LinearLayout>
+
+        <!-- Unique Artists -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="12dp"
+            android:background="@drawable/bg_share_pill"
+            android:layout_marginStart="6dp">
+
+            <TextView
+                android:id="@+id/tvStatArtists"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:textColor="@android:color/white"
+                tools:text="28" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Artists 🎤"
+                android:textSize="11sp"
+                android:textColor="#80FFFFFF" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Top 3 Leaderboard Section -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="TOP SONGS"
+        android:textSize="11sp"
+        android:letterSpacing="0.12"
+        android:textStyle="bold"
+        android:textColor="#80FFFFFF"
+        android:layout_marginBottom="10dp" />
+
+    <LinearLayout
+        android:id="@+id/containerLeaderboard"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="@drawable/bg_share_pill"
+        android:padding="12dp"
+        android:layout_marginBottom="18dp">
+
+        <!-- Rank 1 Row -->
+        <LinearLayout
+            android:id="@+id/rowRank1"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingVertical="4dp">
+
+            <TextView
+                android:layout_width="24dp"
+                android:layout_height="wrap_content"
+                android:text="01"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:textColor="?attr/colorPrimary" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:layout_marginStart="6dp">
+
+                <TextView
+                    android:id="@+id/tvRank1Title"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:textColor="@android:color/white"
+                    tools:text="Starboy" />
+
+                <TextView
+                    android:id="@+id/tvRank1Artist"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:textSize="11sp"
+                    android:textColor="#80FFFFFF"
+                    tools:text="The Weeknd" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/tvRank1Plays"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="12sp"
+                android:textColor="?attr/colorPrimary"
+                tools:text="32 plays" />
+        </LinearLayout>
+
+        <!-- Rank 2 Row -->
+        <LinearLayout
+            android:id="@+id/rowRank2"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingVertical="4dp"
+            android:layout_marginTop="6dp">
+
+            <TextView
+                android:layout_width="24dp"
+                android:layout_height="wrap_content"
+                android:text="02"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:textColor="#B3FFFFFF" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:layout_marginStart="6dp">
+
+                <TextView
+                    android:id="@+id/tvRank2Title"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:textColor="@android:color/white"
+                    tools:text="Blinding Lights" />
+
+                <TextView
+                    android:id="@+id/tvRank2Artist"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:textSize="11sp"
+                    android:textColor="#80FFFFFF"
+                    tools:text="The Weeknd" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/tvRank2Plays"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="12sp"
+                android:textColor="#80FFFFFF"
+                tools:text="21 plays" />
+        </LinearLayout>
+
+        <!-- Rank 3 Row -->
+        <LinearLayout
+            android:id="@+id/rowRank3"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingVertical="4dp"
+            android:layout_marginTop="6dp">
+
+            <TextView
+                android:layout_width="24dp"
+                android:layout_height="wrap_content"
+                android:text="03"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:textColor="#80FFFFFF" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:layout_marginStart="6dp">
+
+                <TextView
+                    android:id="@+id/tvRank3Title"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:textColor="@android:color/white"
+                    tools:text="Get Lucky" />
+
+                <TextView
+                    android:id="@+id/tvRank3Artist"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:textSize="11sp"
+                    android:textColor="#80FFFFFF"
+                    tools:text="Daft Punk" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/tvRank3Plays"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="12sp"
+                android:textColor="#80FFFFFF"
+                tools:text="15 plays" />
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <!-- Top Artists Tag Row -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="FAVORITE ARTISTS"
+        android:textSize="11sp"
+        android:letterSpacing="0.12"
+        android:textStyle="bold"
+        android:textColor="#80FFFFFF"
+        android:layout_marginBottom="10dp" />
+
+    <LinearLayout
+        android:id="@+id/containerTopArtistPills"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="20dp">
+
+        <TextView
+            android:id="@+id/tvArtistPill1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_share_pill"
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="6dp"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:textColor="@android:color/white"
+            android:layout_marginEnd="8dp"
+            tools:text="The Weeknd" />
+
+        <TextView
+            android:id="@+id/tvArtistPill2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_share_pill"
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="6dp"
+            android:textSize="12sp"
+            android:textColor="#CCFFFFFF"
+            android:layout_marginEnd="8dp"
+            tools:text="Daft Punk" />
+
+        <TextView
+            android:id="@+id/tvArtistPill3"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_share_pill"
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="6dp"
+            android:textSize="12sp"
+            android:textColor="#99FFFFFF"
+            tools:text="M83" />
+    </LinearLayout>
+
+    <!-- Footer Branding -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="My Music Journey"
+            android:textSize="12sp"
+            android:textColor="#66FFFFFF" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="MusicDeck"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:textColor="?attr/colorPrimary" />
+    </LinearLayout>
+
+</LinearLayout>

@@ -171,7 +171,7 @@ class EqualizerBottomSheet : BottomSheetDialogFragment() {
         switchExtreme.setOnCheckedChangeListener { _, isChecked ->
             AudioEffectManager.setExtremeBassEnabled(isChecked, requireContext())
             if (isChecked) {
-                Toast.makeText(context, "EXTREME BASS ACTIVATED! 🔊💀", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Extreme Bass Mode Activated", Toast.LENGTH_SHORT).show()
             }
             // Refresh UI to reflect changes
             view.post {

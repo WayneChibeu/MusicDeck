@@ -104,6 +104,11 @@
         <item name="colorPrimaryVariant">@color/colorSkyDark</item>
     </style>
     
+    <style name="Theme.Musicdeck.Sunset" parent="Theme.Musicdeck">
+        <item name="colorPrimary">@color/colorSunset</item>
+        <item name="colorPrimaryVariant">@color/colorSunsetDark</item>
+    </style>
+    
     <!-- Cover/Lyric Toggle Button Base Style -->
     <style name="Widget.App.ToggleButton" parent="Widget.Material3.Button.TextButton">
         <!-- NO stroke on individual buttons - container has the stroke -->

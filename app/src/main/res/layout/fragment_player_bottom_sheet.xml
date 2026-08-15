@@ -25,21 +25,126 @@
         android:clipToPadding="false"
         android:visibility="visible">
 
-        <!-- Album Art -->
-        <com.google.android.material.imageview.ShapeableImageView
-            android:id="@+id/ivFullArt"
+        <!-- Album Art Container with Gestures & Overlays -->
+        <FrameLayout
+            android:id="@+id/artContainer"
             android:layout_width="0dp"
             android:layout_height="0dp"
-            android:scaleType="centerCrop"
-            android:src="@drawable/default_album_art"
-            app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Large"
             app:layout_constraintDimensionRatio="1:1"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintBottom_toTopOf="@+id/tvFullTitle"
             app:layout_constraintVertical_chainStyle="packed"
-            android:elevation="4dp" />
+            android:elevation="4dp">
+
+            <com.google.android.material.imageview.ShapeableImageView
+                android:id="@+id/ivFullArt"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="centerCrop"
+                android:src="@drawable/default_album_art"
+                app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Large" />
+
+            <!-- Left Seek (-5s) Minimal Arc + Typography Overlay -->
+            <FrameLayout
+                android:id="@+id/layoutSeekRewind"
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:layout_gravity="center_vertical|start"
+                android:layout_marginStart="36dp"
+                android:alpha="0"
+                android:visibility="gone">
+
+                <ImageView
+                    android:id="@+id/ivSeekRewindIcon"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:src="@drawable/ic_seek_arc_rewind" />
+
+                <TextView
+                    android:id="@+id/tvSeekRewindNumber"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:layout_marginTop="2dp"
+                    android:text="5"
+                    android:textColor="@android:color/white"
+                    android:textSize="19sp"
+                    android:textStyle="bold" />
+            </FrameLayout>
+
+            <!-- Right Seek (+5s) Minimal Arc + Typography Overlay -->
+            <FrameLayout
+                android:id="@+id/layoutSeekForward"
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:layout_gravity="center_vertical|end"
+                android:layout_marginEnd="36dp"
+                android:alpha="0"
+                android:visibility="gone">
+
+                <ImageView
+                    android:id="@+id/ivSeekForwardIcon"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:src="@drawable/ic_seek_arc_forward" />
+
+                <TextView
+                    android:id="@+id/tvSeekForwardNumber"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:layout_marginTop="2dp"
+                    android:text="5"
+                    android:textColor="@android:color/white"
+                    android:textSize="19sp"
+                    android:textStyle="bold" />
+            </FrameLayout>
+
+            <!-- Right-Side Vertical Volume Capsule HUD (Control Center Style) -->
+            <FrameLayout
+                android:id="@+id/layoutVolumeHud"
+                android:layout_width="36dp"
+                android:layout_height="140dp"
+                android:layout_gravity="center_vertical|end"
+                android:layout_marginEnd="14dp"
+                android:background="@drawable/bg_volume_capsule_track"
+                android:clipToOutline="true"
+                android:alpha="0"
+                android:visibility="gone">
+
+                <!-- Dynamic Bottom-to-Top Fill -->
+                <View
+                    android:id="@+id/vVolumeCapsuleFill"
+                    android:layout_width="match_parent"
+                    android:layout_height="70dp"
+                    android:layout_gravity="bottom"
+                    android:background="@drawable/bg_volume_capsule_fill" />
+
+                <!-- Volume Percent at Top -->
+                <TextView
+                    android:id="@+id/tvVolumeHudPercent"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="top|center_horizontal"
+                    android:layout_marginTop="8dp"
+                    android:text="50%"
+                    android:textColor="@android:color/white"
+                    android:textSize="10sp"
+                    android:textStyle="bold" />
+
+                <!-- Volume Speaker Icon at Bottom -->
+                <ImageView
+                    android:id="@+id/ivVolumeHudIcon"
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:layout_gravity="bottom|center_horizontal"
+                    android:layout_marginBottom="10dp"
+                    android:src="@drawable/ic_volume_up"
+                    app:tint="#DD111115" />
+            </FrameLayout>
+        </FrameLayout>
 
         <!-- Title + Favorite -->
         <TextView
@@ -56,7 +161,7 @@
             android:marqueeRepeatLimit="marquee_forever"
             android:focusable="true"
             android:focusableInTouchMode="true"
-            app:layout_constraintTop_toBottomOf="@+id/ivFullArt"
+            app:layout_constraintTop_toBottomOf="@+id/artContainer"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toStartOf="@+id/btnFavorite"
             app:layout_constraintBottom_toTopOf="@+id/tvFullArtist"

@@ -32,9 +32,13 @@ class MusicApp : Application() {
             .build()
         coil.Coil.setImageLoader(imageLoader)
 
-        // 3. Apply Material 3 Dynamic Colors (Seal-style Modernization)
-        // This will sync the app's overall theme with the system wallpaper!
-        DynamicColors.applyToActivitiesIfAvailable(this)
+        // 4. Apply Material 3 Dynamic Colors conditionally based on user theme selection
+        val dynamicColorsOptions = com.google.android.material.color.DynamicColorsOptions.Builder()
+            .setPrecondition { activity, _ ->
+                com.wayne.musicdeck.utils.ThemeHelper.isDynamicTheme(activity)
+            }
+            .build()
+        DynamicColors.applyToActivitiesIfAvailable(this, dynamicColorsOptions)
         
         // --- GLOBAL CRASH INTERCEPTOR (DIAGNOSTICS) ---
         Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->

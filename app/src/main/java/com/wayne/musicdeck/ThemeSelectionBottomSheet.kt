@@ -4,9 +4,10 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.recyclerview.widget.GridLayoutManager
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
-import com.wayne.musicdeck.utils.ThemeHelper
 import com.wayne.musicdeck.databinding.FragmentThemeSelectionBinding
+import com.wayne.musicdeck.utils.ThemeHelper
 
 class ThemeSelectionBottomSheet : BottomSheetDialogFragment() {
 
@@ -24,19 +25,33 @@ class ThemeSelectionBottomSheet : BottomSheetDialogFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        binding.btnThemeViolet.setOnClickListener { applyTheme(ThemeHelper.THEME_VIOLET) }
-        binding.btnThemeOcean.setOnClickListener { applyTheme(ThemeHelper.THEME_OCEAN) }
-        binding.btnThemeRose.setOnClickListener { applyTheme(ThemeHelper.THEME_ROSE) }
-        binding.btnThemeNeon.setOnClickListener { applyTheme(ThemeHelper.THEME_NEON) }
-        binding.btnThemeAmber.setOnClickListener { applyTheme(ThemeHelper.THEME_AMBER) }
-        binding.btnThemeSky.setOnClickListener { applyTheme(ThemeHelper.THEME_SKY) }
+        val currentTheme = ThemeHelper.getTheme(requireContext())
+
+        // 1. Dynamic Wallpaper Option (Android 12+ / Material You)
+        if (ThemeHelper.isDynamicSupported()) {
+            binding.cardDynamicTheme.visibility = View.VISIBLE
+            val isDynamicSelected = currentTheme == ThemeHelper.THEME_DYNAMIC
+            binding.ivDynamicCheck.visibility = if (isDynamicSelected) View.VISIBLE else View.GONE
+            binding.cardDynamicTheme.setOnClickListener {
+                applyTheme(ThemeHelper.THEME_DYNAMIC)
+            }
+        } else {
+            binding.cardDynamicTheme.visibility = View.GONE
+        }
+
+        // 2. Curated Brand Color Palettes
+        val brandThemes = ThemeHelper.getAvailableThemes().filter { !it.isDynamic }
+        binding.rvThemeColors.layoutManager = GridLayoutManager(requireContext(), 3)
+        binding.rvThemeColors.adapter = ThemeColorAdapter(brandThemes, currentTheme) { selectedItem ->
+            applyTheme(selectedItem.id)
+        }
     }
-    
+
     private fun applyTheme(theme: String) {
         val current = ThemeHelper.getTheme(requireContext())
         if (current != theme) {
             ThemeHelper.saveTheme(requireContext(), theme)
-            // Recreate activity to apply theme
+            // Recreate activity to apply theme smoothly
             requireActivity().recreate()
         }
         dismiss()

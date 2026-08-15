@@ -13,6 +13,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.media3.common.Player
 import androidx.media3.common.MediaItem
 import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 import coil.load
 import coil.transform.RoundedCornersTransformation
 import com.wayne.musicdeck.databinding.ActivityMainBinding
@@ -150,8 +151,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Apply Premium Theme Preference
-        val themeSlug = com.wayne.musicdeck.utils.ThemeHelper.getTheme(this)
-        setTheme(com.wayne.musicdeck.utils.ThemeHelper.getThemeResId(themeSlug))
+        com.wayne.musicdeck.utils.ThemeHelper.applyTheme(this)
         
         super.onCreate(savedInstanceState)
         
@@ -748,7 +748,25 @@ class MainActivity : AppCompatActivity() {
             tabLayout.getTabAt(lastTab)?.select()
         }
         
-        // Mini Player Heart handled by PlayerSheetManager
+        // Check for App Updates in background
+        checkUpdatesSilently()
+    }
+
+    private fun checkUpdatesSilently() {
+        lifecycleScope.launch {
+            try {
+                val versionName = packageManager.getPackageInfo(packageName, 0).versionName ?: "2.8.0"
+                val result = com.wayne.musicdeck.utils.AppUpdateManager.checkForUpdates(versionName)
+                if (result is com.wayne.musicdeck.utils.AppUpdateManager.CheckResult.NewUpdate) {
+                    if (!isFinishing && !isDestroyed) {
+                        UpdateBottomSheetFragment.newInstance(result.release, result.apkAsset)
+                            .show(supportFragmentManager, "update_dialog")
+                    }
+                }
+            } catch (e: Exception) {
+                // Silently ignore on automatic launch check
+            }
+        }
     }
     
     private fun showCreatePlaylistDialog() {

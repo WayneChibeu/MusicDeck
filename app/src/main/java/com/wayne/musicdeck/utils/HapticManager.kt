@@ -42,4 +42,30 @@ object HapticManager {
             }
         }
     }
+
+    fun performShuffleHaptic(context: Context) {
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    val vibratorManager = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
+                    vibratorManager.defaultVibrator
+                } else {
+                    @Suppress("DEPRECATION")
+                    context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+                }
+                // Double vibration pulse: delay 0, pulse 60ms, silence 80ms, pulse 90ms
+                val timings = longArrayOf(0, 60, 80, 90)
+                val amplitudes = intArrayOf(0, 200, 0, 255)
+                val effect = VibrationEffect.createWaveform(timings, amplitudes, -1)
+                vibrator.vibrate(effect)
+            } else {
+                @Suppress("DEPRECATION")
+                val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+                @Suppress("DEPRECATION")
+                vibrator.vibrate(longArrayOf(0, 60, 80, 90), -1)
+            }
+        } catch (e: Exception) {
+            // Ignore if vibration fails
+        }
+    }
 }

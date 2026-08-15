@@ -95,4 +95,12 @@ class SettingsManager(context: Context) {
     var isSongNotesEnabled: Boolean
         get() = kv.decodeBool("song_notes_enabled", true)
         set(value) { kv.encode("song_notes_enabled", value) }
+        
+    var isShakeToShuffleEnabled: Boolean
+        get() = kv.decodeBool("shake_to_shuffle_enabled", true)
+        set(value) { kv.encode("shake_to_shuffle_enabled", value) }
+        
+    var isEarbudComboShuffleEnabled: Boolean
+        get() = kv.decodeBool("earbud_combo_shuffle_enabled", true)
+        set(value) { kv.encode("earbud_combo_shuffle_enabled", value) }
 }

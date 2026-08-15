@@ -222,7 +222,8 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         binding.lyricView.setOnTouchListener(touchListener)
         binding.root.setOnTouchListener(touchListener)
         
-
+        // Accurate Album Cover Swipe Gestures (Track Skip)
+        setupAlbumArtGestures()
 
         viewModel.mediaController.observe(viewLifecycleOwner) { player ->
             player?.let { 
@@ -581,6 +582,322 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
             .start()
             
         updateScreenOnState()
+    }
+
+    private var hideVolumeHudRunnable: Runnable? = null
+    private var lastTapTime = 0L
+    private var lastTapX = 0f
+    private var lastTapY = 0f
+    private val DOUBLE_TAP_TIMEOUT = 320L
+
+    private fun setupAlbumArtGestures() {
+        val artView = binding.ivFullArt
+        val touchSlop = ViewConfiguration.get(requireContext()).scaledTouchSlop
+        val density = resources.displayMetrics.density
+        val swipeThreshold = 65 * density
+        var velocityTracker: android.view.VelocityTracker? = null
+
+        val audioManager = requireContext().getSystemService(android.content.Context.AUDIO_SERVICE) as? android.media.AudioManager
+        val maxVolume = audioManager?.getStreamMaxVolume(android.media.AudioManager.STREAM_MUSIC) ?: 15
+        var initialVolume = audioManager?.getStreamVolume(android.media.AudioManager.STREAM_MUSIC) ?: 7
+
+        var startX = 0f
+        var startY = 0f
+        var isHorizontalDrag = false
+        var isVerticalVolumeDrag = false
+
+        val gestureDetector = GestureDetector(requireContext(), object : GestureDetector.SimpleOnGestureListener() {
+            override fun onDoubleTap(e: MotionEvent): Boolean {
+                val isRightHalf = e.x > (artView.width / 2f)
+                val player = viewModel.mediaController.value ?: return false
+                val current = player.currentPosition
+                val duration = player.duration
+                if (isRightHalf) {
+                    val target = if (duration > 0) (current + 5000).coerceAtMost(duration) else current + 5000
+                    player.seekTo(target)
+                    com.wayne.musicdeck.utils.HapticManager.performSpringClick(requireContext())
+                    showSeekFeedback(isForward = true)
+                } else {
+                    val target = (current - 5000).coerceAtLeast(0L)
+                    player.seekTo(target)
+                    com.wayne.musicdeck.utils.HapticManager.performSpringClick(requireContext())
+                    showSeekFeedback(isForward = false)
+                }
+                return true
+            }
+
+            override fun onSingleTapConfirmed(e: MotionEvent): Boolean {
+                artView.performClick()
+                return true
+            }
+        })
+
+        artView.setOnTouchListener { v, event ->
+            gestureDetector.onTouchEvent(event)
+            if (velocityTracker == null) {
+                velocityTracker = android.view.VelocityTracker.obtain()
+            }
+            velocityTracker?.addMovement(event)
+
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN -> {
+                    startX = event.rawX
+                    startY = event.rawY
+                    isHorizontalDrag = false
+                    isVerticalVolumeDrag = false
+                    initialVolume = audioManager?.getStreamVolume(android.media.AudioManager.STREAM_MUSIC) ?: 7
+                    // Immediately claim touch so BottomSheet doesn't steal it
+                    v.parent.requestDisallowInterceptTouchEvent(true)
+                    breathingAnimator?.cancel()
+                    true
+                }
+                MotionEvent.ACTION_MOVE -> {
+                    val dx = event.rawX - startX
+                    val dy = event.rawY - startY
+                    val absDx = Math.abs(dx)
+                    val absDy = Math.abs(dy)
+
+                    if (!isHorizontalDrag && !isVerticalVolumeDrag) {
+                        if (absDx > touchSlop && absDx > absDy * 1.1f) {
+                            isHorizontalDrag = true
+                        } else if (absDy > touchSlop && absDy > absDx * 1.1f) {
+                            // Entire album art is a volume zone
+                            isVerticalVolumeDrag = true
+                        }
+                    }
+
+                    // Always keep parent from stealing while on the art
+                    v.parent.requestDisallowInterceptTouchEvent(true)
+
+                    if (isHorizontalDrag) {
+                        val viewWidth = if (artView.width > 0) artView.width.toFloat() else 600f
+                        artView.translationX = dx * 0.9f
+                        artView.rotation = (dx / viewWidth * 12f).coerceIn(-6f, 6f)
+                        val scale = (1f - (absDx / viewWidth * 0.12f)).coerceIn(0.92f, 1f)
+                        artView.scaleX = scale
+                        artView.scaleY = scale
+                    } else if (isVerticalVolumeDrag && audioManager != null) {
+                        // Dragging upwards = volume up (rawY decreases)
+                        val deltaY = startY - event.rawY
+                        val stepDistance = 20 * density
+                        val volumeChange = (deltaY / stepDistance).toInt()
+                        val newVolume = (initialVolume + volumeChange).coerceIn(0, maxVolume)
+                        audioManager.setStreamVolume(android.media.AudioManager.STREAM_MUSIC, newVolume, 0)
+                        showVolumeHud(newVolume, maxVolume)
+                    }
+                    true
+                }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    if (isHorizontalDrag) {
+                        velocityTracker?.computeCurrentVelocity(1000)
+                        val velX = velocityTracker?.xVelocity ?: 0f
+                        val totalDx = event.rawX - startX
+
+                        val isNextSwipe = totalDx < -swipeThreshold || (velX < -600 && totalDx < -touchSlop)
+                        val isPrevSwipe = totalDx > swipeThreshold || (velX > 600 && totalDx > touchSlop)
+
+                        if (isNextSwipe) {
+                            com.wayne.musicdeck.utils.HapticManager.performSpringClick(requireContext())
+                            animateTrackChange(isNext = true)
+                        } else if (isPrevSwipe) {
+                            com.wayne.musicdeck.utils.HapticManager.performSpringClick(requireContext())
+                            animateTrackChange(isNext = false)
+                        } else {
+                            artView.animate()
+                                .translationX(0f)
+                                .rotation(0f)
+                                .scaleX(1f)
+                                .scaleY(1f)
+                                .setDuration(260)
+                                .setInterpolator(android.view.animation.OvershootInterpolator(1.2f))
+                                .withEndAction {
+                                    if (viewModel.mediaController.value?.isPlaying == true) {
+                                        startBreathingAnimation()
+                                    }
+                                }
+                                .start()
+                        }
+                    } else {
+                        if (viewModel.mediaController.value?.isPlaying == true) {
+                            startBreathingAnimation()
+                        }
+                    }
+                    // Release parent intercept lock
+                    v.parent.requestDisallowInterceptTouchEvent(false)
+                    velocityTracker?.recycle()
+                    velocityTracker = null
+                    isHorizontalDrag = false
+                    isVerticalVolumeDrag = false
+                    true
+                }
+                else -> false
+            }
+        }
+
+        // Direct 1:1 touch & scrubbing on the volume capsule HUD itself
+        binding.layoutVolumeHud.setOnTouchListener { v, event ->
+            v.parent.requestDisallowInterceptTouchEvent(true)
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE -> {
+                    hideVolumeHudRunnable?.let { binding.layoutVolumeHud.removeCallbacks(it) }
+                    val height = v.height.toFloat()
+                    if (height > 0 && audioManager != null) {
+                        val clampedY = event.y.coerceIn(0f, height)
+                        val ratio = (height - clampedY) / height // 0 at bottom, 1 at top
+                        val newVol = (ratio * maxVolume).toInt().coerceIn(0, maxVolume)
+                        audioManager.setStreamVolume(android.media.AudioManager.STREAM_MUSIC, newVol, 0)
+                        showVolumeHud(newVol, maxVolume)
+                    }
+                    true
+                }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    v.parent.requestDisallowInterceptTouchEvent(false)
+                    hideVolumeHudRunnable?.let {
+                        binding.layoutVolumeHud.removeCallbacks(it)
+                        binding.layoutVolumeHud.postDelayed(it, 900)
+                    }
+                    true
+                }
+                else -> false
+            }
+        }
+    }
+
+    private fun showVolumeHud(currentVol: Int, maxVol: Int) {
+        val binding = _binding ?: return
+        val percent = (currentVol.toFloat() / maxVol.coerceAtLeast(1) * 100).toInt()
+        
+        // Dynamically adjust vertical fill height (140dp total capsule height)
+        val totalCapsuleHeight = (140 * resources.displayMetrics.density).toInt()
+        val fillHeight = (percent / 100f * totalCapsuleHeight).toInt().coerceIn(0, totalCapsuleHeight)
+        
+        val fillParams = binding.vVolumeCapsuleFill.layoutParams
+        fillParams.height = fillHeight
+        binding.vVolumeCapsuleFill.layoutParams = fillParams
+
+        binding.tvVolumeHudPercent.text = "$percent%"
+        binding.ivVolumeHudIcon.setImageResource(
+            if (currentVol == 0) R.drawable.ic_volume_mute else R.drawable.ic_volume_up
+        )
+
+        binding.layoutVolumeHud.visibility = View.VISIBLE
+        binding.layoutVolumeHud.animate()
+            .alpha(1f)
+            .scaleX(1f)
+            .scaleY(1f)
+            .setDuration(120)
+            .start()
+
+        hideVolumeHudRunnable?.let { binding.layoutVolumeHud.removeCallbacks(it) }
+        hideVolumeHudRunnable = Runnable {
+            _binding?.layoutVolumeHud?.animate()
+                ?.alpha(0f)
+                ?.scaleX(0.9f)
+                ?.scaleY(0.9f)
+                ?.setDuration(280)
+                ?.withEndAction {
+                    _binding?.layoutVolumeHud?.visibility = View.GONE
+                }
+                ?.start()
+        }
+        binding.layoutVolumeHud.postDelayed(hideVolumeHudRunnable, 900)
+    }
+
+    private fun showSeekFeedback(isForward: Boolean) {
+        val binding = _binding ?: return
+        val overlay = if (isForward) binding.layoutSeekForward else binding.layoutSeekRewind
+        val icon = if (isForward) binding.ivSeekForwardIcon else binding.ivSeekRewindIcon
+
+        // Cancel any existing animations
+        overlay.animate().cancel()
+        icon.animate().cancel()
+
+        overlay.visibility = View.VISIBLE
+        overlay.alpha = 0f
+        overlay.scaleX = 0.7f
+        overlay.scaleY = 0.7f
+
+        // Curved arrow spins into view then smoothly fades
+        val spinDirection = if (isForward) -360f else 360f
+        icon.rotation = spinDirection * 0.6f
+
+        overlay.animate()
+            .alpha(1f)
+            .scaleX(1f)
+            .scaleY(1f)
+            .setDuration(220)
+            .setInterpolator(android.view.animation.OvershootInterpolator(1.6f))
+            .withEndAction {
+                overlay.animate()
+                    .alpha(0f)
+                    .scaleX(1.12f)
+                    .scaleY(1.12f)
+                    .setDuration(350)
+                    .setStartDelay(250)
+                    .withEndAction {
+                        overlay.visibility = View.GONE
+                        overlay.scaleX = 1f
+                        overlay.scaleY = 1f
+                    }
+                    .start()
+            }
+            .start()
+
+        // The curved arrow icon spins to its resting position
+        icon.animate()
+            .rotation(0f)
+            .setDuration(350)
+            .setInterpolator(android.view.animation.DecelerateInterpolator(2f))
+            .start()
+    }
+
+    private fun animateTrackChange(isNext: Boolean) {
+        val artView = _binding?.ivFullArt ?: return
+        val viewWidth = if (artView.width > 0) artView.width.toFloat() else 600f
+        val exitX = if (isNext) -viewWidth * 1.15f else viewWidth * 1.15f
+        val enterX = if (isNext) viewWidth * 0.7f else -viewWidth * 0.7f
+
+        // Fast slide-out in swipe direction
+        artView.animate()
+            .translationX(exitX)
+            .rotation(if (isNext) -8f else 8f)
+            .alpha(0.2f)
+            .scaleX(0.92f)
+            .scaleY(0.92f)
+            .setDuration(160)
+            .setInterpolator(android.view.animation.AccelerateInterpolator(1.5f))
+            .withEndAction {
+                val player = viewModel.mediaController.value
+                if (isNext) {
+                    player?.seekToNext()
+                } else {
+                    player?.seekToPrevious()
+                }
+
+                // Place on the opposing side ready to slide in
+                artView.translationX = enterX
+                artView.rotation = if (isNext) 6f else -6f
+                artView.alpha = 0.3f
+                artView.scaleX = 0.93f
+                artView.scaleY = 0.93f
+
+                // Smooth deceleration spring back to center
+                artView.animate()
+                    .translationX(0f)
+                    .rotation(0f)
+                    .alpha(1f)
+                    .scaleX(1f)
+                    .scaleY(1f)
+                    .setDuration(320)
+                    .setInterpolator(android.view.animation.DecelerateInterpolator(2.0f))
+                    .withEndAction {
+                        if (viewModel.mediaController.value?.isPlaying == true) {
+                            startBreathingAnimation()
+                        }
+                    }
+                    .start()
+            }
+            .start()
     }
 
     private fun updateScreenOnState() {
@@ -1214,7 +1531,15 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
     private fun startBreathingAnimation() {
         if (breathingAnimator != null && breathingAnimator!!.isRunning) return
         if (_binding == null) return
-        
+
+        // Respect system "Remove Animations" accessibility setting
+        val animatorScale = android.provider.Settings.Global.getFloat(
+            requireContext().contentResolver,
+            android.provider.Settings.Global.ANIMATOR_DURATION_SCALE,
+            1.0f
+        )
+        if (animatorScale == 0f) return
+
         breathingAnimator = ValueAnimator.ofFloat(1.0f, 1.03f).apply {
             duration = 1800 // Lively, enthusiastic pulse
             repeatCount = ValueAnimator.INFINITE

@@ -33,6 +33,7 @@ class MusicService : MediaSessionService() {
     private val playCountDao: com.wayne.musicdeck.data.PlayCountDao by inject()
     private val playHistoryDao: com.wayne.musicdeck.data.PlayHistoryDao by inject()
     private val settingsManager: SettingsManager by inject()
+    private var shakeDetector: com.wayne.musicdeck.utils.ShakeDetector? = null
     private var playCountJob: kotlinx.coroutines.Job? = null
     private var playbackPositionJob: kotlinx.coroutines.Job? = null
     private var stopAtEndOfCurrentSong: Boolean = false
@@ -70,6 +71,12 @@ class MusicService : MediaSessionService() {
         volumeManager = com.wayne.musicdeck.utils.VolumeManager(exoPlayer, serviceScope)
             
         val player = AutoPlayForwardingPlayer(exoPlayer)
+        
+        shakeDetector = com.wayne.musicdeck.utils.ShakeDetector(this) {
+            if (settingsManager.isShakeToShuffleEnabled) {
+                triggerShakeShuffle(player)
+            }
+        }
 
         val intent = Intent(this, MainActivity::class.java)
         val pendingIntent = PendingIntent.getActivity(
@@ -162,6 +169,8 @@ class MusicService : MediaSessionService() {
                 private var mediaButtonPressCount = 0
                 private val mediaButtonPressTimeout = 400L
                 private var mediaButtonPressJob: kotlinx.coroutines.Job? = null
+                private var lastSkipKeyCode = 0
+                private var lastSkipTimestamp = 0L
 
                 override fun onMediaButtonEvent(
                     session: MediaSession,
@@ -192,10 +201,39 @@ class MusicService : MediaSessionService() {
                                         3 -> {
                                             player.seekToPreviousMediaItem()
                                         }
+                                        4 -> {
+                                            if (settingsManager.isEarbudComboShuffleEnabled) {
+                                                triggerShakeShuffle(player)
+                                            }
+                                        }
                                     }
                                     mediaButtonPressCount = 0
                                 }
                                 return true
+                            }
+                            android.view.KeyEvent.KEYCODE_MEDIA_NEXT -> {
+                                if (settingsManager.isEarbudComboShuffleEnabled) {
+                                    val now = System.currentTimeMillis()
+                                    if (lastSkipKeyCode == android.view.KeyEvent.KEYCODE_MEDIA_PREVIOUS && (now - lastSkipTimestamp) <= 1200L) {
+                                        lastSkipKeyCode = 0
+                                        triggerShakeShuffle(player)
+                                        return true
+                                    }
+                                    lastSkipKeyCode = android.view.KeyEvent.KEYCODE_MEDIA_NEXT
+                                    lastSkipTimestamp = now
+                                }
+                            }
+                            android.view.KeyEvent.KEYCODE_MEDIA_PREVIOUS -> {
+                                if (settingsManager.isEarbudComboShuffleEnabled) {
+                                    val now = System.currentTimeMillis()
+                                    if (lastSkipKeyCode == android.view.KeyEvent.KEYCODE_MEDIA_NEXT && (now - lastSkipTimestamp) <= 1200L) {
+                                        lastSkipKeyCode = 0
+                                        triggerShakeShuffle(player)
+                                        return true
+                                    }
+                                    lastSkipKeyCode = android.view.KeyEvent.KEYCODE_MEDIA_PREVIOUS
+                                    lastSkipTimestamp = now
+                                }
                             }
                         }
                     }
@@ -320,6 +358,9 @@ class MusicService : MediaSessionService() {
              override fun onIsPlayingChanged(isPlaying: Boolean) {
                   updateWidget(player)
                   if (isPlaying) {
+                      if (settingsManager.isShakeToShuffleEnabled) {
+                          shakeDetector?.start()
+                      }
                       // Always start/resume at 100% full volume instantly without stutter
                       volumeManager.resetVolume()
                       suppressFadeIn = false
@@ -337,6 +378,7 @@ class MusicService : MediaSessionService() {
                           }
                       }
                   } else {
+                      shakeDetector?.stop()
                       playCountJob?.cancel()
                       playbackPositionJob?.cancel()
                       saveFinalPosition(player)
@@ -810,7 +852,19 @@ class MusicService : MediaSessionService() {
         return mediaSession
     }
 
+    private fun triggerShakeShuffle(player: Player) {
+        serviceScope.launch(kotlinx.coroutines.Dispatchers.Main) {
+            if (!player.shuffleModeEnabled) {
+                player.shuffleModeEnabled = true
+            }
+            player.seekToNextMediaItem()
+            com.wayne.musicdeck.utils.HapticManager.performShuffleHaptic(this@MusicService)
+        }
+    }
+
     override fun onDestroy() {
+        shakeDetector?.stop()
+        shakeDetector = null
         mediaSession?.run {
             saveFinalPosition(player)
             player.release()
