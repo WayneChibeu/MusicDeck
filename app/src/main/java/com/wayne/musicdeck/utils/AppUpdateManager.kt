@@ -47,35 +47,79 @@ object AppUpdateManager {
 
     /**
      * Checks GitHub for a newer release than the current app version.
+     * Uses REST API first, then falls back to rate-limit-immune Web Redirect.
      */
     suspend fun checkForUpdates(currentVersionName: String): CheckResult = withContext(Dispatchers.IO) {
+        // Method 1: Try GitHub REST API
         try {
             val response = apiService.getLatestRelease()
-            if (!response.isSuccessful || response.body() == null) {
-                return@withContext CheckResult.Error("Failed to fetch release info (code ${response.code()})")
-            }
+            if (response.isSuccessful && response.body() != null) {
+                val release = response.body()!!
+                val remoteTag = release.tagName.trim()
+                
+                // Find APK asset
+                val apkAsset = release.assets?.firstOrNull { 
+                    it.name.endsWith(".apk", ignoreCase = true) 
+                }
 
-            val release = response.body()!!
-            val remoteTag = release.tagName.trim()
-            
-            // Find APK asset
-            val apkAsset = release.assets?.firstOrNull { 
-                it.name.endsWith(".apk", ignoreCase = true) 
-            }
-
-            if (isNewerVersion(remoteTag, currentVersionName)) {
-                if (apkAsset != null) {
-                    CheckResult.NewUpdate(release, apkAsset)
+                return@withContext if (isNewerVersion(remoteTag, currentVersionName)) {
+                    if (apkAsset != null) {
+                        CheckResult.NewUpdate(release, apkAsset)
+                    } else {
+                        CheckResult.Error("New update found (${release.tagName}), but no APK asset is attached.")
+                    }
                 } else {
-                    CheckResult.Error("New update found (${release.tagName}), but no APK asset is attached.")
+                    CheckResult.UpToDate
                 }
             } else {
-                CheckResult.UpToDate
+                Log.w(TAG, "API check returned code ${response.code()}, trying redirect fallback...")
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error checking for updates", e)
-            CheckResult.Error(e.localizedMessage ?: "Unknown network error")
+            Log.w(TAG, "API check failed, attempting redirect fallback: ${e.message}")
         }
+
+        // Method 2: Fallback to GitHub Web Redirect (never blocked by IP rate-limits)
+        try {
+            val noRedirectClient = okHttpClient.newBuilder()
+                .followRedirects(false)
+                .followSslRedirects(false)
+                .build()
+
+            val headRequest = Request.Builder()
+                .url("https://github.com/WayneChibeu/MusicDeck/releases/latest")
+                .header("User-Agent", "Mozilla/5.0 (Android; Mobile; rv:128.0) Gecko/128.0 Firefox/128.0")
+                .head()
+                .build()
+
+            val redirectResponse = noRedirectClient.newCall(headRequest).execute()
+            val location = redirectResponse.header("Location") ?: ""
+            if (location.contains("/tag/")) {
+                val remoteTag = location.substringAfterLast("/tag/").trim()
+                if (isNewerVersion(remoteTag, currentVersionName)) {
+                    val apkUrl = "https://github.com/WayneChibeu/MusicDeck/releases/download/$remoteTag/MusicDeck-$remoteTag.apk"
+                    val syntheticAsset = GitHubAsset(
+                        name = "MusicDeck-$remoteTag.apk",
+                        downloadUrl = apkUrl,
+                        size = 0L,
+                        contentType = "application/vnd.android.package-archive"
+                    )
+                    val syntheticRelease = GitHubRelease(
+                        tagName = remoteTag,
+                        name = "MusicDeck $remoteTag",
+                        body = "A new version of MusicDeck is available ($remoteTag). Tap below to download and install.",
+                        htmlUrl = "https://github.com/WayneChibeu/MusicDeck/releases/tag/$remoteTag",
+                        assets = listOf(syntheticAsset)
+                    )
+                    return@withContext CheckResult.NewUpdate(syntheticRelease, syntheticAsset)
+                } else {
+                    return@withContext CheckResult.UpToDate
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Redirect fallback also failed", e)
+        }
+
+        CheckResult.Error("Failed to connect to GitHub. Please check your network connection.")
     }
 
     /**

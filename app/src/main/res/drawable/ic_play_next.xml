@@ -3,7 +3,8 @@
     android:height="24dp"
     android:viewportWidth="24"
     android:viewportHeight="24">
+    <!-- Modern Play Next: Queue list lines with incoming play arrow -->
     <path
         android:fillColor="#FFFFFFFF"
-        android:pathData="M16 11h5v2h-5zM16 7h5v2h-5zM3 3v18l11-9z"/>
+        android:pathData="M3,5h11v2H3V5z M3,11h7v2H3V11z M3,17h7v2H3V17z M15,10.5l7,4.5l-7,4.5V10.5z" />
 </vector>

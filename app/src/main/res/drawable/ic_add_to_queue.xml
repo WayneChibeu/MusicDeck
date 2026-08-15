@@ -3,7 +3,8 @@
     android:height="24dp"
     android:viewportWidth="24"
     android:viewportHeight="24">
+    <!-- Modern Add to Queue: Queue list with plus badge -->
     <path
         android:fillColor="#FFFFFFFF"
-        android:pathData="M3 16h5v2H3zm12-9h5v2h-5zm0 4h5v2h-5zm0-8h5v2h-5zM3 20h5v2H3zm0-8h5v2H3zm0-4h5v2H3z"/>
+        android:pathData="M3,5h16v2H3V5z M3,11h10v2H3V11z M3,17h10v2H3V17z M17,14h2v3h3v2h-3v3h-2v-3h-3v-2h3V14z" />
 </vector>
