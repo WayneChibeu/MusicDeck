@@ -76,12 +76,12 @@ class UpdateBottomSheetFragment : BottomSheetDialogFragment() {
         val sizeMb = String.format(Locale.US, "%.1f MB", asset.size / (1024.0 * 1024.0))
         tvUpdateSize.text = sizeMb
 
-        val notes = if (!rel.body.isNullOrBlank()) {
+        val rawNotes = if (!rel.body.isNullOrBlank()) {
             rel.body.trim()
         } else {
             "Performance improvements, design polish, and bug fixes."
         }
-        tvChangelog.text = notes
+        tvChangelog.text = formatReleaseNotes(rawNotes)
 
         btnLater.setOnClickListener {
             dismiss()
@@ -126,6 +126,22 @@ class UpdateBottomSheetFragment : BottomSheetDialogFragment() {
                     Toast.makeText(requireContext(), "Update failed: $err", Toast.LENGTH_LONG).show()
                 }
             }
+        }
+    }
+
+    private fun formatReleaseNotes(markdown: String): CharSequence {
+        var formatted = markdown
+            .replace(Regex("(?m)^\\s*[-*]\\s+"), "• ")
+            .replace(Regex("(?m)^#{1,6}\\s*(.*?)$"), "<br><b>$1</b><br>")
+            .replace(Regex("\\*\\*(.*?)\\*\\*"), "<b>$1</b>")
+            .replace(Regex("(?m)^\\s*\\n{2,}"), "<br>")
+            .replace("\n", "<br>")
+
+        return if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+            android.text.Html.fromHtml(formatted.trim(), android.text.Html.FROM_HTML_MODE_COMPACT)
+        } else {
+            @Suppress("DEPRECATION")
+            android.text.Html.fromHtml(formatted.trim())
         }
     }
 
