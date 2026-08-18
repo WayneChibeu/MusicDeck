@@ -162,7 +162,8 @@
                 android:layout_marginTop="8dp"
                 android:max="100"
                 android:progress="0"
-                android:progressDrawable="@drawable/progress_bar_primary" />
+                android:progressDrawable="@drawable/progress_bar_primary"
+                android:progressTint="?attr/colorPrimary" />
         </LinearLayout>
 
         <!-- Action Buttons -->

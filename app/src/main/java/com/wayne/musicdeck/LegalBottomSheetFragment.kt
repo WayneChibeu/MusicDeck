@@ -64,6 +64,7 @@ class LegalBottomSheetFragment : BottomSheetDialogFragment() {
                 when (result) {
                     is AppUpdateManager.CheckResult.NewUpdate -> {
                         tvUpdateStatus.text = "New update available: ${result.release.tagName}"
+                        dismissAllowingStateLoss()
                         try {
                             UpdateBottomSheetFragment.newInstance(result.release, result.apkAsset)
                                 .show(parentFragmentManager, "update_dialog")
