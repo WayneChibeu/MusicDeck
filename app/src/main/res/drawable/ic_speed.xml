@@ -1,26 +1,24 @@
-<?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
     android:height="24dp"
     android:viewportWidth="24"
     android:viewportHeight="24">
-    <!-- Speed / playback speed icon -->
+    <!-- Modern Speedometer Dial Arc -->
     <path
-        android:pathData="M12,4L12,8"
-        android:strokeWidth="2"
-        android:fillColor="#00000000"
-        android:strokeColor="#FFFFFF"
+        android:pathData="M3.34,19A10,10 0 1,1 20.66,19"
+        android:strokeWidth="2.0"
+        android:strokeColor="#FFFFFFFF"
         android:strokeLineCap="round"/>
+    <!-- Speedometer Needle -->
     <path
-        android:pathData="M12,4C16.42,4 20,7.58 20,12s-3.58,8 -8,8 -8,-3.58 -8,-8 3.58,-8 8,-8"
-        android:strokeWidth="1.8"
-        android:fillColor="#00000000"
-        android:strokeColor="#FFFFFF"
-        android:strokeLineCap="round"/>
+        android:pathData="M12,14L16.5,9.5"
+        android:strokeWidth="2.0"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"/>
+    <!-- Pivot Point -->
     <path
-        android:pathData="M12,12L16,10"
-        android:strokeWidth="2"
-        android:fillColor="#00000000"
-        android:strokeColor="#FFFFFF"
-        android:strokeLineCap="round"/>
+        android:pathData="M12,14m-1.5,0a1.5,1.5 0 1,0 3,0a1.5,1.5 0 1,0 -3,0"
+        android:fillColor="#FFFFFFFF"/>
 </vector>
+

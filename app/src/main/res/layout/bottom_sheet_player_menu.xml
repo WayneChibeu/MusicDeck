@@ -308,6 +308,7 @@
             android:layout_width="28dp"
             android:layout_height="28dp"
             android:src="@drawable/ic_sunset"
+            app:tint="?attr/colorOnSurface"
             android:layout_marginEnd="16dp" />
 
         <TextView
@@ -341,7 +342,7 @@
         <ImageView
             android:layout_width="28dp"
             android:layout_height="28dp"
-            android:src="@drawable/ic_music_note"
+            android:src="@drawable/ic_crossfade"
             app:tint="?attr/colorOnSurface"
             android:layout_marginEnd="16dp" />
 

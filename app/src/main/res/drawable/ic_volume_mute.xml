@@ -3,7 +3,19 @@
     android:height="24dp"
     android:viewportWidth="24"
     android:viewportHeight="24">
-  <path
-      android:fillColor="#FF000000"
-      android:pathData="M7,9v6h4l5,5V4l-5,5H7z"/>
+    <!-- Modern Acoustic Speaker Bell -->
+    <path
+        android:pathData="M11,5L6,9H2v6h4l5,4V5z"
+        android:strokeWidth="2.0"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"/>
+    <!-- Mute Cross Lines -->
+    <path
+        android:pathData="M22,9l-6,6M16,9l6,6"
+        android:strokeWidth="2.0"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"/>
 </vector>
+

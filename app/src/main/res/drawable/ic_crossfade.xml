@@ -3,18 +3,17 @@
     android:height="24dp"
     android:viewportWidth="24"
     android:viewportHeight="24">
-    <!-- Modern Outlined Arrow Back -->
+    <!-- Modern Audio Crossfade Curves -->
+    <!-- Fade Out Curve (Top Left to Bottom Right) -->
     <path
-        android:pathData="M19,12H5"
+        android:pathData="M3,6C8,6 16,18 21,18"
         android:strokeWidth="2.2"
         android:strokeColor="#FFFFFFFF"
-        android:strokeLineCap="round"
-        android:strokeLineJoin="round"/>
+        android:strokeLineCap="round"/>
+    <!-- Fade In Curve (Bottom Left to Top Right) -->
     <path
-        android:pathData="M12,19l-7,-7 7,-7"
+        android:pathData="M3,18C8,18 16,6 21,6"
         android:strokeWidth="2.2"
         android:strokeColor="#FFFFFFFF"
-        android:strokeLineCap="round"
-        android:strokeLineJoin="round"/>
+        android:strokeLineCap="round"/>
 </vector>
-

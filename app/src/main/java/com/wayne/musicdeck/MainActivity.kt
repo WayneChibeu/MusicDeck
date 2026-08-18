@@ -169,7 +169,7 @@ class MainActivity : AppCompatActivity() {
                     val shuffled = currentSongs.shuffled()
                     viewModel.playPlaylist(shuffled, 0)
                     com.wayne.musicdeck.utils.HapticManager.performSpringClick(this)
-                    android.widget.Toast.makeText(this, "Queue Shuffled 🔀", android.widget.Toast.LENGTH_SHORT).show()
+                    android.widget.Toast.makeText(this, "Queue Shuffled", android.widget.Toast.LENGTH_SHORT).show()
                 }
             }
         }

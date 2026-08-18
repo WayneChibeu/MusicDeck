@@ -55,7 +55,11 @@ class MusicService : MediaSessionService() {
             favoritesPlaylistId = favPlaylist.id
         }
 
-        val exoPlayer: ExoPlayer = ExoPlayer.Builder(this)
+        val renderersFactory = androidx.media3.exoplayer.DefaultRenderersFactory(this)
+            .setExtensionRendererMode(androidx.media3.exoplayer.DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER)
+            .setEnableAudioFloatOutput(true)
+
+        val exoPlayer: ExoPlayer = ExoPlayer.Builder(this, renderersFactory)
             .setAudioAttributes(AudioAttributes.DEFAULT, true)
             .setWakeMode(C.WAKE_MODE_LOCAL)
             .setSeekBackIncrementMs(5000)

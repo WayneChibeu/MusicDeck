@@ -3,12 +3,23 @@
     android:height="24dp"
     android:viewportWidth="24"
     android:viewportHeight="24">
-    <!-- Sleek outlined chat bubble (representing words) -->
+    <!-- Modern Outlined Lyrics Bubble -->
     <path
-        android:fillColor="#000000"
-        android:pathData="M20,2H4c-1.1,0 -2,0.9 -2,2v18l4,-4h14c1.1,0 2,-0.9 2,-2V4c0,-1.1 -0.9,-2 -2,-2zM20,16H5.17L4,17.17V4h16v12z" />
-    <!-- Clean music note inside (representing song) -->
+        android:pathData="M7.9,20A9,9 0 1,0 4,16.1L2,22Z"
+        android:strokeWidth="2.0"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"/>
+    <!-- Lyrics Text / Melody Lines -->
     <path
-        android:fillColor="#000000"
-        android:pathData="M13.5,6v4.61c-0.27,-0.2 -0.6,-0.32 -0.96,-0.32c-0.9,0 -1.64,0.73 -1.64,1.64c0,0.91 0.73,1.64 1.64,1.64c0.91,0 1.64,-0.73 1.64,-1.64V7.5h2.5V6H13.5z" />
+        android:pathData="M8,9.5h8"
+        android:strokeWidth="2.0"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeLineCap="round"/>
+    <path
+        android:pathData="M8,13.5h5.5"
+        android:strokeWidth="2.0"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeLineCap="round"/>
 </vector>
+
