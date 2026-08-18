@@ -194,6 +194,7 @@
                 android:layout_weight="1.6"
                 android:layout_marginStart="8dp"
                 android:background="@drawable/bg_primary_pill"
+                app:backgroundTint="?attr/colorPrimary"
                 android:text="Install Update"
                 android:textAllCaps="false"
                 android:textColor="@android:color/white"
