@@ -42,6 +42,14 @@ class SleepTimerBottomSheetFragment : BottomSheetDialogFragment() {
         setupPresetPill(binding.btn90Min, 90)
 
         // Slider
+        val density = resources.displayMetrics.density
+        binding.sliderMinutes.apply {
+            thumbRadius = (10 * density).toInt()
+            thumbElevation = 2f
+            haloRadius = 0
+            trackHeight = (6 * density).toInt()
+            isTickVisible = false
+        }
         binding.sliderMinutes.addOnChangeListener { _, value, _ ->
             val mins = value.toInt()
             binding.tvCustomMinutesValue.text = "$mins minutes"

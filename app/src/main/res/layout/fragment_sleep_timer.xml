@@ -272,6 +272,10 @@
         android:stepSize="5"
         android:value="30"
         android:layout_marginBottom="20dp"
+        app:thumbRadius="10dp"
+        app:trackHeight="6dp"
+        app:haloRadius="0dp"
+        app:thumbElevation="2dp"
         app:thumbColor="?attr/colorPrimary"
         app:trackColorActive="?attr/colorPrimary"
         app:trackColorInactive="#33FFFFFF" />

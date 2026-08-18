@@ -4,11 +4,12 @@ import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
+import android.graphics.RectF
 import android.graphics.Typeface
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
-import com.wayne.musicdeck.R
+import android.widget.TextView
 
 class FastScrollerView @JvmOverloads constructor(
     context: Context,
@@ -21,15 +22,25 @@ class FastScrollerView @JvmOverloads constructor(
         "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "#"
     )
     
-    private val paint = Paint().apply {
-        color = Color.GRAY
+    private val textPaint = Paint().apply {
+        color = 0x8AFFFFFF.toInt() // 54% white
         isAntiAlias = true
-        textSize = 30f // Will be scaled
         typeface = Typeface.DEFAULT_BOLD
     }
+
+    private val trackPaint = Paint().apply {
+        color = 0x12FFFFFF.toInt() // Subtle glass pill track
+        isAntiAlias = true
+        style = Paint.Style.FILL
+    }
     
+    private val trackRect = RectF()
     private var letterHeight = 0f
     private var listener: OnFastScrollListener? = null
+    private var bubbleView: TextView? = null
+    
+    private var selectedIndex = -1
+    private var activeColor = Color.parseColor("#FF6D00") // Fallback
     
     interface OnFastScrollListener {
         fun onLetterSelected(letter: String)
@@ -38,22 +49,12 @@ class FastScrollerView @JvmOverloads constructor(
     fun setListener(listener: OnFastScrollListener) {
         this.listener = listener
     }
-    
-    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
-        super.onSizeChanged(w, h, oldw, oldh)
-        letterHeight = h.toFloat() / letters.size
-        paint.textSize = letterHeight * 0.75f 
-        // Cap max text size so it doesn't look huge on large screens
-        if (paint.textSize > 40f * resources.displayMetrics.density) {
-             paint.textSize = 40f * resources.displayMetrics.density
-        }
+
+    fun attachBubble(bubble: TextView) {
+        this.bubbleView = bubble
     }
     
-    private var selectedIndex = -1
-    private var activeColor = Color.CYAN // Default fallback
-    
     init {
-        // Resolve primary color
         val typedValue = android.util.TypedValue()
         val theme = context.theme
         if (theme.resolveAttribute(com.google.android.material.R.attr.colorPrimary, typedValue, true)) {
@@ -61,39 +62,86 @@ class FastScrollerView @JvmOverloads constructor(
         }
     }
 
+    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+        super.onSizeChanged(w, h, oldw, oldh)
+        val pad = 4f * resources.displayMetrics.density
+        trackRect.set(pad, pad, w.toFloat() - pad, h.toFloat() - pad)
+        
+        letterHeight = (h - pad * 2) / letters.size
+        textPaint.textSize = (letterHeight * 0.72f).coerceIn(18f, 32f)
+    }
+
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
         
+        // Draw subtle pill track behind letters
+        val trackRadius = trackRect.width() / 2f
+        canvas.drawRoundRect(trackRect, trackRadius, trackRadius, trackPaint)
+        
         val widthCenter = width / 2f
+        val topOffset = trackRect.top
         
         for (i in letters.indices) {
-            paint.color = if (i == selectedIndex) activeColor else Color.GRAY
-            // Make selected letter slightly larger/bolder?
-            if (i == selectedIndex) {
-                 paint.typeface = Typeface.DEFAULT_BOLD
-            } else {
-                 paint.typeface = Typeface.DEFAULT
-            }
+            val isSelected = i == selectedIndex
+            textPaint.color = if (isSelected) activeColor else 0x80FFFFFF.toInt()
+            textPaint.textSize = if (isSelected) (letterHeight * 0.95f).coerceIn(22f, 38f) else (letterHeight * 0.72f).coerceIn(18f, 32f)
+            textPaint.typeface = if (isSelected) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
             
-            val yPos = letterHeight * (i + 1) - letterHeight / 4 // Adjust baseline
-            canvas.drawText(letters[i], widthCenter - paint.measureText(letters[i]) / 2, yPos, paint)
+            val yPos = topOffset + letterHeight * (i + 1) - letterHeight / 3.5f
+            val xPos = widthCenter - textPaint.measureText(letters[i]) / 2f
+            canvas.drawText(letters[i], xPos, yPos, textPaint)
         }
     }
     
     override fun onTouchEvent(event: MotionEvent): Boolean {
         when (event.action) {
             MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE -> {
-                val index = (event.y / height * letters.size).toInt()
-                if (index in letters.indices) {
-                    if (selectedIndex != index) {
-                        selectedIndex = index
-                        listener?.onLetterSelected(letters[index])
-                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
-                            performHapticFeedback(android.view.HapticFeedbackConstants.CLOCK_TICK)
-                        }
-                        invalidate()
+                val effectiveY = (event.y - trackRect.top).coerceIn(0f, trackRect.height())
+                val index = (effectiveY / letterHeight).toInt().coerceIn(0, letters.size - 1)
+                
+                if (selectedIndex != index) {
+                    selectedIndex = index
+                    val selectedLetter = letters[index]
+                    listener?.onLetterSelected(selectedLetter)
+                    
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                        performHapticFeedback(android.view.HapticFeedbackConstants.CLOCK_TICK)
                     }
+                    
+                    // Update and position floating preview bubble
+                    bubbleView?.let { bubble ->
+                        bubble.text = selectedLetter
+                        val targetY = this.top + trackRect.top + (index * letterHeight) - (bubble.height / 2f) + (letterHeight / 2f)
+                        bubble.y = targetY.coerceIn(0f, (parent as? View)?.height?.toFloat() ?: targetY)
+                        
+                        if (bubble.visibility != View.VISIBLE) {
+                            bubble.visibility = View.VISIBLE
+                            bubble.alpha = 0f
+                            bubble.scaleX = 0.6f
+                            bubble.scaleY = 0.6f
+                            bubble.animate()
+                                .alpha(1f)
+                                .scaleX(1f)
+                                .scaleY(1f)
+                                .setDuration(120)
+                                .start()
+                        }
+                    }
+                    invalidate()
                 }
+                return true
+            }
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                // Fade out floating bubble smoothly
+                bubbleView?.animate()
+                    ?.alpha(0f)
+                    ?.scaleX(0.7f)
+                    ?.scaleY(0.7f)
+                    ?.setDuration(180)
+                    ?.withEndAction {
+                        bubbleView?.visibility = View.GONE
+                    }
+                    ?.start()
                 return true
             }
         }
@@ -101,7 +149,7 @@ class FastScrollerView @JvmOverloads constructor(
     }
     
     fun setTextColor(color: Int) {
-        paint.color = color
+        textPaint.color = color
         invalidate()
     }
     
@@ -113,3 +161,4 @@ class FastScrollerView @JvmOverloads constructor(
         }
     }
 }
+

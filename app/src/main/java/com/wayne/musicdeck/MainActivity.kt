@@ -189,6 +189,7 @@ class MainActivity : AppCompatActivity() {
         setupRecyclerView()
         // setupOneTimeEvents() removed
         
+        binding.fastScroller.attachBubble(binding.tvFastScrollBubble)
         binding.fastScroller.setListener(object : com.wayne.musicdeck.views.FastScrollerView.OnFastScrollListener {
             override fun onLetterSelected(letter: String) {
                 val layoutManager = binding.recyclerView.layoutManager as? androidx.recyclerview.widget.LinearLayoutManager

@@ -8,6 +8,7 @@ import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.ViewConfiguration
 import android.widget.Toast
+import android.widget.ImageView
 import androidx.lifecycle.ViewModelProvider
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
@@ -1588,39 +1589,35 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
 
     private fun showDesktopLyricsPopup() {
         val ctx = requireContext()
+        val dialog = BottomSheetDialog(ctx, R.style.TransparentBottomSheetDialog)
+        val sheetView = layoutInflater.inflate(R.layout.bottom_sheet_lyrics_options, null)
+        dialog.setContentView(sheetView)
+
+        val switchDesktop = sheetView.findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.switchDesktopLyrics)
+        val rowDesktop = sheetView.findViewById<View>(R.id.rowDesktopLyrics)
+        val rowFont = sheetView.findViewById<View>(R.id.rowFontSize)
+        val ivIcon = sheetView.findViewById<ImageView>(R.id.ivDesktopLyricsIcon)
+
         val isRunning = isFloatingLyricServiceRunning()
-        
-        // Custom vertical layout for the popup
-        val container = android.widget.LinearLayout(ctx).apply {
-            orientation = android.widget.LinearLayout.VERTICAL
-            setPadding(0, 8.dpToPx(), 0, 8.dpToPx())
-        }
-        
-        // Option 1: Toggle Desktop Lyrics
-        val toggleText = if (isRunning) "Turn off Desktop Lyrics" else "Turn on Desktop Lyrics"
-        val toggleIcon = if (isRunning) R.drawable.ic_visibility_off else R.drawable.ic_visibility
-        val toggleOption = createPopupOption(ctx, toggleText, toggleIcon)
-        container.addView(toggleOption)
-        
-        // Option 2: Change font size
-        val fontOption = createPopupOption(ctx, "Change font size", R.drawable.ic_edit)
-        container.addView(fontOption)
-        
-        // Create PopupWindow
-        val popupWindow = android.widget.PopupWindow(container, 180.dpToPx(), android.view.ViewGroup.LayoutParams.WRAP_CONTENT, true)
-        popupWindow.elevation = 24.dpToPx().toFloat()
-        popupWindow.setBackgroundDrawable(androidx.core.content.ContextCompat.getDrawable(ctx, R.drawable.bg_dialog_modern))
-        
-        // Wire click handlers
-        toggleOption.setOnClickListener {
-            popupWindow.dismiss()
-            if (isRunning) {
+        switchDesktop.isChecked = isRunning
+        ivIcon.setImageResource(if (isRunning) R.drawable.ic_visibility else R.drawable.ic_visibility_off)
+
+        rowDesktop.setOnClickListener {
+            playHaptic(it)
+            val currentlyRunning = isFloatingLyricServiceRunning()
+            if (currentlyRunning) {
                 FloatingLyricService.stop(ctx)
+                switchDesktop.isChecked = false
+                ivIcon.setImageResource(R.drawable.ic_visibility_off)
                 Toast.makeText(ctx, "Desktop Lyrics disabled", Toast.LENGTH_SHORT).show()
+                dialog.dismiss()
             } else {
                 if (android.provider.Settings.canDrawOverlays(ctx)) {
                     FloatingLyricService.start(ctx)
+                    switchDesktop.isChecked = true
+                    ivIcon.setImageResource(R.drawable.ic_visibility)
                     Toast.makeText(ctx, "Desktop Lyrics enabled", Toast.LENGTH_SHORT).show()
+                    dialog.dismiss()
                 } else {
                     val intent = android.content.Intent(
                         android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
@@ -1631,48 +1628,14 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
                 }
             }
         }
-        
-        fontOption.setOnClickListener {
-            popupWindow.dismiss()
+
+        rowFont.setOnClickListener {
+            playHaptic(it)
+            dialog.dismiss()
             showFontSizeBottomSheet()
         }
-        
-        // Show above the icon. We offset it so it appears centered above the anchor.
-        popupWindow.showAsDropDown(binding.btnDesktopLyrics, -130.dpToPx(), -140.dpToPx())
-    }
-    
-    private fun createPopupOption(ctx: android.content.Context, text: String, iconRes: Int): android.widget.LinearLayout {
-        return android.widget.LinearLayout(ctx).apply {
-            orientation = android.widget.LinearLayout.HORIZONTAL
-            gravity = android.view.Gravity.CENTER_VERTICAL
-            setPadding(16.dpToPx(), 12.dpToPx(), 16.dpToPx(), 12.dpToPx())
-            isClickable = true
-            isFocusable = true
-            
-            // Ripple background
-            val rippleAttrs = intArrayOf(android.R.attr.selectableItemBackground)
-            val typedArray = ctx.obtainStyledAttributes(rippleAttrs)
-            background = typedArray.getDrawable(0)
-            typedArray.recycle()
-            
-            // Icon
-            val icon = android.widget.ImageView(ctx).apply {
-                setImageResource(iconRes)
-                layoutParams = android.widget.LinearLayout.LayoutParams(20.dpToPx(), 20.dpToPx()).apply {
-                    marginEnd = 12.dpToPx()
-                }
-                imageTintList = android.content.res.ColorStateList.valueOf(0xB3FFFFFF.toInt()) // 70% white
-            }
-            addView(icon)
-            
-            // Text
-            val label = android.widget.TextView(ctx).apply {
-                this.text = text
-                setTextColor(0xFFFFFFFF.toInt())
-                textSize = 14f
-            }
-            addView(label)
-        }
+
+        dialog.show()
     }
 
     private fun showFontSizeBottomSheet() {
@@ -1706,10 +1669,11 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
             stepSize = 1f
             value = settingsManager.lyricFontSizeIndex.toFloat()
             
-            // Premium Polish: Clean pill look without tick marks
+            // Locked solid circular thumb - does not morph or stretch when dragged
             isTickVisible = false
-            trackHeight = 12.dpToPx()
-            thumbRadius = 14.dpToPx()
+            trackHeight = 6.dpToPx()
+            thumbRadius = 10.dpToPx()
+            thumbElevation = 2f
             haloRadius = 0 
             
             addOnChangeListener { _, value, _ ->
