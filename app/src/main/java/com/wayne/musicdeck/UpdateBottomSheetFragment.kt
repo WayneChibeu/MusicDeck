@@ -45,7 +45,13 @@ class UpdateBottomSheetFragment : BottomSheetDialogFragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        return inflater.inflate(R.layout.layout_update_bottom_sheet, container, false)
+        return try {
+            inflater.inflate(R.layout.layout_update_bottom_sheet, container, false)
+        } catch (e: Throwable) {
+            e.printStackTrace()
+            dismissAllowingStateLoss()
+            android.widget.FrameLayout(requireContext())
+        }
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {

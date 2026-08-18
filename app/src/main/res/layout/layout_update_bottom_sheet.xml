@@ -162,8 +162,7 @@
                 android:layout_marginTop="8dp"
                 android:max="100"
                 android:progress="0"
-                android:progressDrawable="@drawable/progress_bar_primary"
-                android:progressTint="?attr/colorPrimary" />
+                android:progressDrawable="@drawable/progress_bar_primary" />
         </LinearLayout>
 
         <!-- Action Buttons -->
@@ -174,30 +173,27 @@
             android:gravity="center_vertical">
 
             <!-- Later Button -->
-            <androidx.appcompat.widget.AppCompatButton
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnLater"
+                style="@style/Widget.Material3.Button.TonalButton"
                 android:layout_width="0dp"
                 android:layout_height="48dp"
                 android:layout_weight="1"
                 android:layout_marginEnd="8dp"
-                android:background="@drawable/bg_glassmorphic_item"
                 android:text="Later"
                 android:textAllCaps="false"
-                android:textColor="#AAFFFFFF"
                 android:textSize="14sp" />
 
             <!-- Update Now Button -->
-            <androidx.appcompat.widget.AppCompatButton
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnDownloadInstall"
+                style="@style/Widget.Material3.Button"
                 android:layout_width="0dp"
                 android:layout_height="48dp"
                 android:layout_weight="1.6"
                 android:layout_marginStart="8dp"
-                android:background="@drawable/bg_primary_pill"
-                android:backgroundTint="?attr/colorPrimary"
                 android:text="Install Update"
                 android:textAllCaps="false"
-                android:textColor="@android:color/white"
                 android:textSize="14sp"
                 android:textStyle="bold" />
         </LinearLayout>
