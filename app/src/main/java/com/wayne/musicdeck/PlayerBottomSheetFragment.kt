@@ -1600,7 +1600,7 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
 
         val isRunning = isFloatingLyricServiceRunning()
         switchDesktop.isChecked = isRunning
-        ivIcon.setImageResource(if (isRunning) R.drawable.ic_visibility else R.drawable.ic_visibility_off)
+        ivIcon.setImageResource(R.drawable.ic_floating_window)
 
         rowDesktop.setOnClickListener {
             playHaptic(it)
@@ -1608,14 +1608,12 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
             if (currentlyRunning) {
                 FloatingLyricService.stop(ctx)
                 switchDesktop.isChecked = false
-                ivIcon.setImageResource(R.drawable.ic_visibility_off)
                 Toast.makeText(ctx, "Desktop Lyrics disabled", Toast.LENGTH_SHORT).show()
                 dialog.dismiss()
             } else {
                 if (android.provider.Settings.canDrawOverlays(ctx)) {
                     FloatingLyricService.start(ctx)
                     switchDesktop.isChecked = true
-                    ivIcon.setImageResource(R.drawable.ic_visibility)
                     Toast.makeText(ctx, "Desktop Lyrics enabled", Toast.LENGTH_SHORT).show()
                     dialog.dismiss()
                 } else {

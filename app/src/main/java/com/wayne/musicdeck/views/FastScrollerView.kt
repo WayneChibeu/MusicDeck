@@ -104,9 +104,8 @@ class FastScrollerView @JvmOverloads constructor(
                     val selectedLetter = letters[index]
                     listener?.onLetterSelected(selectedLetter)
                     
-                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
-                        performHapticFeedback(android.view.HapticFeedbackConstants.CLOCK_TICK)
-                    }
+                    // Distinct tactile vibration tick on every letter
+                    com.wayne.musicdeck.utils.HapticManager.performTick(context)
                     
                     // Update and position floating preview bubble
                     bubbleView?.let { bubble ->
