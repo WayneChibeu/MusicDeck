@@ -750,32 +750,8 @@ class MainActivity : AppCompatActivity() {
         tabLayout.post {
             tabLayout.getTabAt(lastTab)?.select()
         }
-        
-        // Check for App Updates in background
-        checkUpdatesSilently()
     }
 
-    private fun checkUpdatesSilently() {
-        lifecycleScope.launch {
-            try {
-                val versionName = packageManager.getPackageInfo(packageName, 0).versionName ?: "2.8.0"
-                val result = com.wayne.musicdeck.utils.AppUpdateManager.checkForUpdates(versionName)
-                if (result is com.wayne.musicdeck.utils.AppUpdateManager.CheckResult.NewUpdate) {
-                    if (!isFinishing && !isDestroyed && !supportFragmentManager.isStateSaved) {
-                        try {
-                            UpdateBottomSheetFragment.newInstance(result.release, result.apkAsset)
-                                .show(supportFragmentManager, "update_dialog")
-                        } catch (e: Throwable) {
-                            e.printStackTrace()
-                        }
-                    }
-                }
-            } catch (e: Throwable) {
-                // Silently ignore on automatic launch check
-            }
-        }
-    }
-    
     private fun showCreatePlaylistDialog() {
         val sheet = InputBottomSheetFragment.newInstance(
             title = "New Playlist",
