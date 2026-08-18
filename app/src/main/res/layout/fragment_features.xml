@@ -319,4 +319,53 @@
             android:layout_height="wrap_content" />
     </LinearLayout>
 
+    <!-- Pulsating Album Art -->
+    <LinearLayout
+        android:id="@+id/menuAlbumPulsing"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:padding="16dp"
+        android:layout_marginBottom="20dp"
+        android:background="@drawable/bg_glassmorphic_item"
+        android:foreground="?attr/selectableItemBackground"
+        android:clickable="true"
+        android:focusable="true">
+        
+        <ImageView
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:src="@drawable/ic_album"
+            app:tint="?attr/colorPrimary" />
+        
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:layout_marginStart="16dp">
+            
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Pulsating Album Art"
+                android:textSize="16sp"
+                android:textColor="@android:color/white"
+                android:textStyle="bold" />
+            
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Subtle rhythmic breathing animation during playback"
+                android:textSize="12sp"
+                android:textColor="#80FFFFFF" />
+        </LinearLayout>
+        
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/switchAlbumPulsing"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+    </LinearLayout>
+
 </LinearLayout>

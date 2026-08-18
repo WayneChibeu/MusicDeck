@@ -103,4 +103,8 @@ class SettingsManager(context: Context) {
     var isEarbudComboShuffleEnabled: Boolean
         get() = kv.decodeBool("earbud_combo_shuffle_enabled", true)
         set(value) { kv.encode("earbud_combo_shuffle_enabled", value) }
+        
+    var isAlbumPulsingEnabled: Boolean
+        get() = kv.decodeBool("album_pulsing_enabled", true)
+        set(value) { kv.encode("album_pulsing_enabled", value) }
 }

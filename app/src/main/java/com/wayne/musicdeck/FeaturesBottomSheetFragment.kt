@@ -27,6 +27,7 @@ class FeaturesBottomSheetFragment : BottomSheetDialogFragment() {
         val switchSongNotes = view.findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.switchSongNotes)
         val switchShakeShuffle = view.findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.switchShakeShuffle)
         val switchEarbudShuffle = view.findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.switchEarbudShuffle)
+        val switchAlbumPulsing = view.findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.switchAlbumPulsing)
 
         // Init values
         switchInsights.isChecked = settingsManager.isInsightsEnabled
@@ -35,6 +36,7 @@ class FeaturesBottomSheetFragment : BottomSheetDialogFragment() {
         switchSongNotes.isChecked = settingsManager.isSongNotesEnabled
         switchShakeShuffle.isChecked = settingsManager.isShakeToShuffleEnabled
         switchEarbudShuffle.isChecked = settingsManager.isEarbudComboShuffleEnabled
+        switchAlbumPulsing.isChecked = settingsManager.isAlbumPulsingEnabled
 
         // Listeners
         switchInsights.setOnCheckedChangeListener { _, isChecked ->
@@ -77,6 +79,13 @@ class FeaturesBottomSheetFragment : BottomSheetDialogFragment() {
         }
         view.findViewById<View>(R.id.menuEarbudShuffle).setOnClickListener {
             switchEarbudShuffle.isChecked = !switchEarbudShuffle.isChecked
+        }
+
+        switchAlbumPulsing.setOnCheckedChangeListener { _, isChecked ->
+            settingsManager.isAlbumPulsingEnabled = isChecked
+        }
+        view.findViewById<View>(R.id.menuAlbumPulsing).setOnClickListener {
+            switchAlbumPulsing.isChecked = !switchAlbumPulsing.isChecked
         }
     }
 }

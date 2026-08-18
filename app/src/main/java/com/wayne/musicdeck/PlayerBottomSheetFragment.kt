@@ -1529,6 +1529,10 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
     private var breathingAnimator: ValueAnimator? = null
 
     private fun startBreathingAnimation() {
+        if (!settingsManager.isAlbumPulsingEnabled) {
+            stopBreathingAnimation()
+            return
+        }
         if (breathingAnimator != null && breathingAnimator!!.isRunning) return
         if (_binding == null) return
 
