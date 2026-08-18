@@ -35,9 +35,11 @@
         android:id="@+id/menuHistory"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:minHeight="56dp"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:padding="16dp"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="12dp"
         android:clickable="true"
         android:focusable="true"
         android:background="?attr/selectableItemBackground">
@@ -62,9 +64,11 @@
         android:id="@+id/menuSleepTimer"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:minHeight="56dp"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:padding="16dp"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="12dp"
         android:clickable="true"
         android:focusable="true"
         android:background="?attr/selectableItemBackground">
@@ -89,9 +93,11 @@
         android:id="@+id/menuEqualizer"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:minHeight="56dp"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:padding="16dp"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="12dp"
         android:clickable="true"
         android:focusable="true"
         android:background="?attr/selectableItemBackground">
@@ -116,9 +122,11 @@
         android:id="@+id/menuFetchLyrics"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:minHeight="56dp"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:padding="16dp"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="12dp"
         android:clickable="true"
         android:focusable="true"
         android:background="?attr/selectableItemBackground">
@@ -152,9 +160,11 @@
         android:id="@+id/menuAddToPlaylist"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:minHeight="56dp"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:padding="16dp"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="12dp"
         android:clickable="true"
         android:focusable="true"
         android:background="?attr/selectableItemBackground">
@@ -179,9 +189,11 @@
         android:id="@+id/menuSongInfo"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:minHeight="56dp"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:padding="16dp"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="12dp"
         android:clickable="true"
         android:focusable="true"
         android:background="?attr/selectableItemBackground">
@@ -206,9 +218,11 @@
         android:id="@+id/menuSetRingtone"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:minHeight="56dp"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:padding="16dp"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="12dp"
         android:clickable="true"
         android:focusable="true"
         android:background="?attr/selectableItemBackground">
@@ -233,9 +247,11 @@
         android:id="@+id/menuShare"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:minHeight="56dp"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:padding="16dp"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="12dp"
         android:clickable="true"
         android:focusable="true"
         android:background="?attr/selectableItemBackground">
@@ -260,9 +276,11 @@
         android:id="@+id/menuPlaybackSpeed"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:minHeight="56dp"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:padding="16dp"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="12dp"
         android:clickable="true"
         android:focusable="true"
         android:background="?attr/selectableItemBackground">
@@ -297,9 +315,11 @@
         android:id="@+id/menuSunset"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:minHeight="56dp"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:padding="16dp"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="12dp"
         android:clickable="true"
         android:focusable="true"
         android:background="?attr/selectableItemBackground">
@@ -323,6 +343,7 @@
             android:id="@+id/switchSunset"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:minHeight="0dp"
             app:thumbTint="@color/sunset_switch_thumb_selector"
             app:trackTint="@color/sunset_switch_track_selector" />
     </LinearLayout>
@@ -332,9 +353,11 @@
         android:id="@+id/menuCrossfade"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:minHeight="56dp"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:padding="16dp"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="12dp"
         android:clickable="true"
         android:focusable="true"
         android:background="?attr/selectableItemBackground">
@@ -357,7 +380,8 @@
         <com.google.android.material.materialswitch.MaterialSwitch
             android:id="@+id/switchCrossfade"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content" />
+            android:layout_height="wrap_content"
+            android:minHeight="0dp" />
     </LinearLayout>
 
 </LinearLayout>
