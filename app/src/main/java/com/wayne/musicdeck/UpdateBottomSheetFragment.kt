@@ -30,8 +30,6 @@ class UpdateBottomSheetFragment : BottomSheetDialogFragment() {
         try {
             release = pendingRelease
             apkAsset = pendingAsset
-            pendingRelease = null
-            pendingAsset = null
         } catch (e: Throwable) {
             e.printStackTrace()
         }
