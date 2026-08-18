@@ -765,12 +765,12 @@ class MainActivity : AppCompatActivity() {
                         try {
                             UpdateBottomSheetFragment.newInstance(result.release, result.apkAsset)
                                 .show(supportFragmentManager, "update_dialog")
-                        } catch (e: Exception) {
+                        } catch (e: Throwable) {
                             e.printStackTrace()
                         }
                     }
                 }
-            } catch (e: Exception) {
+            } catch (e: Throwable) {
                 // Silently ignore on automatic launch check
             }
         }

@@ -27,16 +27,13 @@ class UpdateBottomSheetFragment : BottomSheetDialogFragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        arguments?.let {
-            val releaseJson = it.getString(ARG_RELEASE_JSON)
-            val assetJson = it.getString(ARG_ASSET_JSON)
-            val gson = Gson()
-            if (releaseJson != null) {
-                release = gson.fromJson(releaseJson, GitHubRelease::class.java)
-            }
-            if (assetJson != null) {
-                apkAsset = gson.fromJson(assetJson, GitHubAsset::class.java)
-            }
+        try {
+            release = pendingRelease
+            apkAsset = pendingAsset
+            pendingRelease = null
+            pendingAsset = null
+        } catch (e: Throwable) {
+            e.printStackTrace()
         }
     }
 
@@ -133,7 +130,7 @@ class UpdateBottomSheetFragment : BottomSheetDialogFragment() {
                             val err = result.exceptionOrNull()?.localizedMessage ?: "Download failed"
                             Toast.makeText(requireContext(), "Update failed: $err", Toast.LENGTH_LONG).show()
                         }
-                    } catch (e: Exception) {
+                    } catch (e: Throwable) {
                         layoutProgress?.visibility = View.GONE
                         btnDownloadInstall.isEnabled = true
                         btnDownloadInstall.text = "Retry Download"
@@ -141,7 +138,7 @@ class UpdateBottomSheetFragment : BottomSheetDialogFragment() {
                     }
                 }
             }
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             e.printStackTrace()
             dismissAllowingStateLoss()
         }
@@ -169,23 +166,19 @@ class UpdateBottomSheetFragment : BottomSheetDialogFragment() {
                 @Suppress("DEPRECATION")
                 android.text.Html.fromHtml(joined)
             }
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             markdown
         }
     }
 
     companion object {
-        private const val ARG_RELEASE_JSON = "arg_release_json"
-        private const val ARG_ASSET_JSON = "arg_asset_json"
+        var pendingRelease: GitHubRelease? = null
+        var pendingAsset: GitHubAsset? = null
 
         fun newInstance(release: GitHubRelease, asset: GitHubAsset): UpdateBottomSheetFragment {
-            return UpdateBottomSheetFragment().apply {
-                val gson = Gson()
-                arguments = Bundle().apply {
-                    putString(ARG_RELEASE_JSON, gson.toJson(release))
-                    putString(ARG_ASSET_JSON, gson.toJson(asset))
-                }
-            }
+            pendingRelease = release
+            pendingAsset = asset
+            return UpdateBottomSheetFragment()
         }
     }
 }
