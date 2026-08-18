@@ -2,17 +2,22 @@ package com.wayne.musicdeck
 
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
+import com.wayne.musicdeck.utils.HapticManager
 
 class QueueTouchHelperCallback(
-    private val onMove: (Int, Int) -> Unit
+    private val onMoveLocally: (Int, Int) -> Unit,
+    private val onDragComplete: (Int, Int) -> Unit = { _, _ -> }
 ) : ItemTouchHelper.Callback() {
+
+    private var dragStartPos: Int = -1
+    private var dragEndPos: Int = -1
 
     override fun getMovementFlags(
         recyclerView: RecyclerView,
         viewHolder: RecyclerView.ViewHolder
     ): Int {
         val dragFlags = ItemTouchHelper.UP or ItemTouchHelper.DOWN
-        val swipeFlags = 0 // Disable Swipe for now, or enable for remove
+        val swipeFlags = 0
         return makeMovementFlags(dragFlags, swipeFlags)
     }
 
@@ -21,45 +26,55 @@ class QueueTouchHelperCallback(
         viewHolder: RecyclerView.ViewHolder,
         target: RecyclerView.ViewHolder
     ): Boolean {
-        onMove(viewHolder.bindingAdapterPosition, target.bindingAdapterPosition)
-        return true
+        val fromPos = viewHolder.bindingAdapterPosition
+        val toPos = target.bindingAdapterPosition
+        if (fromPos != RecyclerView.NO_POSITION && toPos != RecyclerView.NO_POSITION) {
+            dragEndPos = toPos
+            onMoveLocally(fromPos, toPos)
+            return true
+        }
+        return false
     }
 
     override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
-        // Not used if swipeFlags is 0
     }
     
-    override fun isLongPressDragEnabled(): Boolean = false // We use handle
+    override fun isLongPressDragEnabled(): Boolean = false
     override fun isItemViewSwipeEnabled(): Boolean = false
     
-    // Improve drag smoothness
     override fun onSelectedChanged(viewHolder: RecyclerView.ViewHolder?, actionState: Int) {
         super.onSelectedChanged(viewHolder, actionState)
-        if (actionState == ItemTouchHelper.ACTION_STATE_DRAG) {
-            viewHolder?.itemView?.alpha = 0.7f
-            viewHolder?.itemView?.scaleX = 1.05f
-            viewHolder?.itemView?.scaleY = 1.05f
+        if (actionState == ItemTouchHelper.ACTION_STATE_DRAG && viewHolder != null) {
+            dragStartPos = viewHolder.bindingAdapterPosition
+            dragEndPos = dragStartPos
+            
+            viewHolder.itemView.apply {
+                elevation = 16f
+                animate().scaleX(1.03f).scaleY(1.03f).alpha(0.92f).setDuration(120).start()
+                HapticManager.performSpringClick(context)
+            }
         }
     }
     
     override fun clearView(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
         super.clearView(recyclerView, viewHolder)
-        viewHolder.itemView.alpha = 1.0f
-        viewHolder.itemView.scaleX = 1.0f
-        viewHolder.itemView.scaleY = 1.0f
+        viewHolder.itemView.apply {
+            elevation = 0f
+            animate().scaleX(1.0f).scaleY(1.0f).alpha(1.0f).setDuration(120).start()
+        }
+        
+        if (dragStartPos != -1 && dragEndPos != -1 && dragStartPos != dragEndPos) {
+            onDragComplete(dragStartPos, dragEndPos)
+        }
+        dragStartPos = -1
+        dragEndPos = -1
     }
     
-    // Faster interpolation for smoother drag
     override fun getAnimationDuration(
         recyclerView: RecyclerView,
         animationType: Int,
         animateDx: Float,
         animateDy: Float
-    ): Long {
-        return if (animationType == ItemTouchHelper.ANIMATION_TYPE_DRAG) {
-            150L // Faster than default
-        } else {
-            super.getAnimationDuration(recyclerView, animationType, animateDx, animateDy)
-        }
-    }
+    ): Long = 180L
 }
+

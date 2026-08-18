@@ -5,54 +5,93 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.TextView
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
-import com.wayne.musicdeck.databinding.FragmentSleepTimerBinding // Need to create layout!
-// I'll use standard view references if binding not generated yet, or creating layout first.
-// I'll create layout next step. For now code assumes binding.
+import com.wayne.musicdeck.databinding.FragmentSleepTimerBinding
+import com.wayne.musicdeck.utils.HapticManager
+import org.koin.androidx.viewmodel.ext.android.activityViewModel
+import java.util.Locale
 
 class SleepTimerBottomSheetFragment : BottomSheetDialogFragment() {
     
-    private var _binding: com.wayne.musicdeck.databinding.FragmentSleepTimerBinding? = null
+    private var _binding: FragmentSleepTimerBinding? = null
     private val binding get() = _binding!!
+    private val viewModel: MainViewModel by activityViewModel()
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        _binding = com.wayne.musicdeck.databinding.FragmentSleepTimerBinding.inflate(inflater, container, false)
+        _binding = FragmentSleepTimerBinding.inflate(inflater, container, false)
         return binding.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        
-        binding.btn15Min.setOnClickListener { setTimer(15) }
-        binding.btn30Min.setOnClickListener { setTimer(30) }
-        binding.btn45Min.setOnClickListener { setTimer(45) }
-        binding.btn60Min.setOnClickListener { setTimer(60) }
 
-        binding.btnSetCustom.setOnClickListener {
-            val minutesStr = binding.etCustomMinutes.text.toString()
-            val minutes = minutesStr.toIntOrNull()
-            if (minutes != null && minutes > 0) {
-                setTimer(minutes)
-            } else {
-                android.widget.Toast.makeText(context, "Please enter a valid number of minutes", android.widget.Toast.LENGTH_SHORT).show()
-            }
-        }
-        
-        binding.btnStop.setOnClickListener { 
-            context?.startService(Intent(context, MusicService::class.java).apply {
-                action = MusicService.ACTION_CANCEL_SLEEP_TIMER
-            })
+        // Close / Cancel header
+        binding.btnCancelHeader.setOnClickListener {
             dismiss()
         }
-        
+
+        // Preset Pills
+        setupPresetPill(binding.btn15Min, 15)
+        setupPresetPill(binding.btn30Min, 30)
+        setupPresetPill(binding.btn45Min, 45)
+        setupPresetPill(binding.btn60Min, 60)
+        setupPresetPill(binding.btn90Min, 90)
+
+        // Slider
+        binding.sliderMinutes.addOnChangeListener { _, value, _ ->
+            val mins = value.toInt()
+            binding.tvCustomMinutesValue.text = "$mins minutes"
+            binding.btnStartCustom.text = "Start Sleep Timer ($mins min)"
+        }
+
+        // Start Custom Button
+        binding.btnStartCustom.setOnClickListener {
+            val mins = binding.sliderMinutes.value.toInt()
+            HapticManager.performSpringClick(requireContext())
+            setTimer(mins)
+        }
+
+        // End of Current Song Hero Tile
         binding.btnEndOfSong.setOnClickListener {
+            HapticManager.performSpringClick(requireContext())
             context?.startService(Intent(context, MusicService::class.java).apply {
                 action = MusicService.ACTION_SET_SLEEP_TIMER_END_OF_SONG
             })
             dismiss()
+        }
+
+        // Stop Active Timer Button
+        binding.btnStopActiveTimer.setOnClickListener {
+            HapticManager.performSpringClick(requireContext())
+            context?.startService(Intent(context, MusicService::class.java).apply {
+                action = MusicService.ACTION_CANCEL_SLEEP_TIMER
+            })
+            binding.layoutActiveTimer.visibility = View.GONE
+        }
+
+        // Observe Session Extras for Active Timer Countdown
+        viewModel.mediaController.observe(viewLifecycleOwner) { controller ->
+            val extras = (controller as? androidx.media3.session.MediaController)?.sessionExtras
+            val remainingMs = extras?.getLong("SLEEP_TIMER_REMAINING_MS", 0L) ?: 0L
+            if (remainingMs > 0) {
+                binding.layoutActiveTimer.visibility = View.VISIBLE
+                val minutes = (remainingMs / 1000) / 60
+                val seconds = (remainingMs / 1000) % 60
+                binding.tvActiveTimerRemaining.text = String.format(Locale.getDefault(), "Stops in %02d:%02d", minutes, seconds)
+            } else {
+                binding.layoutActiveTimer.visibility = View.GONE
+            }
+        }
+    }
+
+    private fun setupPresetPill(pillView: TextView, minutes: Int) {
+        pillView.setOnClickListener {
+            HapticManager.performSpringClick(requireContext())
+            setTimer(minutes)
         }
     }
     
@@ -70,3 +109,4 @@ class SleepTimerBottomSheetFragment : BottomSheetDialogFragment() {
         _binding = null
     }
 }
+

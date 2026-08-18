@@ -529,21 +529,7 @@ class MainActivity : AppCompatActivity() {
                     onMoreClick = { song -> showPlaylistSongOptions(song) }
                 )
                 
-                // Setup Drag
-                val _callback = QueueTouchHelperCallback { _, _ ->
-                    try {
-                        // Adjust for Header (Item 0)
-                        // Wait, Adapter indices include Header.
-                        // Songs are at index 1+.
-                        // Drag should verify not to drag Header.
-                        // QueueTouchHelperCallback likely assumes 0-indexed list.
-                        // I need to update TouchHelper or Disable Drag for now to avoid crashes?
-                        // Or fix Adapter. 
-                        // For simplicity, disabling reorder in this view temporarily or safely ignoring header drag.
-                    } catch (e: Exception) { e.printStackTrace() }
-                }
-                // playlistTouchHelper = androidx.recyclerview.widget.ItemTouchHelper(callback)
-                // playlistTouchHelper?.attachToRecyclerView(binding.recyclerView)
+                // Drag reordering for playlist details is handled via playlist management
                 
                 binding.recyclerView.adapter = playlistDetailAdapter
                 

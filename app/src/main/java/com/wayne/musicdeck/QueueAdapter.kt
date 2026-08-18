@@ -8,24 +8,56 @@ import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.media3.common.MediaItem
-import androidx.recyclerview.widget.DiffUtil
-import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import coil.load
 import coil.transform.RoundedCornersTransformation
+import java.util.Collections
 
 class QueueAdapter(
     private val onStartDrag: (RecyclerView.ViewHolder) -> Unit,
     private val onRemoveClick: (Int) -> Unit,
     private val onItemClick: (Int) -> Unit
-) : ListAdapter<MediaItem, QueueAdapter.QueueViewHolder>(MediaItemDiffCallback()) {
+) : RecyclerView.Adapter<QueueAdapter.QueueViewHolder>() {
 
-    // Track currently playing index to highlight it
+    private val items = ArrayList<MediaItem>()
+
+    // Track currently playing index to highlight it without full list rebinding
     var currentPlayingIndex: Int = -1
         set(value) {
+            val oldIndex = field
             field = value
-            notifyDataSetChanged()
+            if (oldIndex in 0 until items.size) {
+                notifyItemChanged(oldIndex)
+            }
+            if (value in 0 until items.size) {
+                notifyItemChanged(value)
+            }
         }
+
+    fun submitItems(newItems: List<MediaItem>) {
+        items.clear()
+        items.addAll(newItems)
+        notifyDataSetChanged()
+    }
+
+    fun moveItemLocally(fromPosition: Int, toPosition: Int) {
+        if (fromPosition in 0 until items.size && toPosition in 0 until items.size) {
+            if (fromPosition < toPosition) {
+                for (i in fromPosition until toPosition) {
+                    Collections.swap(items, i, i + 1)
+                }
+            } else {
+                for (i in fromPosition downTo toPosition + 1) {
+                    Collections.swap(items, i, i - 1)
+                }
+            }
+            notifyItemMoved(fromPosition, toPosition)
+        }
+    }
+
+    override fun getItemCount(): Int = items.size
+
+    fun getItem(position: Int): MediaItem? = items.getOrNull(position)
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): QueueViewHolder {
         val view = LayoutInflater.from(parent.context)
@@ -34,7 +66,7 @@ class QueueAdapter(
     }
 
     override fun onBindViewHolder(holder: QueueViewHolder, position: Int) {
-        holder.bind(getItem(position), position)
+        getItem(position)?.let { holder.bind(it, position) }
     }
 
     inner class QueueViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
@@ -93,14 +125,5 @@ class QueueAdapter(
                 onItemClick(bindingAdapterPosition)
             }
         }
-    }
-
-    class MediaItemDiffCallback : DiffUtil.ItemCallback<MediaItem>() {
-        override fun areItemsTheSame(oldItem: MediaItem, newItem: MediaItem): Boolean =
-            oldItem.mediaId == newItem.mediaId
-
-        override fun areContentsTheSame(oldItem: MediaItem, newItem: MediaItem): Boolean =
-            oldItem.mediaMetadata.title == newItem.mediaMetadata.title 
-            && oldItem.mediaMetadata.artist == newItem.mediaMetadata.artist
     }
 }
