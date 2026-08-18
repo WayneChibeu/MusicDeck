@@ -3,25 +3,23 @@
 A modern, ad-free Android music player built with Kotlin and Jetpack Media3.
 
 ## Download
-[**Download Latest APK (v2.8.0)**](https://github.com/WayneChibeu/MusicDeck/releases/download/v2.8.0/MusicDeck-v2.8.0.apk)
+[**Download Latest APK (v2.9.0)**](https://github.com/WayneChibeu/MusicDeck/releases/download/v2.9.0/MusicDeck-v2.9.0.apk)
 
 *Alternatively, view all [Releases](https://github.com/WayneChibeu/MusicDeck/releases).*
 
-
 ## Features
 
-- **Local Music Playback** – Plays all local music files (MP3, FLAC, WAV, etc.)
-- **Smart Search** – Full-screen search with history
-- **Modern UI** – Material 3 design with smooth animations
-- **Organization** – Tabs for Tracks, Artists, Albums, Playlists, and Favorites
-- **Shuffle & Play All** – Distinct controls for ordered and shuffled playback
-- **Queue Management** – Drag-to-reorder, clear queue, and more
+- **Local Music Playback** – Plays all local music files (MP3, FLAC, WAV, AAC, etc.)
+- **Floating Glass Alphabet Jumper** – Fast letter jumping with a glowing preview bubble and tactile mechanical haptics
 - **Intelligent Lyrics Engine** – Synchronized LRC lyrics fetching with confidence scoring and anti-hallucination verification
-- **Sleep & Sunset Timer** – Dedicated audio fade-out transitions on pause
-- **Equalizer** – System equalizer integration
-- **Widget Support** – Home screen playback controls
-- **Favorites** – Quick access to your favorite tracks
-- **Studio-Grade High Contrast** – Crisp pure-white legibility across dynamic album art gradients
+- **Floating Desktop Lyrics** – Picture-in-picture lyric overlay while multitasking across other apps
+- **Fluid 120fps Queue Drag Reordering** – Instant drag-to-reorder with elevation shadows and tactile haptic releases
+- **Glassmorphic Sleep Deck** – Quick preset timer pills (15m–90m), custom minute slider, and "Stop After Current Song" hero mode
+- **Listening Insights** – Total plays, weekly plays, artist counts, and listening streak tracking
+- **Smart Playlists & Cover Collages** – Auto-generated mood mixes and dynamic 2x2 grid collage artwork
+- **Studio-Grade AMOLED High Contrast** – Pure `#FFFFFF` bright white typography against pitch-black glass surfaces
+- **In-App Auto Updater** – Seamless 1-tap updates with scrollable release notes
+- **Personal Notes & Earbud Controls** – Add personal annotations to songs and double-tap headset to smart shuffle
 
 ## Tech Stack
 
