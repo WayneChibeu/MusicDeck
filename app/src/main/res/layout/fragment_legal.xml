@@ -111,7 +111,7 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Your privacy is our priority. MusicDeck operates with a strict 'local-first' philosophy.\n\n• Zero Tracking: We do not track, collect, monetize, or share your personal data or listening history with any third parties.\n• Local Storage: All your data (history, playlists, preferences) remains strictly stored on your local device.\n• Internet Usage: Network access is utilized solely to check for application updates via GitHub, and to retrieve public metadata, album art, and real-time lyrics (via LRCLIB) to enhance your playback experience."
+                android:text="Your privacy is our priority. MusicDeck operates with a strict 'local-first' philosophy.\n\n• Zero Tracking: We do not track, collect, monetize, or share your personal data or listening history with any third parties.\n• Local Storage: All your data (history, playlists, preferences) remains strictly stored on your local device.\n• Internet Usage: Network access is utilized solely to retrieve public metadata, album art, and real-time synchronized lyrics (via LRCLIB) to enhance your playback experience."
                 android:textSize="14sp"
                 android:lineSpacingExtra="4dp"
                 android:textColor="?attr/colorOnSurfaceVariant"
