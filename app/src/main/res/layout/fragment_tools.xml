@@ -450,7 +450,7 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Designed &amp; Built with ❤️ by MusicDeck Team"
+        android:text="Designed &amp; Built by MusicDeck Team"
         android:textSize="12sp"
         android:textColor="#60FFFFFF"
         android:gravity="center" />

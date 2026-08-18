@@ -96,7 +96,7 @@ class ToolsBottomSheetFragment : BottomSheetDialogFragment() {
         
         val message = """
             |MusicDeck v$version
-            |Made with ❤️ by the MusicDeck Team
+            |Made by the MusicDeck Team
             |
             |Lyrics are graciously powered by LRCLIB.
             |

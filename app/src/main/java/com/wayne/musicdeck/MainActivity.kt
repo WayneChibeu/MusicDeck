@@ -1047,7 +1047,7 @@ class MainActivity : AppCompatActivity() {
                 // ACTIVE STATE: End of Song
                 binding.ivSleepTimer.visibility = android.view.View.GONE
                 binding.tvSleepTimerCountdown.visibility = android.view.View.VISIBLE
-                binding.tvSleepTimerCountdown.text = "1 🎵"
+                binding.tvSleepTimerCountdown.text = "1 min"
                 
                 // Add a subtle border to indicate it's active
                 binding.cardSleepTimer.strokeWidth = 4

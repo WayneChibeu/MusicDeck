@@ -88,7 +88,7 @@ class SmartOrganizeBottomSheet : BottomSheetDialogFragment() {
             val suggestions = viewModel.organizationSuggestions.value ?: emptyList()
             if (suggestions.isNotEmpty()) {
                 viewModel.applyOrganizationSuggestions(suggestions)
-                android.widget.Toast.makeText(context, "Library organized! ✨", android.widget.Toast.LENGTH_SHORT).show()
+                android.widget.Toast.makeText(context, "Library organized!", android.widget.Toast.LENGTH_SHORT).show()
                 dismiss()
             }
         }
