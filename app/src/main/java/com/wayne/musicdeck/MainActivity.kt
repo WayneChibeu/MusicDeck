@@ -761,9 +761,13 @@ class MainActivity : AppCompatActivity() {
                 val versionName = packageManager.getPackageInfo(packageName, 0).versionName ?: "2.8.0"
                 val result = com.wayne.musicdeck.utils.AppUpdateManager.checkForUpdates(versionName)
                 if (result is com.wayne.musicdeck.utils.AppUpdateManager.CheckResult.NewUpdate) {
-                    if (!isFinishing && !isDestroyed) {
-                        UpdateBottomSheetFragment.newInstance(result.release, result.apkAsset)
-                            .show(supportFragmentManager, "update_dialog")
+                    if (!isFinishing && !isDestroyed && !supportFragmentManager.isStateSaved) {
+                        try {
+                            UpdateBottomSheetFragment.newInstance(result.release, result.apkAsset)
+                                .show(supportFragmentManager, "update_dialog")
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
                     }
                 }
             } catch (e: Exception) {

@@ -64,8 +64,12 @@ class LegalBottomSheetFragment : BottomSheetDialogFragment() {
                 when (result) {
                     is AppUpdateManager.CheckResult.NewUpdate -> {
                         tvUpdateStatus.text = "New update available: ${result.release.tagName}"
-                        UpdateBottomSheetFragment.newInstance(result.release, result.apkAsset)
-                            .show(parentFragmentManager, "update_dialog")
+                        try {
+                            UpdateBottomSheetFragment.newInstance(result.release, result.apkAsset)
+                                .show(parentFragmentManager, "update_dialog")
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
                     }
                     is AppUpdateManager.CheckResult.UpToDate -> {
                         tvUpdateStatus.text = "MusicDeck is up to date (v$currentVersion)"

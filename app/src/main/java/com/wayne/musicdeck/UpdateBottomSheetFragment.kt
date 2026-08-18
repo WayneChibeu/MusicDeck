@@ -51,97 +51,120 @@ class UpdateBottomSheetFragment : BottomSheetDialogFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val rel = release ?: run {
-            dismiss()
-            return
-        }
-        val asset = apkAsset ?: run {
-            dismiss()
-            return
-        }
-
-        val tvUpdateVersion = view.findViewById<TextView>(R.id.tvUpdateVersion)
-        val tvUpdateSize = view.findViewById<TextView>(R.id.tvUpdateSize)
-        val tvChangelog = view.findViewById<TextView>(R.id.tvChangelog)
-        val layoutProgress = view.findViewById<LinearLayout>(R.id.layoutProgress)
-        val tvProgressStatus = view.findViewById<TextView>(R.id.tvProgressStatus)
-        val tvProgressPercent = view.findViewById<TextView>(R.id.tvProgressPercent)
-        val progressBarDownload = view.findViewById<ProgressBar>(R.id.progressBarDownload)
-        val btnLater = view.findViewById<Button>(R.id.btnLater)
-        val btnDownloadInstall = view.findViewById<Button>(R.id.btnDownloadInstall)
-
-        val versionName = if (!rel.tagName.startsWith("v", ignoreCase = true)) "v${rel.tagName}" else rel.tagName
-        tvUpdateVersion.text = "MusicDeck $versionName"
-
-        val sizeMb = String.format(Locale.US, "%.1f MB", asset.size / (1024.0 * 1024.0))
-        tvUpdateSize.text = sizeMb
-
-        val rawNotes = if (!rel.body.isNullOrBlank()) {
-            rel.body.trim()
-        } else {
-            "Performance improvements, design polish, and bug fixes."
-        }
-        tvChangelog.text = formatReleaseNotes(rawNotes)
-
-        btnLater.setOnClickListener {
-            dismiss()
-        }
-
-        btnDownloadInstall.setOnClickListener {
-            if (downloadedApkFile != null && downloadedApkFile!!.exists()) {
-                AppUpdateManager.installApk(requireActivity(), downloadedApkFile!!)
-                dismiss()
-                return@setOnClickListener
+        try {
+            val rel = release ?: run {
+                dismissAllowingStateLoss()
+                return
+            }
+            val asset = apkAsset ?: run {
+                dismissAllowingStateLoss()
+                return
             }
 
-            // Start Download
-            layoutProgress.visibility = View.VISIBLE
-            btnDownloadInstall.isEnabled = false
-            btnDownloadInstall.text = "Downloading..."
-            btnLater.isEnabled = false
+            val tvUpdateVersion = view.findViewById<TextView>(R.id.tvUpdateVersion)
+            val tvUpdateSize = view.findViewById<TextView>(R.id.tvUpdateSize)
+            val tvChangelog = view.findViewById<TextView>(R.id.tvChangelog)
+            val layoutProgress = view.findViewById<LinearLayout>(R.id.layoutProgress)
+            val tvProgressStatus = view.findViewById<TextView>(R.id.tvProgressStatus)
+            val tvProgressPercent = view.findViewById<TextView>(R.id.tvProgressPercent)
+            val progressBarDownload = view.findViewById<ProgressBar>(R.id.progressBarDownload)
+            val btnLater = view.findViewById<Button>(R.id.btnLater)
+            val btnDownloadInstall = view.findViewById<Button>(R.id.btnDownloadInstall)
 
-            viewLifecycleOwner.lifecycleScope.launch {
-                val result = AppUpdateManager.downloadApk(requireContext(), asset) { percent ->
-                    progressBarDownload.progress = percent
-                    tvProgressPercent.text = "$percent%"
+            val versionName = if (!rel.tagName.startsWith("v", ignoreCase = true)) "v${rel.tagName}" else rel.tagName
+            tvUpdateVersion?.text = "MusicDeck $versionName"
+
+            val sizeMb = String.format(Locale.US, "%.1f MB", asset.size / (1024.0 * 1024.0))
+            tvUpdateSize?.text = sizeMb
+
+            val rawNotes = if (!rel.body.isNullOrBlank()) {
+                rel.body.trim()
+            } else {
+                "Performance improvements, design polish, and bug fixes."
+            }
+            tvChangelog?.text = formatReleaseNotes(rawNotes)
+
+            btnLater?.setOnClickListener {
+                dismissAllowingStateLoss()
+            }
+
+            btnDownloadInstall?.setOnClickListener {
+                if (downloadedApkFile != null && downloadedApkFile!!.exists()) {
+                    AppUpdateManager.installApk(requireActivity(), downloadedApkFile!!)
+                    dismissAllowingStateLoss()
+                    return@setOnClickListener
                 }
 
-                if (result.isSuccess) {
-                    val file = result.getOrNull()
-                    downloadedApkFile = file
-                    tvProgressStatus.text = "Download complete!"
-                    btnDownloadInstall.isEnabled = true
-                    btnDownloadInstall.text = "Install Now"
-                    btnLater.isEnabled = true
+                // Start Download
+                layoutProgress?.visibility = View.VISIBLE
+                btnDownloadInstall.isEnabled = false
+                btnDownloadInstall.text = "Downloading..."
+                btnLater?.isEnabled = false
 
-                    if (file != null) {
-                        AppUpdateManager.installApk(requireActivity(), file)
+                viewLifecycleOwner.lifecycleScope.launch {
+                    try {
+                        val result = AppUpdateManager.downloadApk(requireContext(), asset) { percent ->
+                            progressBarDownload?.progress = percent
+                            tvProgressPercent?.text = "$percent%"
+                        }
+
+                        if (result.isSuccess) {
+                            val file = result.getOrNull()
+                            downloadedApkFile = file
+                            tvProgressStatus?.text = "Download complete!"
+                            btnDownloadInstall.isEnabled = true
+                            btnDownloadInstall.text = "Install Now"
+                            btnLater?.isEnabled = true
+
+                            if (file != null) {
+                                AppUpdateManager.installApk(requireActivity(), file)
+                            }
+                        } else {
+                            layoutProgress?.visibility = View.GONE
+                            btnDownloadInstall.isEnabled = true
+                            btnDownloadInstall.text = "Retry Download"
+                            btnLater?.isEnabled = true
+                            val err = result.exceptionOrNull()?.localizedMessage ?: "Download failed"
+                            Toast.makeText(requireContext(), "Update failed: $err", Toast.LENGTH_LONG).show()
+                        }
+                    } catch (e: Exception) {
+                        layoutProgress?.visibility = View.GONE
+                        btnDownloadInstall.isEnabled = true
+                        btnDownloadInstall.text = "Retry Download"
+                        btnLater?.isEnabled = true
                     }
-                } else {
-                    layoutProgress.visibility = View.GONE
-                    btnDownloadInstall.isEnabled = true
-                    btnDownloadInstall.text = "Retry Download"
-                    btnLater.isEnabled = true
-                    val err = result.exceptionOrNull()?.localizedMessage ?: "Download failed"
-                    Toast.makeText(requireContext(), "Update failed: $err", Toast.LENGTH_LONG).show()
                 }
             }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            dismissAllowingStateLoss()
         }
     }
 
     private fun formatReleaseNotes(markdown: String): CharSequence {
-        var formatted = markdown
-            .replace(Regex("(?m)^\\s*[-*]\\s+"), "• ")
-            .replace(Regex("(?m)^#{1,6}\\s*(.*?)$"), "<br><b>$1</b><br>")
-            .replace(Regex("\\*\\*(.*?)\\*\\*"), "<b>$1</b>")
-            .replace(Regex("(?m)^\\s*\\n{2,}"), "<br>")
-            .replace("\n", "<br>")
+        return try {
+            val lines = markdown.lines().map { line ->
+                val trimmed = line.trim()
+                when {
+                    trimmed.startsWith("###") -> "<b>${trimmed.removePrefix("###").trim()}</b>"
+                    trimmed.startsWith("##") -> "<b>${trimmed.removePrefix("##").trim()}</b>"
+                    trimmed.startsWith("#") -> "<b>${trimmed.removePrefix("#").trim()}</b>"
+                    trimmed.startsWith("- ") -> "• ${trimmed.removePrefix("- ").trim()}"
+                    trimmed.startsWith("* ") -> "• ${trimmed.removePrefix("* ").trim()}"
+                    else -> trimmed
+                }
+            }
+            val joined = lines.joinToString("<br>")
+                .replace(Regex("\\*\\*(.*?)\\*\\*")) { match -> "<b>${match.groupValues[1]}</b>" }
 
-        return if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
-            android.text.Html.fromHtml(formatted.trim(), android.text.Html.FROM_HTML_MODE_COMPACT)
-        } else {
-            @Suppress("DEPRECATION")
-            android.text.Html.fromHtml(formatted.trim())
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+                android.text.Html.fromHtml(joined, android.text.Html.FROM_HTML_MODE_COMPACT)
+            } else {
+                @Suppress("DEPRECATION")
+                android.text.Html.fromHtml(joined)
+            }
+        } catch (e: Exception) {
+            markdown
         }
     }
 
