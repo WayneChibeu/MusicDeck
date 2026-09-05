@@ -394,5 +394,41 @@
             android:minHeight="0dp" />
     </LinearLayout>
 
+    <!-- Sound Check (Loudness Normalization) -->
+    <LinearLayout
+        android:id="@+id/menuSoundCheck"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="56dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="12dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:background="?attr/selectableItemBackground">
+
+        <ImageView
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:src="@drawable/ic_sound_check"
+            app:tint="?attr/colorOnSurface"
+            android:layout_marginEnd="16dp" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Sound Check"
+            android:textSize="16sp"
+            android:textColor="?attr/colorOnSurface" />
+
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/switchSoundCheck"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minHeight="0dp" />
+    </LinearLayout>
+
 </LinearLayout>
 </androidx.core.widget.NestedScrollView>

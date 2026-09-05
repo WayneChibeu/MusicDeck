@@ -87,6 +87,7 @@ class EqualizerBottomSheet : BottomSheetDialogFragment() {
             setupPresets(view)
             setupSwitch(view)
             setupResetButton(view)
+            setupPresetScrollProtection(view)
         } catch (e: Exception) {
             Toast.makeText(context, "Failed to initialize EQ UI: ${e.message}", Toast.LENGTH_SHORT).show()
             dismiss()
@@ -98,13 +99,61 @@ class EqualizerBottomSheet : BottomSheetDialogFragment() {
         v.setOnTouchListener { target, event ->
             when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE -> {
-                    target.parent?.requestDisallowInterceptTouchEvent(true)
+                    disallowParentIntercept(target, true)
                 }
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                    target.parent?.requestDisallowInterceptTouchEvent(false)
+                    disallowParentIntercept(target, false)
                 }
             }
             false
+        }
+    }
+
+    /**
+     * Walk the full parent chain to prevent the BottomSheet from
+     * intercepting horizontal scrolls as dismiss gestures.
+     */
+    private fun disallowParentIntercept(view: View, disallow: Boolean) {
+        var parent = view.parent
+        while (parent != null) {
+            parent.requestDisallowInterceptTouchEvent(disallow)
+            parent = parent.parent
+        }
+    }
+
+    @SuppressLint("ClickableViewAccessibility")
+    private fun setupPresetScrollProtection(view: View) {
+        val scrollView = view.findViewById<android.widget.HorizontalScrollView>(R.id.scrollPresets) ?: return
+        val touchSlop = android.view.ViewConfiguration.get(requireContext()).scaledTouchSlop
+        var downX = 0f
+        var downY = 0f
+        var isHorizontalScroll = false
+
+        scrollView.setOnTouchListener { v, event ->
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN -> {
+                    downX = event.x
+                    downY = event.y
+                    isHorizontalScroll = false
+                }
+                MotionEvent.ACTION_MOVE -> {
+                    val dx = Math.abs(event.x - downX)
+                    val dy = Math.abs(event.y - downY)
+                    if (!isHorizontalScroll && dx > touchSlop && dx > dy) {
+                        isHorizontalScroll = true
+                    }
+                    if (isHorizontalScroll) {
+                        disallowParentIntercept(v, true)
+                    }
+                }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    if (isHorizontalScroll) {
+                        disallowParentIntercept(v, false)
+                    }
+                    isHorizontalScroll = false
+                }
+            }
+            false // Let HorizontalScrollView handle the scroll itself
         }
     }
     

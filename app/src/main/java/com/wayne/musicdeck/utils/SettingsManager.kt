@@ -119,4 +119,8 @@ class SettingsManager(context: Context) {
     var isAutoUpdateEnabled: Boolean
         get() = kv.decodeBool("auto_update_enabled", true)
         set(value) { kv.encode("auto_update_enabled", value) }
+
+    var isSoundCheckEnabled: Boolean
+        get() = kv.decodeBool("sound_check_enabled", false)
+        set(value) { kv.encode("sound_check_enabled", value) }
 }

@@ -32,6 +32,10 @@ import org.koin.android.ext.android.inject
 import android.graphics.Color
 import android.widget.LinearLayout
 import com.wayne.musicdeck.utils.SettingsManager
+import android.database.ContentObserver
+import android.os.Handler
+import android.os.Looper
+import android.provider.Settings
 
 class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
 
@@ -52,6 +56,11 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
     
     // Stored as class field so we can clean it up in onDestroyView
     private var hideScrubberRunnable: Runnable? = null
+    
+    // High-volume warning state
+    private var volumeObserver: ContentObserver? = null
+    private var wasAboveThreshold = false
+    private var hideVolumeWarningRunnable: Runnable? = null
     
     // Lyric file picker
     private val lyricFilePicker = registerForActivityResult(
@@ -588,12 +597,6 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         updateScreenOnState()
     }
 
-    private var hideVolumeHudRunnable: Runnable? = null
-    private var lastTapTime = 0L
-    private var lastTapX = 0f
-    private var lastTapY = 0f
-    private val DOUBLE_TAP_TIMEOUT = 320L
-
     private fun setupAlbumArtGestures() {
         val artView = binding.ivFullArt
         val touchSlop = ViewConfiguration.get(requireContext()).scaledTouchSlop
@@ -601,14 +604,9 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         val swipeThreshold = 65 * density
         var velocityTracker: android.view.VelocityTracker? = null
 
-        val audioManager = requireContext().getSystemService(android.content.Context.AUDIO_SERVICE) as? android.media.AudioManager
-        val maxVolume = audioManager?.getStreamMaxVolume(android.media.AudioManager.STREAM_MUSIC) ?: 15
-        var initialVolume = audioManager?.getStreamVolume(android.media.AudioManager.STREAM_MUSIC) ?: 7
-
         var startX = 0f
         var startY = 0f
         var isHorizontalDrag = false
-        var isVerticalVolumeDrag = false
 
         val gestureDetector = GestureDetector(requireContext(), object : GestureDetector.SimpleOnGestureListener() {
             override fun onDoubleTap(e: MotionEvent): Boolean {
@@ -648,8 +646,6 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
                     startX = event.rawX
                     startY = event.rawY
                     isHorizontalDrag = false
-                    isVerticalVolumeDrag = false
-                    initialVolume = audioManager?.getStreamVolume(android.media.AudioManager.STREAM_MUSIC) ?: 7
                     // Immediately claim touch so BottomSheet doesn't steal it
                     v.parent.requestDisallowInterceptTouchEvent(true)
                     breathingAnimator?.cancel()
@@ -657,16 +653,12 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
                 }
                 MotionEvent.ACTION_MOVE -> {
                     val dx = event.rawX - startX
-                    val dy = event.rawY - startY
                     val absDx = Math.abs(dx)
-                    val absDy = Math.abs(dy)
+                    val absDy = Math.abs(event.rawY - startY)
 
-                    if (!isHorizontalDrag && !isVerticalVolumeDrag) {
+                    if (!isHorizontalDrag) {
                         if (absDx > touchSlop && absDx > absDy * 1.1f) {
                             isHorizontalDrag = true
-                        } else if (absDy > touchSlop && absDy > absDx * 1.1f) {
-                            // Entire album art is a volume zone
-                            isVerticalVolumeDrag = true
                         }
                     }
 
@@ -680,14 +672,6 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
                         val scale = (1f - (absDx / viewWidth * 0.12f)).coerceIn(0.92f, 1f)
                         artView.scaleX = scale
                         artView.scaleY = scale
-                    } else if (isVerticalVolumeDrag && audioManager != null) {
-                        // Dragging upwards = volume up (rawY decreases)
-                        val deltaY = startY - event.rawY
-                        val stepDistance = 20 * density
-                        val volumeChange = (deltaY / stepDistance).toInt()
-                        val newVolume = (initialVolume + volumeChange).coerceIn(0, maxVolume)
-                        audioManager.setStreamVolume(android.media.AudioManager.STREAM_MUSIC, newVolume, 0)
-                        showVolumeHud(newVolume, maxVolume)
                     }
                     true
                 }
@@ -731,80 +715,99 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
                     velocityTracker?.recycle()
                     velocityTracker = null
                     isHorizontalDrag = false
-                    isVerticalVolumeDrag = false
                     true
                 }
                 else -> false
             }
         }
 
-        // Direct 1:1 touch & scrubbing on the volume capsule HUD itself
-        binding.layoutVolumeHud.setOnTouchListener { v, event ->
-            v.parent.requestDisallowInterceptTouchEvent(true)
-            when (event.actionMasked) {
-                MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE -> {
-                    hideVolumeHudRunnable?.let { binding.layoutVolumeHud.removeCallbacks(it) }
-                    val height = v.height.toFloat()
-                    if (height > 0 && audioManager != null) {
-                        val clampedY = event.y.coerceIn(0f, height)
-                        val ratio = (height - clampedY) / height // 0 at bottom, 1 at top
-                        val newVol = (ratio * maxVolume).toInt().coerceIn(0, maxVolume)
-                        audioManager.setStreamVolume(android.media.AudioManager.STREAM_MUSIC, newVol, 0)
-                        showVolumeHud(newVol, maxVolume)
-                    }
-                    true
-                }
-                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                    v.parent.requestDisallowInterceptTouchEvent(false)
-                    hideVolumeHudRunnable?.let {
-                        binding.layoutVolumeHud.removeCallbacks(it)
-                        binding.layoutVolumeHud.postDelayed(it, 900)
-                    }
-                    true
-                }
-                else -> false
-            }
-        }
+        // Start monitoring system volume for high-volume warning
+        setupVolumeWarningObserver()
     }
 
-    private fun showVolumeHud(currentVol: Int, maxVol: Int) {
-        val binding = _binding ?: return
-        val percent = (currentVol.toFloat() / maxVol.coerceAtLeast(1) * 100).toInt()
-        
-        // Dynamically adjust vertical fill height (140dp total capsule height)
-        val totalCapsuleHeight = (140 * resources.displayMetrics.density).toInt()
-        val fillHeight = (percent / 100f * totalCapsuleHeight).toInt().coerceIn(0, totalCapsuleHeight)
-        
-        val fillParams = binding.vVolumeCapsuleFill.layoutParams
-        fillParams.height = fillHeight
-        binding.vVolumeCapsuleFill.layoutParams = fillParams
+    /**
+     * Automated high-volume warning system.
+     * Monitors system media volume via ContentObserver and shows a non-blocking
+     * amber warning pill when volume exceeds 80% of max.
+     */
+    private fun setupVolumeWarningObserver() {
+        val ctx = context ?: return
+        val audioManager = ctx.getSystemService(android.content.Context.AUDIO_SERVICE) as? android.media.AudioManager ?: return
+        val maxVolume = audioManager.getStreamMaxVolume(android.media.AudioManager.STREAM_MUSIC)
+        val threshold = (maxVolume * 0.8f).toInt()
 
-        binding.tvVolumeHudPercent.text = "$percent%"
-        binding.ivVolumeHudIcon.setImageResource(
-            if (currentVol == 0) R.drawable.ic_volume_mute else R.drawable.ic_volume_up
-        )
-
-        binding.layoutVolumeHud.visibility = View.VISIBLE
-        binding.layoutVolumeHud.animate()
-            .alpha(1f)
-            .scaleX(1f)
-            .scaleY(1f)
-            .setDuration(120)
-            .start()
-
-        hideVolumeHudRunnable?.let { binding.layoutVolumeHud.removeCallbacks(it) }
-        hideVolumeHudRunnable = Runnable {
-            _binding?.layoutVolumeHud?.animate()
-                ?.alpha(0f)
-                ?.scaleX(0.9f)
-                ?.scaleY(0.9f)
-                ?.setDuration(280)
-                ?.withEndAction {
-                    _binding?.layoutVolumeHud?.visibility = View.GONE
-                }
-                ?.start()
+        // Check initial state
+        val initialVol = audioManager.getStreamVolume(android.media.AudioManager.STREAM_MUSIC)
+        wasAboveThreshold = initialVol > threshold
+        if (wasAboveThreshold) {
+            showVolumeWarning()
         }
-        binding.layoutVolumeHud.postDelayed(hideVolumeHudRunnable, 900)
+
+        volumeObserver = object : ContentObserver(Handler(Looper.getMainLooper())) {
+            override fun onChange(selfChange: Boolean) {
+                val currentVol = audioManager.getStreamVolume(android.media.AudioManager.STREAM_MUSIC)
+                val isAbove = currentVol > threshold
+
+                if (isAbove && !wasAboveThreshold) {
+                    // Just crossed above threshold
+                    showVolumeWarning()
+                } else if (!isAbove && wasAboveThreshold) {
+                    // Dropped below threshold, reset so it can fire again
+                    hideVolumeWarning()
+                }
+                wasAboveThreshold = isAbove
+            }
+        }
+
+        ctx.contentResolver.registerContentObserver(
+            Settings.System.CONTENT_URI,
+            true,
+            volumeObserver!!
+        )
+    }
+
+    private fun showVolumeWarning() {
+        val binding = _binding ?: return
+        hideVolumeWarningRunnable?.let { binding.tvVolumeWarning.removeCallbacks(it) }
+
+        binding.tvVolumeWarning.visibility = View.VISIBLE
+        binding.tvVolumeWarning.alpha = 0f
+        binding.tvVolumeWarning.animate()
+            .alpha(1f)
+            .setDuration(200)
+            .withEndAction {
+                // Auto-hide after 3 seconds
+                hideVolumeWarningRunnable = Runnable {
+                    _binding?.tvVolumeWarning?.animate()
+                        ?.alpha(0f)
+                        ?.setDuration(300)
+                        ?.withEndAction {
+                            _binding?.tvVolumeWarning?.visibility = View.GONE
+                        }
+                        ?.start()
+                }
+                _binding?.tvVolumeWarning?.postDelayed(hideVolumeWarningRunnable, 3000)
+            }
+            .start()
+    }
+
+    private fun hideVolumeWarning() {
+        val binding = _binding ?: return
+        hideVolumeWarningRunnable?.let { binding.tvVolumeWarning.removeCallbacks(it) }
+        binding.tvVolumeWarning.animate()
+            .alpha(0f)
+            .setDuration(300)
+            .withEndAction {
+                _binding?.tvVolumeWarning?.visibility = View.GONE
+            }
+            .start()
+    }
+
+    private fun unregisterVolumeObserver() {
+        volumeObserver?.let {
+            context?.contentResolver?.unregisterContentObserver(it)
+        }
+        volumeObserver = null
     }
 
     private fun showSeekFeedback(isForward: Boolean) {
@@ -1547,6 +1550,10 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         // Also remove from the main handler as a safety net
         _binding?.seekBar?.handler?.removeCallbacks(updateProgressAction)
         
+        // Unregister volume warning observer
+        unregisterVolumeObserver()
+        hideVolumeWarningRunnable?.let { _binding?.tvVolumeWarning?.removeCallbacks(it) }
+        
         // Remove player listener
         viewModel.mediaController.value?.removeListener(playerListener)
         
@@ -1809,4 +1816,3 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
     }
 
 }
-

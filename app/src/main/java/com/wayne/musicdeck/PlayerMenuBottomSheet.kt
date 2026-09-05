@@ -248,6 +248,28 @@ class PlayerMenuBottomSheet : BottomSheetDialogFragment() {
         view.findViewById<View>(R.id.menuCrossfade).setOnClickListener {
             crossfadeSwitch.isChecked = !crossfadeSwitch.isChecked
         }
+
+        // Sound Check (Loudness Normalization) Toggle
+        val soundCheckSwitch = view.findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.switchSoundCheck)
+        soundCheckSwitch.isChecked = settingsManager.isSoundCheckEnabled
+
+        soundCheckSwitch.setOnCheckedChangeListener { _, isChecked ->
+            settingsManager.isSoundCheckEnabled = isChecked
+            if (isChecked) {
+                // Reset LoudnessEnhancer to 0 gain — normalized output
+                AudioEffectManager.setVolumeBoostGain(0, requireContext())
+                Toast.makeText(context, "Sound Check on — volume normalized", Toast.LENGTH_SHORT).show()
+            } else {
+                // Restore user's saved volume boost
+                val savedGain = AudioEffectManager.getSavedVolumeBoostGain(requireContext())
+                AudioEffectManager.setVolumeBoostGain(savedGain, requireContext())
+                Toast.makeText(context, "Sound Check off", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        view.findViewById<View>(R.id.menuSoundCheck).setOnClickListener {
+            soundCheckSwitch.isChecked = !soundCheckSwitch.isChecked
+        }
     }
 
     private fun formatSpeed(speed: Float): String {

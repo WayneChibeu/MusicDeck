@@ -155,6 +155,25 @@
             </FrameLayout>
         </FrameLayout>
 
+        <!-- High Volume Warning Pill (automated, non-blocking) -->
+        <TextView
+            android:id="@+id/tvVolumeWarning"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="High Volume"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:textColor="#FFFFFFFF"
+            android:background="@drawable/bg_volume_warning_pill"
+            android:paddingHorizontal="14dp"
+            android:paddingVertical="5dp"
+            android:layout_marginTop="8dp"
+            android:visibility="gone"
+            android:alpha="0"
+            app:layout_constraintTop_toBottomOf="@+id/artContainer"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
         <!-- Title + Favorite -->
         <TextView
             android:id="@+id/tvFullTitle"
@@ -170,7 +189,7 @@
             android:marqueeRepeatLimit="marquee_forever"
             android:focusable="true"
             android:focusableInTouchMode="true"
-            app:layout_constraintTop_toBottomOf="@+id/artContainer"
+            app:layout_constraintTop_toBottomOf="@+id/tvVolumeWarning"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toStartOf="@+id/btnFavorite"
             app:layout_constraintBottom_toTopOf="@+id/tvFullArtist"
