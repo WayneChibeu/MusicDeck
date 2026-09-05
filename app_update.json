@@ -1,9 +1,9 @@
 {
-  "versionName": "2.10.4",
-  "versionCode": 57,
-  "releaseTitle": "MusicDeck v2.10.4",
-  "releaseNotes": "Player Layout Fix: Restored album art packed constraints and header separation.\nNotification Square Artwork: Automatic center-crop preprocessor eliminates 16:9 black pillarbox bars in system media controls.\nInstant High-Volume Warning: BroadcastReceiver listener triggers warning pill immediately on hardware volume changes >= 80%.\nSound Check Auto-Leveling: Automatically normalizes volume to safe hearing level on track change when enabled.\nModern MusicDeck Logo: Bespoke sound deck emblem with Android 14+ Material You / Dark Mode themed icon support.",
-  "downloadUrl": "https://github.com/WayneChibeu/MusicDeck/releases/download/v2.10.4/MusicDeck-v2.10.4.apk",
-  "apkSize": 6025247,
-  "htmlUrl": "https://github.com/WayneChibeu/MusicDeck/releases/tag/v2.10.4"
+  "versionName": "2.10.5",
+  "versionCode": 58,
+  "releaseTitle": "MusicDeck v2.10.5",
+  "releaseNotes": "Startup Splash & Logo Refinement: Pure pitch-black AMOLED background and seamless Android 12+ splash screen integration, eliminating OEM container cuts/slashes and stray acoustic lines.\nUpdate Downloader Improvements: Clicking 'Later' during download cleanly cancels OkHttp network streaming, purges partial files, and safely dismisses without background activity.\nRefined Turntable Brandmark: Precision vinyl grooves, balanced spindle hub, and iconic play glyph.",
+  "downloadUrl": "https://github.com/WayneChibeu/MusicDeck/releases/download/v2.10.5/MusicDeck-v2.10.5.apk",
+  "apkSize": 6026767,
+  "htmlUrl": "https://github.com/WayneChibeu/MusicDeck/releases/tag/v2.10.5"
 }

@@ -19,11 +19,14 @@ import com.google.gson.Gson
 import com.wayne.musicdeck.R
 import com.wayne.musicdeck.utils.NetworkUtils
 import com.wayne.musicdeck.utils.SettingsManager
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import okhttp3.Call
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.File
@@ -259,11 +262,13 @@ class UpdateManager(
     suspend fun downloadApk(
         downloadUrl: String,
         targetFileName: String,
+        onCallCreated: ((Call) -> Unit)? = null,
         onProgress: (percent: Int, bytesDownloaded: Long, totalBytes: Long) -> Unit
     ): Result<File> = withContext(Dispatchers.IO) {
+        val updateDir = File(context.getExternalFilesDir(null), "updates").apply { mkdirs() }
+        val apkFile = File(updateDir, targetFileName)
+
         try {
-            val updateDir = File(context.getExternalFilesDir(null), "updates").apply { mkdirs() }
-            
             // Clean older APKs
             updateDir.listFiles()?.forEach { file ->
                 if (file.name.endsWith(".apk") && file.name != targetFileName) {
@@ -271,9 +276,10 @@ class UpdateManager(
                 }
             }
 
-            val apkFile = File(updateDir, targetFileName)
             val request = Request.Builder().url(downloadUrl).build()
-            val response = httpClient.newCall(request).execute()
+            val call = httpClient.newCall(request)
+            onCallCreated?.invoke(call)
+            val response = call.execute()
 
             if (!response.isSuccessful) {
                 return@withContext Result.failure(Exception("Download failed: HTTP ${response.code}"))
@@ -289,6 +295,10 @@ class UpdateManager(
                     var totalRead = 0L
 
                     while (input.read(buffer).also { bytesRead = it } != -1) {
+                        if (!coroutineContext.isActive) {
+                            apkFile.delete()
+                            return@withContext Result.failure(CancellationException("Download cancelled by user"))
+                        }
                         output.write(buffer, 0, bytesRead)
                         totalRead += bytesRead
                         val percent = if (totalBytes > 0) ((totalRead * 100) / totalBytes).toInt() else -1
@@ -302,6 +312,9 @@ class UpdateManager(
 
             Result.success(apkFile)
         } catch (e: Exception) {
+            if (e is CancellationException || !coroutineContext.isActive) {
+                if (apkFile.exists()) apkFile.delete()
+            }
             Log.e(TAG, "Error downloading APK", e)
             Result.failure(e)
         }
@@ -359,13 +372,25 @@ class UpdateManager(
 
         var downloadJob: Job? = null
         var downloadedApkFile: File? = null
+        var currentCall: okhttp3.Call? = null
 
         val dialog = MaterialAlertDialogBuilder(activity)
             .setView(dialogView)
             .setCancelable(false)
             .setPositiveButton("Update Now", null) // Custom listener below to prevent auto-dismiss
             .setNegativeButton("Later") { d, _ ->
+                val wasDownloading = progressBar.visibility == View.VISIBLE && downloadedApkFile == null
+                currentCall?.cancel()
                 downloadJob?.cancel()
+                if (downloadedApkFile == null) {
+                    val tempFile = File(File(activity.getExternalFilesDir(null), "updates"), "MusicDeck-${updateInfo.latestVersion}.apk")
+                    if (tempFile.exists()) {
+                        tempFile.delete()
+                    }
+                }
+                if (wasDownloading) {
+                    Toast.makeText(activity, "Download cancelled", Toast.LENGTH_SHORT).show()
+                }
                 d.dismiss()
             }
             .create()
@@ -398,7 +423,11 @@ class UpdateManager(
 
                 val fileName = "MusicDeck-${updateInfo.latestVersion}.apk"
                 downloadJob = CoroutineScope(Dispatchers.Main).launch {
-                    val result = downloadApk(downloadUrl, fileName) { percent, read, _ ->
+                    val result = downloadApk(
+                        downloadUrl = downloadUrl,
+                        targetFileName = fileName,
+                        onCallCreated = { currentCall = it }
+                    ) { percent, read, _ ->
                         if (percent >= 0) {
                             progressBar.progress = percent
                             tvProgressPercent.text = "$percent%"
@@ -417,6 +446,9 @@ class UpdateManager(
                         updateBtn.text = "Install Now"
                         installApk(activity, file)
                     }.onFailure { err ->
+                        if (err is CancellationException || downloadJob?.isCancelled == true) {
+                            return@onFailure
+                        }
                         progressBar.visibility = View.GONE
                         tvProgressPercent.visibility = View.GONE
                         updateBtn.isEnabled = true

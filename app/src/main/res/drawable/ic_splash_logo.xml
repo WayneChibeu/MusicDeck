@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="108dp"
-    android:height="108dp"
+    android:width="160dp"
+    android:height="160dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
 
     <!-- Sound Deck Disc Plate -->
     <path
-        android:fillColor="#1B1E26"
+        android:fillColor="#181B22"
         android:pathData="M54,27 A27,27 0 1,1 53.9,27 Z" />
 
     <!-- Outer Deck Border -->
@@ -18,13 +18,13 @@
 
     <!-- Outer Vinyl Groove -->
     <path
-        android:strokeColor="#35FFFFFF"
+        android:strokeColor="#30FFFFFF"
         android:strokeWidth="1.2"
         android:pathData="M54,34 A20,20 0 1,1 53.9,34 Z" />
 
     <!-- Inner Vinyl Groove -->
     <path
-        android:strokeColor="#20FFFFFF"
+        android:strokeColor="#1FFFFFFF"
         android:strokeWidth="1.0"
         android:pathData="M54,40 A14,14 0 1,1 53.9,40 Z" />
 
