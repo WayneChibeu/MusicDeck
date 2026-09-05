@@ -3,7 +3,20 @@
     android:height="24dp"
     android:viewportWidth="24"
     android:viewportHeight="24">
-  <path
-      android:fillColor="#FFFFFFFF"
-      android:pathData="M19.59,7L12,14.59L6.41,9L12,3.41L19.59,7M2,22h20L22,2L2,22z"/>
+    <!-- Bar 1 (Lowest) -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M5.25,16.5 C6.08,16.5 6.75,17.17 6.75,18 L6.75,19 C6.75,19.83 6.08,20.5 5.25,20.5 C4.42,20.5 3.75,19.83 3.75,19 L3.75,18 C3.75,17.17 4.42,16.5 5.25,16.5 Z"/>
+    <!-- Bar 2 -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M9.75,12.5 C10.58,12.5 11.25,13.17 11.25,14 L11.25,19 C11.25,19.83 10.58,20.5 9.75,20.5 C8.92,20.5 8.25,19.83 8.25,19 L8.25,14 C8.25,13.17 8.92,12.5 9.75,12.5 Z"/>
+    <!-- Bar 3 -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M14.25,8.5 C15.08,8.5 15.75,9.17 15.75,10 L15.75,19 C15.75,19.83 15.08,20.5 14.25,20.5 C13.42,20.5 12.75,19.83 12.75,19 L12.75,10 C12.75,9.17 13.42,8.5 14.25,8.5 Z"/>
+    <!-- Bar 4 (Full Signal) -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M18.75,4.5 C19.58,4.5 20.25,5.17 20.25,6 L20.25,19 C20.25,19.83 19.58,20.5 18.75,20.5 C17.92,20.5 17.25,19.83 17.25,19 L17.25,6 C17.25,5.17 17.92,4.5 18.75,4.5 Z"/>
 </vector>

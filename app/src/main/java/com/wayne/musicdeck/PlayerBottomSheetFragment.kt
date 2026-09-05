@@ -272,10 +272,13 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         }
         
         binding.btnFavorite.setOnClickListener {
+            playHaptic(it)
             val currentPath = viewModel.mediaController.value?.currentMediaItem?.mediaId ?: return@setOnClickListener
             val song = viewModel.songs.value?.find { it.data == currentPath }
             if (song != null) {
-               viewModel.toggleFavorite(song)
+                val wasFavorite = viewModel.favorites.value?.any { it.data == currentPath } == true
+                viewModel.toggleFavorite(song)
+                updateFavoriteIcon(!wasFavorite, animate = true)
             } else {
                 android.widget.Toast.makeText(context, "Error: Song not found", android.widget.Toast.LENGTH_SHORT).show()
             }
@@ -852,51 +855,132 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
             .start()
     }
 
-    private fun animateTrackChange(isNext: Boolean) {
-        val artView = _binding?.ivFullArt ?: return
-        val viewWidth = if (artView.width > 0) artView.width.toFloat() else 600f
-        val exitX = if (isNext) -viewWidth * 1.15f else viewWidth * 1.15f
-        val enterX = if (isNext) viewWidth * 0.7f else -viewWidth * 0.7f
+    private var isTrackChangeAnimating = false
 
-        // Fast slide-out in swipe direction
+    private fun loadIncomingArt(mediaItem: MediaItem?) {
+        val incomingView = _binding?.ivFullArtIncoming ?: return
+        val ctx = context ?: return
+        if (mediaItem == null) {
+            incomingView.setImageResource(R.drawable.default_album_art)
+            return
+        }
+        val currentPath = mediaItem.mediaId
+        val song = if (currentPath != null) viewModel.songs.value?.find { it.data == currentPath } else null
+        val customCoverPath = song?.data?.let { path ->
+            val prefs = ctx.getSharedPreferences("custom_covers", android.content.Context.MODE_PRIVATE)
+            prefs.getString(path, null)
+        }
+        val imageData: Any = if (customCoverPath != null) {
+            java.io.File(customCoverPath)
+        } else if (song != null) {
+            java.io.File(song.data)
+        } else {
+            mediaItem.mediaMetadata.artworkUri ?: R.drawable.default_album_art
+        }
+
+        val request = coil.request.ImageRequest.Builder(ctx)
+            .data(imageData)
+            .placeholder(R.drawable.default_album_art)
+            .error(R.drawable.default_album_art)
+            .target(
+                onSuccess = { result ->
+                    _binding?.ivFullArtIncoming?.setImageDrawable(result)
+                },
+                onError = {
+                    _binding?.ivFullArtIncoming?.setImageResource(R.drawable.default_album_art)
+                }
+            )
+            .transformations(RoundedCornersTransformation(32f))
+            .build()
+        coil.Coil.imageLoader(ctx).enqueue(request)
+    }
+
+    private fun animateTrackChange(isNext: Boolean) {
+        if (isTrackChangeAnimating) return
+        val binding = _binding ?: return
+        val artView = binding.ivFullArt
+        val incomingView = binding.ivFullArtIncoming
+        val player = viewModel.mediaController.value ?: return
+
+        val targetIndex = if (isNext) player.nextMediaItemIndex else player.previousMediaItemIndex
+        if (targetIndex == androidx.media3.common.C.INDEX_UNSET || targetIndex < 0 || targetIndex >= player.mediaItemCount) {
+            // No song in target direction: spring back gracefully
+            artView.animate()
+                .translationX(0f)
+                .rotation(0f)
+                .scaleX(1f)
+                .scaleY(1f)
+                .alpha(1f)
+                .setDuration(260)
+                .setInterpolator(android.view.animation.OvershootInterpolator(1.2f))
+                .withEndAction {
+                    if (player.isPlaying) startBreathingAnimation()
+                }
+                .start()
+            return
+        }
+
+        isTrackChangeAnimating = true
+        breathingAnimator?.cancel()
+
+        val targetMediaItem = player.getMediaItemAt(targetIndex)
+        loadIncomingArt(targetMediaItem)
+
+        val viewWidth = if (artView.width > 0) artView.width.toFloat() else 600f
+        val exitX = if (isNext) -viewWidth * 1.05f else viewWidth * 1.05f
+        val enterStartX = if (isNext) viewWidth * 1.05f else -viewWidth * 1.05f
+
+        // Position incoming view just offstage in the incoming direction
+        incomingView.translationX = enterStartX
+        incomingView.rotation = if (isNext) 4f else -4f
+        incomingView.scaleX = 0.94f
+        incomingView.scaleY = 0.94f
+        incomingView.alpha = 0.7f
+        incomingView.visibility = View.VISIBLE
+
+        // Simultaneously animate current art out of view
         artView.animate()
             .translationX(exitX)
-            .rotation(if (isNext) -8f else 8f)
-            .alpha(0.2f)
+            .rotation(if (isNext) -6f else 6f)
             .scaleX(0.92f)
             .scaleY(0.92f)
-            .setDuration(160)
-            .setInterpolator(android.view.animation.AccelerateInterpolator(1.5f))
+            .alpha(0.3f)
+            .setDuration(260)
+            .setInterpolator(android.view.animation.DecelerateInterpolator(1.8f))
+            .start()
+
+        // And animate incoming art onto center stage
+        incomingView.animate()
+            .translationX(0f)
+            .rotation(0f)
+            .scaleX(1f)
+            .scaleY(1f)
+            .alpha(1f)
+            .setDuration(280)
+            .setInterpolator(android.view.animation.DecelerateInterpolator(1.8f))
             .withEndAction {
-                val player = viewModel.mediaController.value
                 if (isNext) {
-                    player?.seekToNext()
+                    player.seekToNext()
                 } else {
-                    player?.seekToPrevious()
+                    player.seekToPrevious()
                 }
+                player.play()
 
-                // Place on the opposing side ready to slide in
-                artView.translationX = enterX
-                artView.rotation = if (isNext) 6f else -6f
-                artView.alpha = 0.3f
-                artView.scaleX = 0.93f
-                artView.scaleY = 0.93f
+                // Transfer loaded drawable to primary view seamlessly
+                artView.setImageDrawable(incomingView.drawable)
+                artView.translationX = 0f
+                artView.rotation = 0f
+                artView.scaleX = 1f
+                artView.scaleY = 1f
+                artView.alpha = 1f
 
-                // Smooth deceleration spring back to center
-                artView.animate()
-                    .translationX(0f)
-                    .rotation(0f)
-                    .alpha(1f)
-                    .scaleX(1f)
-                    .scaleY(1f)
-                    .setDuration(320)
-                    .setInterpolator(android.view.animation.DecelerateInterpolator(2.0f))
-                    .withEndAction {
-                        if (viewModel.mediaController.value?.isPlaying == true) {
-                            startBreathingAnimation()
-                        }
-                    }
-                    .start()
+                incomingView.visibility = View.INVISIBLE
+                incomingView.translationX = 0f
+                isTrackChangeAnimating = false
+
+                if (player.isPlaying) {
+                    startBreathingAnimation()
+                }
             }
             .start()
     }
@@ -1008,11 +1092,11 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         }
         binding.btnPrev.setOnClickListener {
             playHaptic(it)
-            player.seekToPrevious()
+            animateTrackChange(isNext = false)
         }
         binding.btnNext.setOnClickListener {
             playHaptic(it)
-            player.seekToNext()
+            animateTrackChange(isNext = true)
         }
         
         // Repeat button

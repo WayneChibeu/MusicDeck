@@ -39,6 +39,10 @@ class PlaylistRepository(private val playlistDao: PlaylistDao) {
         return playlistDao.getSongsForPlaylistLive(playlistId)
     }
 
+    fun getSongsForPlaylistFlow(playlistId: Long): kotlinx.coroutines.flow.Flow<List<PlaylistSong>> {
+        return playlistDao.getSongsForPlaylistFlow(playlistId)
+    }
+
     suspend fun getSongCountForPlaylist(playlistId: Long): Int {
         return playlistDao.getSongCountForPlaylist(playlistId)
     }

@@ -238,13 +238,31 @@ class EqualizerBottomSheet : BottomSheetDialogFragment() {
         val dbDec = (currentGain % 100) / 10
         tvVolumeLevel.text = "+$db.$dbDec dB"
 
+        var lastAppliedGain = currentGain
+        val throttleHandler = android.os.Handler(android.os.Looper.getMainLooper())
+        var pendingRunnable: Runnable? = null
+
         seekVolume.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                 if (fromUser) {
-                    AudioEffectManager.setVolumeBoostGain(progress, requireContext())
                     val curDb = progress / 100
                     val curDec = (progress % 100) / 10
                     tvVolumeLevel.text = "+$curDb.$curDec dB"
+
+                    // Smooth parameter stepping: step at 25mB intervals or 30ms throttle to prevent zipper noise
+                    if (Math.abs(progress - lastAppliedGain) >= 25) {
+                        pendingRunnable?.let { throttleHandler.removeCallbacks(it) }
+                        lastAppliedGain = progress
+                        AudioEffectManager.setVolumeBoostGain(progress, requireContext(), saveToPrefs = false)
+                    } else {
+                        pendingRunnable?.let { throttleHandler.removeCallbacks(it) }
+                        val runnable = Runnable {
+                            lastAppliedGain = progress
+                            AudioEffectManager.setVolumeBoostGain(progress, requireContext(), saveToPrefs = false)
+                        }
+                        pendingRunnable = runnable
+                        throttleHandler.postDelayed(runnable, 30)
+                    }
                 }
             }
             override fun onStartTrackingTouch(seekBar: SeekBar?) {
@@ -252,6 +270,10 @@ class EqualizerBottomSheet : BottomSheetDialogFragment() {
             }
             override fun onStopTrackingTouch(seekBar: SeekBar?) {
                 seekBar?.parent?.requestDisallowInterceptTouchEvent(false)
+                pendingRunnable?.let { throttleHandler.removeCallbacks(it) }
+                val finalProgress = seekBar?.progress ?: return
+                // Persist to disk only on release to eliminate I/O pauses during playback
+                AudioEffectManager.setVolumeBoostGain(finalProgress, requireContext(), saveToPrefs = true)
             }
         })
     }
@@ -266,11 +288,28 @@ class EqualizerBottomSheet : BottomSheetDialogFragment() {
         seekVirtualizer.progress = currentStrength
         tvVirtualizerLevel.text = "${currentStrength / 10}%"
 
+        var lastAppliedStrength = currentStrength
+        val throttleHandler = android.os.Handler(android.os.Looper.getMainLooper())
+        var pendingRunnable: Runnable? = null
+
         seekVirtualizer.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                 if (fromUser) {
-                    AudioEffectManager.setVirtualizerStrength(progress, requireContext())
                     tvVirtualizerLevel.text = "${progress / 10}%"
+
+                    if (Math.abs(progress - lastAppliedStrength) >= 20) {
+                        pendingRunnable?.let { throttleHandler.removeCallbacks(it) }
+                        lastAppliedStrength = progress
+                        AudioEffectManager.setVirtualizerStrength(progress, requireContext(), saveToPrefs = false)
+                    } else {
+                        pendingRunnable?.let { throttleHandler.removeCallbacks(it) }
+                        val runnable = Runnable {
+                            lastAppliedStrength = progress
+                            AudioEffectManager.setVirtualizerStrength(progress, requireContext(), saveToPrefs = false)
+                        }
+                        pendingRunnable = runnable
+                        throttleHandler.postDelayed(runnable, 30)
+                    }
                 }
             }
             override fun onStartTrackingTouch(seekBar: SeekBar?) {
@@ -278,6 +317,9 @@ class EqualizerBottomSheet : BottomSheetDialogFragment() {
             }
             override fun onStopTrackingTouch(seekBar: SeekBar?) {
                 seekBar?.parent?.requestDisallowInterceptTouchEvent(false)
+                pendingRunnable?.let { throttleHandler.removeCallbacks(it) }
+                val finalProgress = seekBar?.progress ?: return
+                AudioEffectManager.setVirtualizerStrength(finalProgress, requireContext(), saveToPrefs = true)
             }
         })
     }

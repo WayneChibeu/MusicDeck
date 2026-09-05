@@ -37,6 +37,9 @@ interface PlaylistDao {
 
     @Query("SELECT * FROM playlist_songs WHERE playlistId = :playlistId ORDER BY orderIndex ASC")
     fun getSongsForPlaylistLive(playlistId: Long): androidx.lifecycle.LiveData<List<PlaylistSong>>
+
+    @Query("SELECT * FROM playlist_songs WHERE playlistId = :playlistId ORDER BY orderIndex ASC")
+    fun getSongsForPlaylistFlow(playlistId: Long): kotlinx.coroutines.flow.Flow<List<PlaylistSong>>
     
     @Query("SELECT COUNT(*) FROM playlist_songs WHERE playlistId = :playlistId")
     suspend fun getSongCountForPlaylist(playlistId: Long): Int

@@ -37,9 +37,12 @@ class MusicService : MediaSessionService() {
     private var playCountJob: kotlinx.coroutines.Job? = null
     private var playbackPositionJob: kotlinx.coroutines.Job? = null
     private var stopAtEndOfCurrentSong: Boolean = false
+    private var cachedArtBitmap: android.graphics.Bitmap? = null
+    private var cachedArtSongPath: String? = null
+    private var favoritesObserverJob: kotlinx.coroutines.Job? = null
     
     companion object {
-        private const val USER_AGENT = "MusicDeck/2.10.1"
+        private const val USER_AGENT = "MusicDeck/2.10.2"
         const val ACTION_SET_SLEEP_TIMER = "com.wayne.musicdeck.ACTION_SET_SLEEP_TIMER"
         const val ACTION_SET_SLEEP_TIMER_END_OF_SONG = "com.wayne.musicdeck.ACTION_SET_SLEEP_TIMER_END_OF_SONG"
         const val ACTION_CANCEL_SLEEP_TIMER = "com.wayne.musicdeck.ACTION_CANCEL_SLEEP_TIMER"
@@ -49,10 +52,11 @@ class MusicService : MediaSessionService() {
     override fun onCreate() {
         super.onCreate()
         
-        // Initialize favorites ID
+        // Initialize favorites ID and observe changes reactively
         serviceScope.launch(kotlinx.coroutines.Dispatchers.IO) {
             val favPlaylist = playlistRepository.getOrCreateFavoritesPlaylist()
             favoritesPlaylistId = favPlaylist.id
+            observeFavoritesFlow()
         }
 
         val renderersFactory = androidx.media3.exoplayer.DefaultRenderersFactory(this)
@@ -131,16 +135,11 @@ class MusicService : MediaSessionService() {
                                     val isFav = playlistRepository.isSongInPlaylist(favoritesPlaylistId, currentPath)
                                     if (isFav) {
                                         playlistRepository.removeSongFromPlaylist(favoritesPlaylistId, currentPath)
-                                        isCurrentSongFavorite = false
                                     } else {
                                         playlistRepository.addSongToPlaylist(favoritesPlaylistId, currentId, currentPath)
-                                        isCurrentSongFavorite = true
                                     }
                                     kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-                                        // Update Widget and Notification
-                                        updateWidget(player)
-                                        // Force notification refresh by re-setting custom layout
-                                        updateMediaSessionLayout(player)
+                                        updateFavoriteState(!isFav)
                                     }
                                 }
                             }
@@ -543,6 +542,34 @@ class MusicService : MediaSessionService() {
         settingsManager.lastPlayedArtist = artist
     }
 
+    private fun observeFavoritesFlow() {
+        if (favoritesPlaylistId == -1L) return
+        favoritesObserverJob?.cancel()
+        favoritesObserverJob = serviceScope.launch {
+            playlistRepository.getSongsForPlaylistFlow(favoritesPlaylistId).collect { favSongs ->
+                val player = mediaSession?.player ?: return@collect
+                val currentPath = player.currentMediaItem?.mediaId ?: return@collect
+                val isFav = favSongs.any { it.songPath == currentPath }
+                if (isFav != isCurrentSongFavorite) {
+                    isCurrentSongFavorite = isFav
+                    updateFavoriteState(isFav)
+                }
+            }
+        }
+    }
+
+    private fun updateFavoriteState(isFav: Boolean) {
+        val player = mediaSession?.player ?: return
+        isCurrentSongFavorite = isFav
+        settingsManager.lastPlayedIsFavorite = isFav
+        val mediaItem = player.currentMediaItem
+        val title = mediaItem?.mediaMetadata?.title?.toString() ?: "Unknown"
+        val artist = mediaItem?.mediaMetadata?.artist?.toString() ?: "Unknown Artist"
+        val isPlaying = player.isPlaying
+        MusicWidgetProvider.pushUpdate(this@MusicService, title, artist, isPlaying, isFav, cachedArtBitmap)
+        updateMediaSessionLayout(player)
+    }
+
     private fun updateWidget(player: Player) {
         try {
             val mediaItem = player.currentMediaItem
@@ -561,45 +588,47 @@ class MusicService : MediaSessionService() {
                 isCurrentSongFavorite = isFav
 
                 // Load Bitmap for Widget (Fixes missing art on some launchers)
-                // Tries artUri first, then fallback to embedded MP3 art
-                var artBitmap: android.graphics.Bitmap? = null
-                val artUri = mediaItem.mediaMetadata.artworkUri
-                if (artUri != null) {
-                    try {
-                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
-                            val source = if (artUri.scheme == "file") {
-                                 android.graphics.ImageDecoder.createSource(java.io.File(artUri.path!!))
-                            } else {
-                                 android.graphics.ImageDecoder.createSource(contentResolver, artUri)
-                            }
-                            artBitmap = android.graphics.ImageDecoder.decodeBitmap(source) { decoder, _, _ ->
-                                decoder.setAllocator(android.graphics.ImageDecoder.ALLOCATOR_SOFTWARE)
-                                decoder.setTargetSampleSize(2) // Downsample for widget
-                            }
-                        } else {
-                            @Suppress("DEPRECATION")
-                            artBitmap = android.provider.MediaStore.Images.Media.getBitmap(contentResolver, artUri)
-                        }
-                    } catch (e: Exception) {
-                        // Bitmap load failed - will try embedded art fallback
-                        android.util.Log.e("MusicService", "Failed to load widget art from URI: ${e.message}")
-                    }
-                }
-                
-                // Fallback: Try embedded art from MP3 file (like PlayerBottomSheetFragment does)
+                var artBitmap: android.graphics.Bitmap? = if (currentPath == cachedArtSongPath) cachedArtBitmap else null
                 if (artBitmap == null) {
-                    try {
-                        val uri = android.net.Uri.fromFile(java.io.File(currentPath))
-                        val retriever = android.media.MediaMetadataRetriever()
-                        retriever.setDataSource(this@MusicService, uri)
-                        val embeddedArt = retriever.embeddedPicture
-                        retriever.release()
-                        if (embeddedArt != null) {
-                            artBitmap = android.graphics.BitmapFactory.decodeByteArray(embeddedArt, 0, embeddedArt.size)
+                    val artUri = mediaItem.mediaMetadata.artworkUri
+                    if (artUri != null) {
+                        try {
+                            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                                val source = if (artUri.scheme == "file") {
+                                     android.graphics.ImageDecoder.createSource(java.io.File(artUri.path!!))
+                                } else {
+                                     android.graphics.ImageDecoder.createSource(contentResolver, artUri)
+                                }
+                                artBitmap = android.graphics.ImageDecoder.decodeBitmap(source) { decoder, _, _ ->
+                                    decoder.setAllocator(android.graphics.ImageDecoder.ALLOCATOR_SOFTWARE)
+                                    decoder.setTargetSampleSize(2) // Downsample for widget
+                                }
+                            } else {
+                                @Suppress("DEPRECATION")
+                                artBitmap = android.provider.MediaStore.Images.Media.getBitmap(contentResolver, artUri)
+                            }
+                        } catch (e: Exception) {
+                            android.util.Log.e("MusicService", "Failed to load widget art from URI: ${e.message}")
                         }
-                    } catch (e: Exception) {
-                        android.util.Log.e("MusicService", "Failed to load embedded art: ${e.message}")
                     }
+                    
+                    // Fallback: Try embedded art from MP3 file (like PlayerBottomSheetFragment does)
+                    if (artBitmap == null) {
+                        try {
+                            val uri = android.net.Uri.fromFile(java.io.File(currentPath))
+                            val retriever = android.media.MediaMetadataRetriever()
+                            retriever.setDataSource(this@MusicService, uri)
+                            val embeddedArt = retriever.embeddedPicture
+                            retriever.release()
+                            if (embeddedArt != null) {
+                                artBitmap = android.graphics.BitmapFactory.decodeByteArray(embeddedArt, 0, embeddedArt.size)
+                            }
+                        } catch (e: Exception) {
+                            android.util.Log.e("MusicService", "Failed to load embedded art: ${e.message}")
+                        }
+                    }
+                    cachedArtBitmap = artBitmap
+                    cachedArtSongPath = currentPath
                 }
 
                 kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
@@ -607,20 +636,15 @@ class MusicService : MediaSessionService() {
                     settingsManager.lastPlayedIsFavorite = isFav
                     updateMediaSessionLayout(player)
                     
-                    // ALWAYS update artwork data for Notification to prevent stale cached art
-                    // This ensures each song gets its own art (or lack thereof)
+                    // Update artwork data for Notification if not already set
                     val mItem = mediaItem
-                    val newMetaBuilder = mItem.mediaMetadata.buildUpon()
-                        
-                        if (artBitmap != null) {
-                            val stream = java.io.ByteArrayOutputStream()
-                            artBitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, stream)
-                            val byteArray = stream.toByteArray()
-                            newMetaBuilder.setArtworkData(byteArray, androidx.media3.common.MediaMetadata.PICTURE_TYPE_FRONT_COVER)
-                        }
-                        // Note: Can't set null artwork in Media3, but widget gets explicit null bitmap
-                        
-                        val newMeta = newMetaBuilder.build()
+                    if (mItem.mediaMetadata.artworkData == null && artBitmap != null) {
+                        val stream = java.io.ByteArrayOutputStream()
+                        artBitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, stream)
+                        val byteArray = stream.toByteArray()
+                        val newMeta = mItem.mediaMetadata.buildUpon()
+                            .setArtworkData(byteArray, androidx.media3.common.MediaMetadata.PICTURE_TYPE_FRONT_COVER)
+                            .build()
                         val newItem = mItem.buildUpon().setMediaMetadata(newMeta).build()
                         
                         val idx = player.currentMediaItemIndex
@@ -629,6 +653,7 @@ class MusicService : MediaSessionService() {
                         }
                     }
                 }
+            }
         } catch (e: Exception) {
             android.util.Log.e("MusicService", "Widget update failed: ${e.message}")
         }
@@ -654,18 +679,22 @@ class MusicService : MediaSessionService() {
                     if (player.mediaItemCount == 0) {
                         restoreLastSession(player, startPlaying = true) {
                             player.seekToNextMediaItem()
+                            player.play()
                         }
                     } else {
                         player.seekToNextMediaItem()
+                        player.play()
                     }
                 }
                 MusicWidgetProvider.ACTION_PREVIOUS -> {
                     if (player.mediaItemCount == 0) {
                         restoreLastSession(player, startPlaying = true) {
                             player.seekToPreviousMediaItem()
+                            player.play()
                         }
                     } else {
                         player.seekToPreviousMediaItem()
+                        player.play()
                     }
                 }
                 MusicWidgetProvider.ACTION_FAVORITE -> {
@@ -681,8 +710,7 @@ class MusicService : MediaSessionService() {
                                 playlistRepository.addSongToPlaylist(favoritesPlaylistId, -1L, currentPath)
                             }
                              kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-                                 updateWidget(player)
-                                 updateMediaSessionLayout(player)
+                                 updateFavoriteState(!isFav)
                              }
                         }
                     } else if (player.mediaItemCount == 0) {
@@ -698,8 +726,7 @@ class MusicService : MediaSessionService() {
                                         playlistRepository.removeSongFromPlaylist(favoritesPlaylistId, restoredPath)
                                     }
                                     kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-                                        updateWidget(player)
-                                        updateMediaSessionLayout(player)
+                                        updateFavoriteState(!isFav)
                                     }
                                 }
                             }
@@ -946,18 +973,22 @@ class MusicService : MediaSessionService() {
         
         override fun seekToNext() {
             super.seekToNextMediaItem()
+            play()
         }
 
         override fun seekToPrevious() {
             super.seekToPreviousMediaItem()
+            play()
         }
 
         override fun seekToNextMediaItem() {
             super.seekToNextMediaItem()
+            play()
         }
 
         override fun seekToPreviousMediaItem() {
             super.seekToPreviousMediaItem()
+            play()
         }
     }
 

@@ -39,6 +39,15 @@
             android:elevation="4dp">
 
             <com.google.android.material.imageview.ShapeableImageView
+                android:id="@+id/ivFullArtIncoming"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="centerCrop"
+                android:visibility="invisible"
+                android:src="@drawable/default_album_art"
+                app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Large" />
+
+            <com.google.android.material.imageview.ShapeableImageView
                 android:id="@+id/ivFullArt"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"

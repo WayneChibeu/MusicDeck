@@ -223,14 +223,16 @@ object AudioEffectManager {
         }
     }
 
-    fun setVolumeBoostGain(gainmB: Int, context: Context) {
+    fun setVolumeBoostGain(gainmB: Int, context: Context, saveToPrefs: Boolean = true) {
         loudnessEnhancer?.let { le ->
             try {
                 le.setTargetGain(gainmB)
-                context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-                    .edit()
-                    .putInt("volume_boost_gain", gainmB)
-                    .apply()
+                if (saveToPrefs) {
+                    context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                        .edit()
+                        .putInt("volume_boost_gain", gainmB)
+                        .apply()
+                }
             } catch (e: Exception) {
                 e.printStackTrace()
             }
@@ -242,16 +244,18 @@ object AudioEffectManager {
             .getInt("volume_boost_gain", 0)
     }
 
-    fun setVirtualizerStrength(strength: Int, context: Context) {
+    fun setVirtualizerStrength(strength: Int, context: Context, saveToPrefs: Boolean = true) {
         virtualizer?.let { virt ->
             try {
                 if (virt.strengthSupported) {
                     virt.setStrength(strength.toShort())
                 }
-                context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-                    .edit()
-                    .putInt("virtualizer_strength", strength)
-                    .apply()
+                if (saveToPrefs) {
+                    context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                        .edit()
+                        .putInt("virtualizer_strength", strength)
+                        .apply()
+                }
             } catch (e: Exception) {
                 e.printStackTrace()
             }

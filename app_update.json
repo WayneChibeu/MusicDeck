@@ -1,9 +1,9 @@
 {
-  "versionName": "2.10.1",
-  "versionCode": 54,
-  "releaseTitle": "MusicDeck v2.10.1",
-  "releaseNotes": "Pocket Guard Motion Protection: Uses hardware proximity sensor to automatically sleep shake detection in your pocket.\nEnhanced Gesture Filtering: Requires 3 rapid wrist reversals to filter out walking/jogging strides.\nRelease signing improvements.",
-  "downloadUrl": "https://github.com/WayneChibeu/MusicDeck/releases/download/v2.10.1/MusicDeck-v2.10.1.apk",
-  "apkSize": 6007583,
-  "htmlUrl": "https://github.com/WayneChibeu/MusicDeck/releases/tag/v2.10.1"
+  "versionName": "2.10.2",
+  "versionCode": 55,
+  "releaseTitle": "MusicDeck v2.10.2",
+  "releaseNotes": "Instant Favorite Sync: Real-time two-way favorite synchronization across widget, notification bar, and player.\nSmooth Album Swipe: Redesigned album art transitions with a synchronized dual-stage carousel.\nAuto-Play on Skip: Automatically resumes playback when changing songs while paused.\nVolume Boost Smoothing: Parameter smoothing and deferred disk persistence eliminate DSP crackles.\nRefined Cellular Icon: Modern 4-bar capsule signal indicator.",
+  "downloadUrl": "https://github.com/WayneChibeu/MusicDeck/releases/download/v2.10.2/MusicDeck-v2.10.2.apk",
+  "apkSize": 6024355,
+  "htmlUrl": "https://github.com/WayneChibeu/MusicDeck/releases/tag/v2.10.2"
 }
