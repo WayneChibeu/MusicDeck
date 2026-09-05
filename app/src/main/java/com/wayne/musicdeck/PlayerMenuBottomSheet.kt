@@ -256,9 +256,19 @@ class PlayerMenuBottomSheet : BottomSheetDialogFragment() {
         soundCheckSwitch.setOnCheckedChangeListener { _, isChecked ->
             settingsManager.isSoundCheckEnabled = isChecked
             if (isChecked) {
+                // Apply safe hearing limit immediately if volume is high
+                val audioManager = requireContext().getSystemService(android.content.Context.AUDIO_SERVICE) as? android.media.AudioManager
+                if (audioManager != null) {
+                    val maxVol = audioManager.getStreamMaxVolume(android.media.AudioManager.STREAM_MUSIC)
+                    val safeLimit = (maxVol * 0.8f).toInt()
+                    val curVol = audioManager.getStreamVolume(android.media.AudioManager.STREAM_MUSIC)
+                    if (curVol > safeLimit) {
+                        audioManager.setStreamVolume(android.media.AudioManager.STREAM_MUSIC, safeLimit, android.media.AudioManager.FLAG_SHOW_UI)
+                    }
+                }
                 // Reset LoudnessEnhancer to 0 gain — normalized output
                 AudioEffectManager.setVolumeBoostGain(0, requireContext())
-                Toast.makeText(context, "Sound Check on — volume normalized", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Sound Check on — volume normalized to safe level", Toast.LENGTH_SHORT).show()
             } else {
                 // Restore user's saved volume boost
                 val savedGain = AudioEffectManager.getSavedVolumeBoostGain(requireContext())

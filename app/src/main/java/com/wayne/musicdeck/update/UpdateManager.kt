@@ -104,25 +104,29 @@ class UpdateManager(
                     val metadata = gson.fromJson(rawBody, AppUpdateMetadata::class.java)
                     val latestVer = metadata.versionName.removePrefix("v").trim()
                     val isNewer = compareVersions(latestVer, currentVer) > 0
-                    settingsManager.lastUpdateCheckTime = System.currentTimeMillis()
+                    if (isNewer) {
+                        settingsManager.lastUpdateCheckTime = System.currentTimeMillis()
 
-                    val downloadUrl = metadata.downloadUrl
-                        ?: "https://github.com/$GITHUB_OWNER/$GITHUB_REPO/releases/download/v$latestVer/MusicDeck-v$latestVer.apk"
-                    val htmlUrl = metadata.htmlUrl
-                        ?: "https://github.com/$GITHUB_OWNER/$GITHUB_REPO/releases/tag/v$latestVer"
+                        val downloadUrl = metadata.downloadUrl
+                            ?: "https://github.com/$GITHUB_OWNER/$GITHUB_REPO/releases/download/v$latestVer/MusicDeck-v$latestVer.apk"
+                        val htmlUrl = metadata.htmlUrl
+                            ?: "https://github.com/$GITHUB_OWNER/$GITHUB_REPO/releases/tag/v$latestVer"
 
-                    return@withContext Result.success(
-                        UpdateInfo(
-                            isUpdateAvailable = isNewer,
-                            currentVersion = currentVer,
-                            latestVersion = metadata.versionName,
-                            releaseTitle = metadata.releaseTitle ?: "MusicDeck v$latestVer",
-                            releaseNotes = metadata.releaseNotes ?: "Bug fixes and performance improvements.",
-                            downloadUrl = downloadUrl,
-                            apkSize = metadata.apkSize,
-                            htmlUrl = htmlUrl
+                        return@withContext Result.success(
+                            UpdateInfo(
+                                isUpdateAvailable = true,
+                                currentVersion = currentVer,
+                                latestVersion = metadata.versionName,
+                                releaseTitle = metadata.releaseTitle ?: "MusicDeck v$latestVer",
+                                releaseNotes = metadata.releaseNotes ?: "Bug fixes and performance improvements.",
+                                downloadUrl = downloadUrl,
+                                apkSize = metadata.apkSize,
+                                htmlUrl = htmlUrl
+                            )
                         )
-                    )
+                    } else {
+                        Log.d(TAG, "RAW CDN version ($latestVer) is not newer than current ($currentVer), verifying with live GitHub API")
+                    }
                 }
             }
         } catch (e: Exception) {

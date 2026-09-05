@@ -1,9 +1,9 @@
 {
-  "versionName": "2.10.3",
-  "versionCode": 56,
-  "releaseTitle": "MusicDeck v2.10.3",
-  "releaseNotes": "Sound Check (Loudness Normalizer): Safe dynamic leveling and headroom protection in player menu.\nAutomated High-Volume Warning: Subtle ambient indicator for hearing safety at >80% volume.\nAlbum Art Gesture Clean: Removed volume HUD dragging to prevent accidental changes during track skip.\nEQ Preset Swipe Fix: Smooth horizontal preset scrolling without accidental bottom sheet dismissals.",
-  "downloadUrl": "https://github.com/WayneChibeu/MusicDeck/releases/download/v2.10.3/MusicDeck-v2.10.3.apk",
+  "versionName": "2.10.4",
+  "versionCode": 57,
+  "releaseTitle": "MusicDeck v2.10.4",
+  "releaseNotes": "Player Layout Fix: Restored album art packed constraints and header separation.\nNotification Square Artwork: Automatic center-crop preprocessor eliminates 16:9 black pillarbox bars in system media controls.\nInstant High-Volume Warning: BroadcastReceiver listener triggers warning pill immediately on hardware volume changes >= 80%.\nSound Check Auto-Leveling: Automatically normalizes volume to safe hearing level on track change when enabled.\nModern MusicDeck Logo: Bespoke sound deck emblem with Android 14+ Material You / Dark Mode themed icon support.",
+  "downloadUrl": "https://github.com/WayneChibeu/MusicDeck/releases/download/v2.10.4/MusicDeck-v2.10.4.apk",
   "apkSize": 6025247,
-  "htmlUrl": "https://github.com/WayneChibeu/MusicDeck/releases/tag/v2.10.3"
+  "htmlUrl": "https://github.com/WayneChibeu/MusicDeck/releases/tag/v2.10.4"
 }

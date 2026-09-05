@@ -32,10 +32,12 @@ import org.koin.android.ext.android.inject
 import android.graphics.Color
 import android.widget.LinearLayout
 import com.wayne.musicdeck.utils.SettingsManager
-import android.database.ContentObserver
-import android.os.Handler
-import android.os.Looper
-import android.provider.Settings
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.media.AudioManager
+import android.os.Build
 
 class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
 
@@ -58,7 +60,7 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
     private var hideScrubberRunnable: Runnable? = null
     
     // High-volume warning state
-    private var volumeObserver: ContentObserver? = null
+    private var volumeReceiver: BroadcastReceiver? = null
     private var wasAboveThreshold = false
     private var hideVolumeWarningRunnable: Runnable? = null
     
@@ -727,43 +729,54 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
 
     /**
      * Automated high-volume warning system.
-     * Monitors system media volume via ContentObserver and shows a non-blocking
-     * amber warning pill when volume exceeds 80% of max.
+     * Monitors hardware media volume via VOLUME_CHANGED_ACTION broadcast receiver
+     * and displays an ambient non-blocking warning pill when volume exceeds 80% of max.
      */
     private fun setupVolumeWarningObserver() {
         val ctx = context ?: return
-        val audioManager = ctx.getSystemService(android.content.Context.AUDIO_SERVICE) as? android.media.AudioManager ?: return
-        val maxVolume = audioManager.getStreamMaxVolume(android.media.AudioManager.STREAM_MUSIC)
+        val audioManager = ctx.getSystemService(Context.AUDIO_SERVICE) as? AudioManager ?: return
+        val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
         val threshold = (maxVolume * 0.8f).toInt()
 
+        fun checkAndNotify(currentVol: Int) {
+            val isAbove = currentVol >= threshold
+            if (isAbove) {
+                showVolumeWarning()
+            } else if (wasAboveThreshold) {
+                hideVolumeWarning()
+            }
+            wasAboveThreshold = isAbove
+        }
+
         // Check initial state
-        val initialVol = audioManager.getStreamVolume(android.media.AudioManager.STREAM_MUSIC)
-        wasAboveThreshold = initialVol > threshold
+        val initialVol = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
+        wasAboveThreshold = initialVol >= threshold
         if (wasAboveThreshold) {
             showVolumeWarning()
         }
 
-        volumeObserver = object : ContentObserver(Handler(Looper.getMainLooper())) {
-            override fun onChange(selfChange: Boolean) {
-                val currentVol = audioManager.getStreamVolume(android.media.AudioManager.STREAM_MUSIC)
-                val isAbove = currentVol > threshold
-
-                if (isAbove && !wasAboveThreshold) {
-                    // Just crossed above threshold
-                    showVolumeWarning()
-                } else if (!isAbove && wasAboveThreshold) {
-                    // Dropped below threshold, reset so it can fire again
-                    hideVolumeWarning()
+        volumeReceiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                if (intent?.action == "android.media.VOLUME_CHANGED_ACTION") {
+                    val streamType = intent.getIntExtra("android.media.EXTRA_VOLUME_STREAM_TYPE", -1)
+                    if (streamType == AudioManager.STREAM_MUSIC || streamType == -1) {
+                        val currentVol = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
+                        checkAndNotify(currentVol)
+                    }
                 }
-                wasAboveThreshold = isAbove
             }
         }
 
-        ctx.contentResolver.registerContentObserver(
-            Settings.System.CONTENT_URI,
-            true,
-            volumeObserver!!
-        )
+        val filter = IntentFilter("android.media.VOLUME_CHANGED_ACTION")
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                ctx.registerReceiver(volumeReceiver, filter, Context.RECEIVER_EXPORTED)
+            } else {
+                ctx.registerReceiver(volumeReceiver, filter)
+            }
+        } catch (e: Exception) {
+            android.util.Log.w("PlayerBottomSheet", "Failed to register volume receiver", e)
+        }
     }
 
     private fun showVolumeWarning() {
@@ -804,10 +817,14 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
     }
 
     private fun unregisterVolumeObserver() {
-        volumeObserver?.let {
-            context?.contentResolver?.unregisterContentObserver(it)
+        volumeReceiver?.let {
+            try {
+                context?.unregisterReceiver(it)
+            } catch (e: Exception) {
+                // Ignore if already unregistered
+            }
         }
-        volumeObserver = null
+        volumeReceiver = null
     }
 
     private fun showSeekFeedback(isForward: Boolean) {

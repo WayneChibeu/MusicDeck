@@ -357,6 +357,11 @@ class MusicService : MediaSessionService() {
                  }
                  updateWidget(player)
                  startPlayCountHeartbeat(mediaItem)
+                 
+                 // Sound Check: Automatically normalize volume to safe hearing level
+                 if (settingsManager.isSoundCheckEnabled) {
+                     applySoundCheckVolumeLimit()
+                 }
              }
              override fun onIsPlayingChanged(isPlaying: Boolean) {
                   updateWidget(player)
@@ -367,6 +372,11 @@ class MusicService : MediaSessionService() {
                       // Always start/resume at 100% full volume instantly without stutter
                       volumeManager.resetVolume()
                       suppressFadeIn = false
+                      
+                      // Sound Check: Automatically normalize volume to safe hearing level
+                      if (settingsManager.isSoundCheckEnabled) {
+                          applySoundCheckVolumeLimit()
+                      }
                       
                       startPlayCountHeartbeat(player.currentMediaItem)
                       startPlaybackPositionHeartbeat(player)
@@ -399,15 +409,42 @@ class MusicService : MediaSessionService() {
     })
         
         updateMediaSessionLayout(player)
-            
-
-        
-        exoPlayer.setHandleAudioBecomingNoisy(true)
-        
         exoPlayer.setHandleAudioBecomingNoisy(true)
         
         val notificationProvider = CustomNotificationProvider(this)
         setMediaNotificationProvider(notificationProvider)
+    }
+
+    private fun applySoundCheckVolumeLimit() {
+        try {
+            val audioManager = getSystemService(android.content.Context.AUDIO_SERVICE) as? android.media.AudioManager ?: return
+            val maxVol = audioManager.getStreamMaxVolume(android.media.AudioManager.STREAM_MUSIC)
+            val safeLimit = (maxVol * 0.8f).toInt()
+            val curVol = audioManager.getStreamVolume(android.media.AudioManager.STREAM_MUSIC)
+            if (curVol > safeLimit) {
+                audioManager.setStreamVolume(android.media.AudioManager.STREAM_MUSIC, safeLimit, 0)
+            }
+        } catch (e: Exception) {
+            android.util.Log.w("MusicService", "Failed to apply Sound Check volume limit", e)
+        }
+    }
+
+    /**
+     * Center-crops non-square artwork (e.g. 16:9 YouTube video thumbnails) to a pure 1:1 square.
+     * Prevents black pillarbox bars in Android System Media Controls and notification player cards.
+     */
+    private fun cropToSquare(bitmap: android.graphics.Bitmap): android.graphics.Bitmap {
+        return try {
+            val width = bitmap.width
+            val height = bitmap.height
+            if (width == height) return bitmap
+            val size = Math.min(width, height)
+            val x = (width - size) / 2
+            val y = (height - size) / 2
+            android.graphics.Bitmap.createBitmap(bitmap, x, y, size, size)
+        } catch (e: Exception) {
+            bitmap
+        }
     }
 
     private inner class CustomNotificationProvider(context: android.content.Context) : 
@@ -627,6 +664,10 @@ class MusicService : MediaSessionService() {
                             android.util.Log.e("MusicService", "Failed to load embedded art: ${e.message}")
                         }
                     }
+                    // Ensure artwork is preprocessed to clean 1:1 square
+                    if (artBitmap != null && artBitmap.width != artBitmap.height) {
+                        artBitmap = cropToSquare(artBitmap)
+                    }
                     cachedArtBitmap = artBitmap
                     cachedArtSongPath = currentPath
                 }
@@ -636,9 +677,9 @@ class MusicService : MediaSessionService() {
                     settingsManager.lastPlayedIsFavorite = isFav
                     updateMediaSessionLayout(player)
                     
-                    // Update artwork data for Notification if not already set
+                    // Update artwork data for Notification to ensure clean square presentation
                     val mItem = mediaItem
-                    if (mItem.mediaMetadata.artworkData == null && artBitmap != null) {
+                    if (artBitmap != null) {
                         val stream = java.io.ByteArrayOutputStream()
                         artBitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, stream)
                         val byteArray = stream.toByteArray()
