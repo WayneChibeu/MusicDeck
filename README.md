@@ -9,19 +9,19 @@ A modern, ad-free Android music player built with Kotlin and Jetpack Media3.
 
 ## Features
 
-- **Audio Engine & Volume Booster** – Hardware-accelerated DSP featuring a clean digital volume booster up to +12 dB, 3D Spatial Virtualizer for wide stereo soundstage, and 5 curated acoustic presets (MusicDeck Signature, Cinema 3D, Vocal Clarity, Night Warmth, and Live Stage).
-- **Automated In-App Updates** – Native GitHub Releases update checker inspired by Seal, supporting background checks on launch, manual checks in About & Legal, and in-app download progress with seamless package installer handover via FileProvider.
-- **Cellular Data Awareness** – Automatic network metering detection before fetching lyrics, with real-time indicators and courteous confirmation prompts to protect your cellular data plan.
-- **Local Music Playback** – High-fidelity playback for local audio files (MP3, FLAC, WAV, AAC, and more).
-- **Floating Glass Alphabet Jumper** – Fast letter jumping with a glowing preview bubble and tactile mechanical haptics.
-- **Intelligent Lyrics Engine** – Synchronized LRC lyrics fetching with confidence scoring and anti-hallucination verification.
-- **Floating Desktop Lyrics** – Picture-in-picture lyric overlay for multitasking across apps.
-- **Fluid 120fps Queue Drag Reordering** – Instant drag-to-reorder with elevation shadows and tactile haptic releases.
-- **Glassmorphic Sleep Deck** – Quick preset timer pills (15m–90m), custom minute slider, and "Stop After Current Song" mode.
-- **Listening Insights** – Total plays, weekly plays, artist counts, and listening streak tracking.
-- **Smart Playlists & Cover Collages** – Auto-generated mood mixes and dynamic 2x2 grid collage artwork.
-- **Studio-Grade AMOLED High Contrast** – Pure `#FFFFFF` typography over pitch-black glass surfaces.
-- **Personal Notes & Earbud Controls** – Personal song annotations and headset shortcuts.
+- **Audio Engine & Volume Booster**: Hardware-accelerated DSP featuring a clean digital volume booster up to +12 dB, 3D Spatial Virtualizer for wide stereo soundstage, and 5 curated acoustic presets (MusicDeck Signature, Cinema 3D, Vocal Clarity, Night Warmth, and Live Stage).
+- **Automated In-App Updates**: Native GitHub Releases update checker inspired by Seal, supporting background checks on launch, manual checks in About & Legal, and in-app download progress with seamless package installer handover via FileProvider.
+- **Cellular Data Awareness**: Automatic network metering detection before fetching lyrics, with real-time indicators and courteous confirmation prompts to protect your cellular data plan.
+- **Local Music Playback**: High-fidelity playback for local audio files (MP3, FLAC, WAV, AAC, and more).
+- **Floating Glass Alphabet Jumper**: Fast letter jumping with a glowing preview bubble and tactile mechanical haptics.
+- **Intelligent Lyrics Engine**: Synchronized LRC lyrics fetching with confidence scoring and anti-hallucination verification.
+- **Floating Desktop Lyrics**: Picture-in-picture lyric overlay for multitasking across apps.
+- **Fluid 120fps Queue Drag Reordering**: Instant drag-to-reorder with elevation shadows and tactile haptic releases.
+- **Glassmorphic Sleep Deck**: Quick preset timer pills (15m to 90m), custom minute slider, and "Stop After Current Song" mode.
+- **Listening Insights**: Total plays, weekly plays, artist counts, and listening streak tracking.
+- **Smart Playlists & Cover Collages**: Auto-generated mood mixes and dynamic 2x2 grid collage artwork.
+- **Studio-Grade AMOLED High Contrast**: Pure `#FFFFFF` typography over pitch-black glass surfaces.
+- **Personal Notes & Earbud Controls**: Personal song annotations and headset shortcuts.
 
 ## Tech Stack
 
@@ -100,4 +100,4 @@ Contributions, issues, and feature requests are welcome! Feel free to check the 
 
 ## Author
 
-**Wayne Chibeu** – [@WayneChibeu](https://github.com/WayneChibeu)
+**Wayne Chibeu** ([@WayneChibeu](https://github.com/WayneChibeu))

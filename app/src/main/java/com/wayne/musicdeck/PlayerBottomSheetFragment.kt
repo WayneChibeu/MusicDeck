@@ -447,7 +447,7 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
     }
     
     private fun smoothScrollToCenter(position: Int) {
-        val ctx = context ?: return  // Fragment detached — bail out
+        val ctx = context ?: return  // Fragment detached, bail out
         val smoothScroller = object : LinearSmoothScroller(ctx) {
             override fun calculateDtToFit(viewStart: Int, viewEnd: Int, boxStart: Int, boxEnd: Int, snapPreference: Int): Int {
                 return (boxStart + (boxEnd - boxStart) / 2) - (viewStart + (viewEnd - viewStart) / 2)
@@ -1469,7 +1469,7 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         // Null out binding before super to prevent any lingering callbacks
         _binding = null
         
-        // Call super LAST — this detaches views from the window hierarchy
+        // Call super LAST, this detaches views from the window hierarchy
         super.onDestroyView()
     }
     

@@ -149,7 +149,7 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="All audio enhancements—including the Equalizer, Bass Boost, Loudness Gain Booster, and 3D Spatial Virtualizer—are processed entirely on-device in real-time utilizing the Android hardware DSP pipeline. No audio streams are recorded, intercepted, or transmitted over any network."
+                android:text="All audio enhancements (including the Equalizer, Bass Boost, Loudness Gain Booster, and 3D Spatial Virtualizer) are processed entirely on-device in real-time utilizing the Android hardware DSP pipeline. No audio streams are recorded, intercepted, or transmitted over any network."
                 android:textSize="14sp"
                 android:lineSpacingExtra="4dp"
                 android:textColor="?attr/colorOnSurfaceVariant"

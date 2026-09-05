@@ -288,15 +288,15 @@ class MusicService : MediaSessionService() {
                             if (matchedSongs.isNotEmpty()) {
                                 resolvedItems.addAll(matchedSongs)
                             } else {
-                                // No exact match — play all music shuffled as fallback
+                                // No exact match, play all music shuffled as fallback
                                 android.util.Log.d("MusicService", "No match for '$searchQuery', playing all songs")
                                 resolvedItems.addAll(getAllSongsFromMediaStore())
                             }
                         } else if (mediaUri != null || mediaId.isNotEmpty()) {
-                            // Direct URI or mediaId — pass through unchanged
+                            // Direct URI or mediaId: pass through unchanged
                             resolvedItems.add(requestItem)
                         } else {
-                            // Generic "play music" command — play all songs shuffled
+                            // Generic "play music" command: play all songs shuffled
                             android.util.Log.d("MusicService", "Generic play command, playing all songs")
                             resolvedItems.addAll(getAllSongsFromMediaStore())
                         }
@@ -1036,7 +1036,7 @@ class MusicService : MediaSessionService() {
         // Sort by relevance score (highest first)
         allSongs.sortByDescending { it.score }
         
-        // Build MediaItems — matched songs first, then the rest for queue
+        // Build MediaItems: matched songs first, then the rest for queue
         for (song in allSongs) {
             if (song.score > 0 || results.isEmpty()) {
                 val artUri = android.content.ContentUris.withAppendedId(

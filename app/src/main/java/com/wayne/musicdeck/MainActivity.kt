@@ -1387,7 +1387,7 @@ class MainActivity : AppCompatActivity() {
         val unhideSongView = view.findViewById<android.widget.TextView>(R.id.action_unhide_song)
         
         if (isViewingHiddenTab) {
-            // Viewing hidden songs — show "Unhide" instead of "Hide"
+            // Viewing hidden songs: show "Unhide" instead of "Hide"
             hideSongView.visibility = android.view.View.GONE
             unhideSongView.visibility = android.view.View.VISIBLE
             unhideSongView.setOnClickListener {
@@ -1396,7 +1396,7 @@ class MainActivity : AppCompatActivity() {
                 dialog.dismiss()
             }
         } else {
-            // Normal context — show "Hide"
+            // Normal context: show "Hide"
             hideSongView.visibility = android.view.View.VISIBLE
             unhideSongView.visibility = android.view.View.GONE
             hideSongView.setOnClickListener {

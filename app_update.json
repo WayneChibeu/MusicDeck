@@ -1,0 +1,9 @@
+{
+  "versionName": "2.10.1",
+  "versionCode": 54,
+  "releaseTitle": "MusicDeck v2.10.1",
+  "releaseNotes": "Pocket Guard Motion Protection: Uses hardware proximity sensor to automatically sleep shake detection in your pocket.\nEnhanced Gesture Filtering: Requires 3 rapid wrist reversals to filter out walking/jogging strides.\nRelease signing improvements.",
+  "downloadUrl": "https://github.com/WayneChibeu/MusicDeck/releases/download/v2.10.1/MusicDeck-v2.10.1.apk",
+  "apkSize": 6007583,
+  "htmlUrl": "https://github.com/WayneChibeu/MusicDeck/releases/tag/v2.10.1"
+}

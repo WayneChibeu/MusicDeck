@@ -41,6 +41,10 @@ class UpdateManager(
         private const val GITHUB_REPO = "MusicDeck"
         private const val LATEST_RELEASE_URL =
             "https://api.github.com/repos/$GITHUB_OWNER/$GITHUB_REPO/releases/latest"
+        private const val RAW_UPDATE_URL =
+            "https://raw.githubusercontent.com/$GITHUB_OWNER/$GITHUB_REPO/main/app_update.json"
+        private const val WEB_LATEST_RELEASE_URL =
+            "https://github.com/$GITHUB_OWNER/$GITHUB_REPO/releases/latest"
         private const val AUTO_CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000L // 24 Hours
     }
 
@@ -77,11 +81,56 @@ class UpdateManager(
     }
 
     /**
-     * Query GitHub Releases API for the latest release and compare with current app version.
+     * Query latest release with multi-tier fallback:
+     * 1. Fastly Raw CDN (app_update.json) - Zero rate limits, instantaneous.
+     * 2. GitHub Releases REST API (api.github.com) - Full asset metadata.
+     * 3. Web release 302 redirect header - Rate-limit-free HTTP redirect inspection.
      */
     suspend fun checkForUpdate(): Result<UpdateInfo> = withContext(Dispatchers.IO) {
+        val currentVer = getCurrentVersionName()
+
+        // Tier 1: Try Fastly Raw CDN metadata (rate-limit free)
         try {
-            val currentVer = getCurrentVersionName()
+            val rawRequest = Request.Builder()
+                .url(RAW_UPDATE_URL)
+                .header("User-Agent", "MusicDeck-App/$currentVer")
+                .header("Cache-Control", "no-cache")
+                .build()
+
+            val rawResponse = httpClient.newCall(rawRequest).execute()
+            if (rawResponse.isSuccessful) {
+                val rawBody = rawResponse.body?.string()
+                if (!rawBody.isNullOrBlank()) {
+                    val metadata = gson.fromJson(rawBody, AppUpdateMetadata::class.java)
+                    val latestVer = metadata.versionName.removePrefix("v").trim()
+                    val isNewer = compareVersions(latestVer, currentVer) > 0
+                    settingsManager.lastUpdateCheckTime = System.currentTimeMillis()
+
+                    val downloadUrl = metadata.downloadUrl
+                        ?: "https://github.com/$GITHUB_OWNER/$GITHUB_REPO/releases/download/v$latestVer/MusicDeck-v$latestVer.apk"
+                    val htmlUrl = metadata.htmlUrl
+                        ?: "https://github.com/$GITHUB_OWNER/$GITHUB_REPO/releases/tag/v$latestVer"
+
+                    return@withContext Result.success(
+                        UpdateInfo(
+                            isUpdateAvailable = isNewer,
+                            currentVersion = currentVer,
+                            latestVersion = metadata.versionName,
+                            releaseTitle = metadata.releaseTitle ?: "MusicDeck v$latestVer",
+                            releaseNotes = metadata.releaseNotes ?: "Bug fixes and performance improvements.",
+                            downloadUrl = downloadUrl,
+                            apkSize = metadata.apkSize,
+                            htmlUrl = htmlUrl
+                        )
+                    )
+                }
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "RAW CDN update check failed, falling back to GitHub API", e)
+        }
+
+        // Tier 2: Try GitHub Releases REST API
+        try {
             val request = Request.Builder()
                 .url(LATEST_RELEASE_URL)
                 .header("User-Agent", "MusicDeck-App/$currentVer")
@@ -89,37 +138,75 @@ class UpdateManager(
                 .build()
 
             val response = httpClient.newCall(request).execute()
-            if (!response.isSuccessful) {
-                return@withContext Result.failure(Exception("GitHub API error: HTTP ${response.code}"))
+            if (response.isSuccessful) {
+                val responseBody = response.body?.string()
+                if (!responseBody.isNullOrBlank()) {
+                    val release = gson.fromJson(responseBody, GitHubRelease::class.java)
+                    settingsManager.lastUpdateCheckTime = System.currentTimeMillis()
+
+                    val latestVer = release.tagName.removePrefix("v").trim()
+                    val isNewer = compareVersions(latestVer, currentVer) > 0
+                    val apkAsset = selectBestApkAsset(release.assets ?: emptyList())
+
+                    return@withContext Result.success(
+                        UpdateInfo(
+                            isUpdateAvailable = isNewer,
+                            currentVersion = currentVer,
+                            latestVersion = release.tagName,
+                            releaseTitle = release.name ?: release.tagName,
+                            releaseNotes = release.body ?: "Bug fixes and performance improvements.",
+                            downloadUrl = apkAsset?.browserDownloadUrl,
+                            apkSize = apkAsset?.size ?: 0L,
+                            htmlUrl = release.htmlUrl
+                        )
+                    )
+                }
+            } else if (response.code != 403) {
+                Log.w(TAG, "GitHub API returned status ${response.code}")
             }
-
-            val responseBody = response.body?.string() ?: return@withContext Result.failure(Exception("Empty response body"))
-            val release = gson.fromJson(responseBody, GitHubRelease::class.java)
-
-            settingsManager.lastUpdateCheckTime = System.currentTimeMillis()
-
-            val latestVer = release.tagName.removePrefix("v").trim()
-            val isNewer = compareVersions(latestVer, currentVer) > 0
-
-            // Find APK asset
-            val apkAsset = selectBestApkAsset(release.assets ?: emptyList())
-
-            val updateInfo = UpdateInfo(
-                isUpdateAvailable = isNewer,
-                currentVersion = currentVer,
-                latestVersion = release.tagName,
-                releaseTitle = release.name ?: release.tagName,
-                releaseNotes = release.body ?: "Bug fixes and performance improvements.",
-                downloadUrl = apkAsset?.browserDownloadUrl,
-                apkSize = apkAsset?.size ?: 0L,
-                htmlUrl = release.htmlUrl
-            )
-
-            Result.success(updateInfo)
         } catch (e: Exception) {
-            Log.e(TAG, "Error checking for updates", e)
-            Result.failure(e)
+            Log.w(TAG, "GitHub API update check failed, falling back to Web redirect", e)
         }
+
+        // Tier 3: Query GitHub web release redirect (bypasses REST API 403 rate limits)
+        try {
+            val noRedirectClient = httpClient.newBuilder()
+                .followRedirects(false)
+                .followSslRedirects(false)
+                .build()
+
+            val webRequest = Request.Builder()
+                .url(WEB_LATEST_RELEASE_URL)
+                .head()
+                .header("User-Agent", "MusicDeck-App/$currentVer")
+                .build()
+
+            val webResponse = noRedirectClient.newCall(webRequest).execute()
+            val location = webResponse.header("Location")
+            if (!location.isNullOrBlank() && location.contains("/tag/")) {
+                val tag = location.substringAfterLast("/tag/").trim()
+                val latestVer = tag.removePrefix("v").trim()
+                val isNewer = compareVersions(latestVer, currentVer) > 0
+                settingsManager.lastUpdateCheckTime = System.currentTimeMillis()
+
+                return@withContext Result.success(
+                    UpdateInfo(
+                        isUpdateAvailable = isNewer,
+                        currentVersion = currentVer,
+                        latestVersion = tag,
+                        releaseTitle = "MusicDeck $tag",
+                        releaseNotes = "A new update ($tag) is available on GitHub.",
+                        downloadUrl = "https://github.com/$GITHUB_OWNER/$GITHUB_REPO/releases/download/$tag/MusicDeck-$tag.apk",
+                        apkSize = 0L,
+                        htmlUrl = location
+                    )
+                )
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Web redirect fallback failed", e)
+        }
+
+        Result.failure(Exception("Unable to check for updates. Please check your internet connection."))
     }
 
     /**

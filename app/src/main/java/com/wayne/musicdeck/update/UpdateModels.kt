@@ -42,3 +42,14 @@ data class UpdateInfo(
     val apkSize: Long,
     val htmlUrl: String
 )
+
+data class AppUpdateMetadata(
+    @SerializedName("versionName") val versionName: String,
+    @SerializedName("versionCode") val versionCode: Int = 0,
+    @SerializedName("releaseTitle") val releaseTitle: String? = null,
+    @SerializedName("releaseNotes") val releaseNotes: String? = null,
+    @SerializedName("downloadUrl") val downloadUrl: String? = null,
+    @SerializedName("apkSize") val apkSize: Long = 0L,
+    @SerializedName("htmlUrl") val htmlUrl: String? = null
+)
+
