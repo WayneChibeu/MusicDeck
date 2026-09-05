@@ -39,7 +39,7 @@ class MusicService : MediaSessionService() {
     private var stopAtEndOfCurrentSong: Boolean = false
     
     companion object {
-        private const val USER_AGENT = "MusicDeck/2.5.0"
+        private const val USER_AGENT = "MusicDeck/2.10.0"
         const val ACTION_SET_SLEEP_TIMER = "com.wayne.musicdeck.ACTION_SET_SLEEP_TIMER"
         const val ACTION_SET_SLEEP_TIMER_END_OF_SONG = "com.wayne.musicdeck.ACTION_SET_SLEEP_TIMER_END_OF_SONG"
         const val ACTION_CANCEL_SLEEP_TIMER = "com.wayne.musicdeck.ACTION_CANCEL_SLEEP_TIMER"

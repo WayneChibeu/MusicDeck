@@ -28,6 +28,11 @@ class EqualizerBottomSheet : BottomSheetDialogFragment() {
     
     // Presets: name -> array of band values (normalized 0-100)
     private val customPresets = mapOf(
+        "MusicDeck Signature" to intArrayOf(62, 56, 52, 60, 68),
+        "Cinema 3D" to intArrayOf(75, 50, 42, 65, 75),
+        "Vocal Clarity" to intArrayOf(35, 45, 75, 70, 50),
+        "Night Warmth" to intArrayOf(55, 50, 48, 45, 40),
+        "Live Stage" to intArrayOf(65, 52, 55, 65, 75),
         "Normal" to intArrayOf(50, 50, 50, 50, 50),
         "Bass" to intArrayOf(85, 75, 40, 50, 60),
         "Classical" to intArrayOf(65, 60, 50, 55, 60),
@@ -76,6 +81,8 @@ class EqualizerBottomSheet : BottomSheetDialogFragment() {
         try {
             setupEqualizer(view)
             setupBassBoost(view)
+            setupVolumeBoost(view)
+            setupVirtualizer(view)
             setupExtremeBass(view)
             setupPresets(view)
             setupSwitch(view)
@@ -219,6 +226,62 @@ class EqualizerBottomSheet : BottomSheetDialogFragment() {
         })
     }
 
+    private fun setupVolumeBoost(view: View) {
+        val seekVolume = view.findViewById<SeekBar>(R.id.seekVolumeBoost) ?: return
+        val tvVolumeLevel = view.findViewById<TextView>(R.id.tvVolumeBoostLevel) ?: return
+        
+        attachTouchDisallow(seekVolume)
+        
+        val currentGain = AudioEffectManager.getSavedVolumeBoostGain(requireContext())
+        seekVolume.progress = currentGain
+        val db = currentGain / 100
+        val dbDec = (currentGain % 100) / 10
+        tvVolumeLevel.text = "+$db.$dbDec dB"
+
+        seekVolume.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                if (fromUser) {
+                    AudioEffectManager.setVolumeBoostGain(progress, requireContext())
+                    val curDb = progress / 100
+                    val curDec = (progress % 100) / 10
+                    tvVolumeLevel.text = "+$curDb.$curDec dB"
+                }
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {
+                seekBar?.parent?.requestDisallowInterceptTouchEvent(true)
+            }
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {
+                seekBar?.parent?.requestDisallowInterceptTouchEvent(false)
+            }
+        })
+    }
+
+    private fun setupVirtualizer(view: View) {
+        val seekVirtualizer = view.findViewById<SeekBar>(R.id.seekVirtualizer) ?: return
+        val tvVirtualizerLevel = view.findViewById<TextView>(R.id.tvVirtualizerLevel) ?: return
+        
+        attachTouchDisallow(seekVirtualizer)
+        
+        val currentStrength = AudioEffectManager.getSavedVirtualizerStrength(requireContext())
+        seekVirtualizer.progress = currentStrength
+        tvVirtualizerLevel.text = "${currentStrength / 10}%"
+
+        seekVirtualizer.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                if (fromUser) {
+                    AudioEffectManager.setVirtualizerStrength(progress, requireContext())
+                    tvVirtualizerLevel.text = "${progress / 10}%"
+                }
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {
+                seekBar?.parent?.requestDisallowInterceptTouchEvent(true)
+            }
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {
+                seekBar?.parent?.requestDisallowInterceptTouchEvent(false)
+            }
+        })
+    }
+
     private fun setupSwitch(view: View) {
         val switch = view.findViewById<MaterialSwitch>(R.id.switchEq)
         val tvEqStatus = view.findViewById<TextView>(R.id.tvEqStatus)
@@ -321,6 +384,25 @@ class EqualizerBottomSheet : BottomSheetDialogFragment() {
                 setupBassBoost(view ?: return@post)
             }
         }
+
+        // Custom branded preset spatial profiles
+        when (presetName) {
+            "Cinema 3D" -> {
+                AudioEffectManager.setVirtualizerStrength(600, requireContext())
+                view?.findViewById<SeekBar>(R.id.seekVirtualizer)?.progress = 600
+                view?.findViewById<TextView>(R.id.tvVirtualizerLevel)?.text = "60%"
+            }
+            "MusicDeck Signature" -> {
+                AudioEffectManager.setVirtualizerStrength(200, requireContext())
+                view?.findViewById<SeekBar>(R.id.seekVirtualizer)?.progress = 200
+                view?.findViewById<TextView>(R.id.tvVirtualizerLevel)?.text = "20%"
+            }
+            "Live Stage" -> {
+                AudioEffectManager.setVirtualizerStrength(450, requireContext())
+                view?.findViewById<SeekBar>(R.id.seekVirtualizer)?.progress = 450
+                view?.findViewById<TextView>(R.id.tvVirtualizerLevel)?.text = "45%"
+            }
+        }
         
         AudioEffectManager.savePreset(presetName, requireContext())
     }
@@ -336,6 +418,20 @@ class EqualizerBottomSheet : BottomSheetDialogFragment() {
             seekBassBoost?.progress = 0
             tvBassBoostLevel?.text = "0%"
             AudioEffectManager.setBassBoostStrength(0, requireContext())
+
+            // Reset volume boost
+            val seekVolumeBoost = view.findViewById<SeekBar>(R.id.seekVolumeBoost)
+            val tvVolumeBoostLevel = view.findViewById<TextView>(R.id.tvVolumeBoostLevel)
+            seekVolumeBoost?.progress = 0
+            tvVolumeBoostLevel?.text = "+0.0 dB"
+            AudioEffectManager.setVolumeBoostGain(0, requireContext())
+
+            // Reset virtualizer
+            val seekVirtualizer = view.findViewById<SeekBar>(R.id.seekVirtualizer)
+            val tvVirtualizerLevel = view.findViewById<TextView>(R.id.tvVirtualizerLevel)
+            seekVirtualizer?.progress = 0
+            tvVirtualizerLevel?.text = "0%"
+            AudioEffectManager.setVirtualizerStrength(0, requireContext())
             
             // Turn off extreme bass
             val switchExtreme = view.findViewById<MaterialSwitch>(R.id.switchExtremeBass)
@@ -344,7 +440,7 @@ class EqualizerBottomSheet : BottomSheetDialogFragment() {
                 AudioEffectManager.setExtremeBassEnabled(false, requireContext())
             }
             
-            Toast.makeText(context, "Equalizer reset to Flat", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "Audio effects reset to Flat", Toast.LENGTH_SHORT).show()
         }
     }
 

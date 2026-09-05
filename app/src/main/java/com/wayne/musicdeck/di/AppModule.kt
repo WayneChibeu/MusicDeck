@@ -21,6 +21,7 @@ val appModule = module {
     single { CustomCoverRepository(androidApplication()) }
     single { LyricsRepository(androidApplication()) }
     single { SettingsManager(androidApplication()) }
+    single { com.wayne.musicdeck.update.UpdateManager(androidApplication(), get()) }
 
     // ViewModel
     viewModel { MainViewModel(androidApplication(), get(), get(), get(), get(), get(), get(), get()) }

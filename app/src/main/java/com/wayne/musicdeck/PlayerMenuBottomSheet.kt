@@ -1,11 +1,13 @@
 package com.wayne.musicdeck
 
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.provider.MediaStore
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import org.koin.androidx.viewmodel.ext.android.activityViewModel
@@ -75,6 +77,10 @@ class PlayerMenuBottomSheet : BottomSheetDialogFragment() {
         val menuFetchLyrics = view.findViewById<View>(R.id.menuFetchLyrics)
         val progressFetchLyrics = view.findViewById<View>(R.id.progressFetchLyrics)
         val tvFetchLyricsLabel = view.findViewById<TextView>(R.id.tvFetchLyricsLabel)
+        val iconMeteredLyrics = view.findViewById<ImageView>(R.id.iconMeteredLyrics)
+        
+        val isMetered = com.wayne.musicdeck.utils.NetworkUtils.isOnMeteredNetwork(requireContext())
+        iconMeteredLyrics?.visibility = if (isMetered) View.VISIBLE else View.GONE
         
         // Update label based on whether song already has lyrics
         val currentPath = viewModel.mediaController.value?.currentMediaItem?.mediaId
@@ -83,13 +89,23 @@ class PlayerMenuBottomSheet : BottomSheetDialogFragment() {
             tvFetchLyricsLabel.text = "Re-fetch Lyrics"
         }
         
+        val performLyricsFetch: (Song) -> Unit = { song ->
+            progressFetchLyrics.visibility = View.VISIBLE
+            tvFetchLyricsLabel.text = "Fetching..."
+            viewModel.fetchLyrics(song)
+        }
+        
         menuFetchLyrics.setOnClickListener {
             val songPath = viewModel.mediaController.value?.currentMediaItem?.mediaId
             val song = viewModel.songs.value?.find { it.data == songPath }
             if (song != null) {
-                progressFetchLyrics.visibility = View.VISIBLE
-                tvFetchLyricsLabel.text = "Fetching..."
-                viewModel.fetchLyrics(song)
+                if (isMetered && !settingsManager.skipMobileDataLyricsWarning) {
+                    showMobileDataWarningDialog(requireContext()) {
+                        performLyricsFetch(song)
+                    }
+                } else {
+                    performLyricsFetch(song)
+                }
             } else {
                 Toast.makeText(context, "No song playing", Toast.LENGTH_SHORT).show()
             }
@@ -240,6 +256,22 @@ class PlayerMenuBottomSheet : BottomSheetDialogFragment() {
         } else {
             "${speed}x"
         }
+    }
+
+    private fun showMobileDataWarningDialog(context: Context, onConfirm: () -> Unit) {
+        val dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_mobile_data_warning, null)
+        val cbDontAsk = dialogView.findViewById<com.google.android.material.checkbox.MaterialCheckBox>(R.id.cbDontAskAgain)
+
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(context)
+            .setView(dialogView)
+            .setPositiveButton("Download") { _, _ ->
+                if (cbDontAsk.isChecked) {
+                    settingsManager.skipMobileDataLyricsWarning = true
+                }
+                onConfirm()
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
     }
 
     companion object {

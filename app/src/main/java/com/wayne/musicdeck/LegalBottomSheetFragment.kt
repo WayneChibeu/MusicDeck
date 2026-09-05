@@ -7,9 +7,14 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import androidx.lifecycle.lifecycleScope
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
+import kotlinx.coroutines.launch
+import org.koin.android.ext.android.inject
 
 class LegalBottomSheetFragment : BottomSheetDialogFragment() {
+
+    private val updateManager: com.wayne.musicdeck.update.UpdateManager by inject()
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -25,11 +30,42 @@ class LegalBottomSheetFragment : BottomSheetDialogFragment() {
         val tvVersionCode = view.findViewById<TextView>(R.id.tvVersionCode)
         val currentVersion: String = try {
             val ctx = requireContext()
-            ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName ?: "2.8.0"
+            ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName ?: "2.10.0"
         } catch (e: Exception) {
-            "2.8.0"
+            "2.10.0"
         }
         tvVersionCode.text = currentVersion
+
+        // Check for Updates
+        val btnCheckUpdates = view.findViewById<View>(R.id.btnCheckUpdates)
+        val tvUpdateStatus = view.findViewById<TextView>(R.id.tvUpdateStatus)
+        val progressChecking = view.findViewById<View>(R.id.progressCheckingUpdates)
+        val iconUpdate = view.findViewById<View>(R.id.iconUpdateStatus)
+
+        btnCheckUpdates.setOnClickListener {
+            progressChecking.visibility = View.VISIBLE
+            iconUpdate.visibility = View.GONE
+            tvUpdateStatus.text = "Checking GitHub..."
+
+            viewLifecycleOwner.lifecycleScope.launch {
+                val result = updateManager.checkForUpdate()
+                progressChecking.visibility = View.GONE
+                iconUpdate.visibility = View.VISIBLE
+
+                result.onSuccess { info ->
+                    if (info.isUpdateAvailable) {
+                        tvUpdateStatus.text = "Update available: ${info.latestVersion}"
+                        updateManager.showUpdateDialog(requireActivity(), info)
+                    } else {
+                        tvUpdateStatus.text = "MusicDeck is up to date (v$currentVersion)"
+                        android.widget.Toast.makeText(requireContext(), "You're on the latest version!", android.widget.Toast.LENGTH_SHORT).show()
+                    }
+                }.onFailure { error ->
+                    tvUpdateStatus.text = "Check failed. Tap to retry."
+                    android.widget.Toast.makeText(requireContext(), "Update check failed: ${error.message}", android.widget.Toast.LENGTH_LONG).show()
+                }
+            }
+        }
 
         // Terms & Privacy
         view.findViewById<View>(R.id.btnTermsPrivacy).setOnClickListener {

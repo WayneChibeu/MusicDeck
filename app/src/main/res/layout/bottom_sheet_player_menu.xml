@@ -147,6 +147,16 @@
             android:textSize="16sp"
             android:textColor="?attr/colorOnSurface" />
 
+        <ImageView
+            android:id="@+id/iconMeteredLyrics"
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:src="@drawable/ic_signal_cellular"
+            app:tint="?attr/colorOnSurfaceVariant"
+            android:visibility="gone"
+            android:layout_marginEnd="8dp"
+            android:contentDescription="Mobile Data Connection" />
+
         <ProgressBar
             android:id="@+id/progressFetchLyrics"
             android:layout_width="20dp"

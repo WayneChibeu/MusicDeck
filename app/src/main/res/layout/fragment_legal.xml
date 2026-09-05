@@ -111,7 +111,7 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Your privacy is our priority. MusicDeck operates with a strict 'local-first' philosophy.\n\n• Zero Tracking: We do not track, collect, monetize, or share your personal data or listening history with any third parties.\n• Local Storage: All your data (history, playlists, preferences) remains strictly stored on your local device.\n• Internet Usage: Network access is utilized solely to retrieve public metadata, album art, and real-time synchronized lyrics (via LRCLIB) to enhance your playback experience."
+                android:text="Your privacy is our utmost priority. MusicDeck operates with a strict 'local-first' architecture.\n\n• Zero Tracking: We do not collect, monitor, track, sell, or monetize your personal data, device identifiers, or playback history.\n• Local Device Storage: All user-generated content (listening history, custom covers, playlists, preferences) remains strictly stored on your local device.\n• Network Usage: Network connectivity is used exclusively for fetching public song metadata and synchronized lyrics (via LRCLIB) and checking for application releases via GitHub."
                 android:textSize="14sp"
                 android:lineSpacingExtra="4dp"
                 android:textColor="?attr/colorOnSurfaceVariant"
@@ -121,7 +121,7 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="4. As-Is Warranty"
+                android:text="4. Automatic Update Checks"
                 android:textSize="16sp"
                 android:textStyle="bold"
                 android:textColor="?attr/colorPrimary"
@@ -130,7 +130,45 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="MusicDeck is provided 'as is' without any warranties of any kind. The developers are not responsible for data loss, hardware issues, or any consequences arising from the use of this software."
+                android:text="MusicDeck incorporates an automated update checker that queries the public GitHub Releases API to notify you of new features and security fixes. During this check:\n\n• No personally identifiable information (PII) or device fingerprint is sent.\n• The application only compares the remote release tag with the installed version.\n• When downloading updates, the APK file is transferred securely directly from official GitHub release assets into your device's application directory."
+                android:textSize="14sp"
+                android:lineSpacingExtra="4dp"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:layout_marginBottom="20dp" />
+
+            <!-- Section 5 -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="5. Audio Processing &amp; Sound Engine"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="?attr/colorPrimary"
+                android:layout_marginBottom="4dp" />
+            
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="All audio enhancements—including the Equalizer, Bass Boost, Loudness Gain Booster, and 3D Spatial Virtualizer—are processed entirely on-device in real-time utilizing the Android hardware DSP pipeline. No audio streams are recorded, intercepted, or transmitted over any network."
+                android:textSize="14sp"
+                android:lineSpacingExtra="4dp"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:layout_marginBottom="20dp" />
+
+            <!-- Section 6 -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="6. As-Is Warranty"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="?attr/colorPrimary"
+                android:layout_marginBottom="4dp" />
+            
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="MusicDeck is provided 'as is' without warranties of any kind, express or implied. The developers are not liable for data loss, device issues, or consequences arising from the use of this software."
                 android:textSize="14sp"
                 android:lineSpacingExtra="4dp"
                 android:textColor="?attr/colorOnSurfaceVariant"

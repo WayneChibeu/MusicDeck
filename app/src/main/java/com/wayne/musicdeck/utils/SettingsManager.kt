@@ -107,4 +107,16 @@ class SettingsManager(context: Context) {
     var isAlbumPulsingEnabled: Boolean
         get() = kv.decodeBool("album_pulsing_enabled", true)
         set(value) { kv.encode("album_pulsing_enabled", value) }
+
+    var skipMobileDataLyricsWarning: Boolean
+        get() = kv.decodeBool("skip_mobile_data_lyrics_warning", false)
+        set(value) { kv.encode("skip_mobile_data_lyrics_warning", value) }
+
+    var lastUpdateCheckTime: Long
+        get() = kv.decodeLong("last_update_check_time", 0L)
+        set(value) { kv.encode("last_update_check_time", value) }
+
+    var isAutoUpdateEnabled: Boolean
+        get() = kv.decodeBool("auto_update_enabled", true)
+        set(value) { kv.encode("auto_update_enabled", value) }
 }

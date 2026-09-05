@@ -138,11 +138,63 @@
                         android:id="@+id/tvVersionCode"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="2.8.0"
+                        android:text="2.10.0"
                         android:textSize="14sp"
                         android:textColor="#80FFFFFF"
                         android:layout_marginTop="2dp" />
                 </LinearLayout>
+            </LinearLayout>
+
+            <!-- Check for Updates -->
+            <LinearLayout
+                android:id="@+id/btnCheckUpdates"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:padding="16dp"
+                android:layout_marginBottom="8dp"
+                android:background="@drawable/bg_glassmorphic_item"
+                android:foreground="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true">
+                
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+                    
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Check for Updates"
+                        android:textSize="16sp"
+                        android:textColor="@android:color/white" />
+                    
+                    <TextView
+                        android:id="@+id/tvUpdateStatus"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Tap to check GitHub for updates"
+                        android:textSize="13sp"
+                        android:textColor="#80FFFFFF"
+                        android:layout_marginTop="2dp" />
+                </LinearLayout>
+
+                <ProgressBar
+                    android:id="@+id/progressCheckingUpdates"
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:visibility="gone" />
+
+                <ImageView
+                    android:id="@+id/iconUpdateStatus"
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:src="@drawable/ic_refresh"
+                    app:tint="?attr/colorPrimary"
+                    android:importantForAccessibility="no" />
             </LinearLayout>
 
             <!-- GitHub -->

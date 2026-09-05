@@ -1486,6 +1486,13 @@ class MainViewModel(
                     return@launch
                 }
                 
+                // Skip background auto-fetching when on metered network if user hasn't opted out of warning
+                if (!forceRefetch && com.wayne.musicdeck.utils.NetworkUtils.isOnMeteredNetwork(application) && !settingsManager.skipMobileDataLyricsWarning) {
+                    android.util.Log.d("LyricsSys", "Skipping auto-fetch on metered data for $title")
+                    _lyricsStatus.postValue(LyricsStatus.Error("Lyrics paused on mobile data. Tap menu to download."))
+                    return@launch
+                }
+                
                 // Skip very long tracks (likely mixes)
                 if (duration > 15 * 60 * 1000) {
                      _lyricsStatus.postValue(LyricsStatus.NotFound)

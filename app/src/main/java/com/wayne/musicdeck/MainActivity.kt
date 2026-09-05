@@ -26,6 +26,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     val viewModel: MainViewModel by viewModel()
     private val settingsManager: com.wayne.musicdeck.utils.SettingsManager by inject()
+    private val updateManager: com.wayne.musicdeck.update.UpdateManager by inject()
     private val adapter = SongAdapter { song ->
         playInContext(song)
     }
@@ -188,6 +189,17 @@ class MainActivity : AppCompatActivity() {
 
         setupRecyclerView()
         // setupOneTimeEvents() removed
+
+        // Automatic update check (throttled once per 24 hours, silent unless update available)
+        if (updateManager.shouldAutoCheck()) {
+            lifecycleScope.launch {
+                updateManager.checkForUpdate().onSuccess { info ->
+                    if (info.isUpdateAvailable && !isFinishing && !isDestroyed) {
+                        updateManager.showUpdateDialog(this@MainActivity, info)
+                    }
+                }
+            }
+        }
         
         binding.fastScroller.attachBubble(binding.tvFastScrollBubble)
         binding.fastScroller.setListener(object : com.wayne.musicdeck.views.FastScrollerView.OnFastScrollListener {
