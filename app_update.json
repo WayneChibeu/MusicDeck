@@ -1,9 +1,9 @@
 {
-  "versionName": "2.10.2",
-  "versionCode": 55,
-  "releaseTitle": "MusicDeck v2.10.2",
-  "releaseNotes": "Instant Favorite Sync: Real-time two-way favorite synchronization across widget, notification bar, and player.\nSmooth Album Swipe: Redesigned album art transitions with a synchronized dual-stage carousel.\nAuto-Play on Skip: Automatically resumes playback when changing songs while paused.\nVolume Boost Smoothing: Parameter smoothing and deferred disk persistence eliminate DSP crackles.\nRefined Cellular Icon: Modern 4-bar capsule signal indicator.",
-  "downloadUrl": "https://github.com/WayneChibeu/MusicDeck/releases/download/v2.10.2/MusicDeck-v2.10.2.apk",
-  "apkSize": 6024355,
-  "htmlUrl": "https://github.com/WayneChibeu/MusicDeck/releases/tag/v2.10.2"
+  "versionName": "2.10.3",
+  "versionCode": 56,
+  "releaseTitle": "MusicDeck v2.10.3",
+  "releaseNotes": "Sound Check (Loudness Normalizer): Safe dynamic leveling and headroom protection in player menu.\nAutomated High-Volume Warning: Subtle ambient indicator for hearing safety at >80% volume.\nAlbum Art Gesture Clean: Removed volume HUD dragging to prevent accidental changes during track skip.\nEQ Preset Swipe Fix: Smooth horizontal preset scrolling without accidental bottom sheet dismissals.",
+  "downloadUrl": "https://github.com/WayneChibeu/MusicDeck/releases/download/v2.10.3/MusicDeck-v2.10.3.apk",
+  "apkSize": 6025247,
+  "htmlUrl": "https://github.com/WayneChibeu/MusicDeck/releases/tag/v2.10.3"
 }
