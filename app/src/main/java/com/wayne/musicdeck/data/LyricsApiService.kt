@@ -18,7 +18,7 @@ class LyricsApiService {
     companion object {
         private const val TAG = "LyricsApiService"
         private const val BASE_URL = "https://lrclib.net/api/"
-        private const val USER_AGENT = "MusicDeck/2.10.0 (https://github.com/WayneChibeu/MusicDeck)"
+        private const val USER_AGENT = "MusicDeck/2.10.1 (https://github.com/WayneChibeu/MusicDeck)"
         private const val MAX_RETRIES = 2
     }
     
