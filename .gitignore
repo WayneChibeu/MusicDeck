@@ -88,3 +88,6 @@ Thumbs.db
 # GitHub CLI
 gh-cli/
 gh.zip
+
+# Memory dump files
+*.hprof
