@@ -1,9 +1,9 @@
 {
-  "versionName": "2.10.6",
-  "versionCode": 59,
-  "releaseTitle": "MusicDeck v2.10.6",
-  "releaseNotes": "Sound Check Icon Redesign: Replaced colliding speaker/arcs with a sleek acoustic speaker and verified safety check badge with crisp vector tinting.\nEqualizer Preset Cleanup: Deduplicated identical Normal/Flat presets into a single studio neutral Flat preset (0 dB reference baseline).",
-  "downloadUrl": "https://github.com/WayneChibeu/MusicDeck/releases/download/v2.10.6/MusicDeck-v2.10.6.apk",
+  "versionName": "2.10.7",
+  "versionCode": 60,
+  "releaseTitle": "MusicDeck v2.10.7",
+  "releaseNotes": "Equalizer Preset Layout: Positioned Flat right after Live Stage and before Bass.\nTypography Refinement: Replaced em dash with standard hyphen in Sound Check toast notification.",
+  "downloadUrl": "https://github.com/WayneChibeu/MusicDeck/releases/download/v2.10.7/MusicDeck-v2.10.7.apk",
   "apkSize": 6026751,
-  "htmlUrl": "https://github.com/WayneChibeu/MusicDeck/releases/tag/v2.10.6"
+  "htmlUrl": "https://github.com/WayneChibeu/MusicDeck/releases/tag/v2.10.7"
 }

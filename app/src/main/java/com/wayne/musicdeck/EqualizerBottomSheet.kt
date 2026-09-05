@@ -28,12 +28,12 @@ class EqualizerBottomSheet : BottomSheetDialogFragment() {
     
     // Presets: name -> array of band values (normalized 0-100)
     private val customPresets = mapOf(
-        "Flat" to intArrayOf(50, 50, 50, 50, 50),
         "MusicDeck Signature" to intArrayOf(62, 56, 52, 60, 68),
         "Cinema 3D" to intArrayOf(75, 50, 42, 65, 75),
         "Vocal Clarity" to intArrayOf(35, 45, 75, 70, 50),
         "Night Warmth" to intArrayOf(55, 50, 48, 45, 40),
         "Live Stage" to intArrayOf(65, 52, 55, 65, 75),
+        "Flat" to intArrayOf(50, 50, 50, 50, 50),
         "Bass" to intArrayOf(85, 75, 40, 50, 60),
         "Classical" to intArrayOf(65, 60, 50, 55, 60),
         "Dance" to intArrayOf(75, 40, 50, 60, 65),
