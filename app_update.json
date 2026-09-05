@@ -1,9 +1,9 @@
 {
-  "versionName": "2.10.5",
-  "versionCode": 58,
-  "releaseTitle": "MusicDeck v2.10.5",
-  "releaseNotes": "Startup Splash & Logo Refinement: Pure pitch-black AMOLED background and seamless Android 12+ splash screen integration, eliminating OEM container cuts/slashes and stray acoustic lines.\nUpdate Downloader Improvements: Clicking 'Later' during download cleanly cancels OkHttp network streaming, purges partial files, and safely dismisses without background activity.\nRefined Turntable Brandmark: Precision vinyl grooves, balanced spindle hub, and iconic play glyph.",
-  "downloadUrl": "https://github.com/WayneChibeu/MusicDeck/releases/download/v2.10.5/MusicDeck-v2.10.5.apk",
-  "apkSize": 6026767,
-  "htmlUrl": "https://github.com/WayneChibeu/MusicDeck/releases/tag/v2.10.5"
+  "versionName": "2.10.6",
+  "versionCode": 59,
+  "releaseTitle": "MusicDeck v2.10.6",
+  "releaseNotes": "Sound Check Icon Redesign: Replaced colliding speaker/arcs with a sleek acoustic speaker and verified safety check badge with crisp vector tinting.\nEqualizer Preset Cleanup: Deduplicated identical Normal/Flat presets into a single studio neutral Flat preset (0 dB reference baseline).",
+  "downloadUrl": "https://github.com/WayneChibeu/MusicDeck/releases/download/v2.10.6/MusicDeck-v2.10.6.apk",
+  "apkSize": 6026751,
+  "htmlUrl": "https://github.com/WayneChibeu/MusicDeck/releases/tag/v2.10.6"
 }

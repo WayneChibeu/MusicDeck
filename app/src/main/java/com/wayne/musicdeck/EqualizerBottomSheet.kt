@@ -28,16 +28,15 @@ class EqualizerBottomSheet : BottomSheetDialogFragment() {
     
     // Presets: name -> array of band values (normalized 0-100)
     private val customPresets = mapOf(
+        "Flat" to intArrayOf(50, 50, 50, 50, 50),
         "MusicDeck Signature" to intArrayOf(62, 56, 52, 60, 68),
         "Cinema 3D" to intArrayOf(75, 50, 42, 65, 75),
         "Vocal Clarity" to intArrayOf(35, 45, 75, 70, 50),
         "Night Warmth" to intArrayOf(55, 50, 48, 45, 40),
         "Live Stage" to intArrayOf(65, 52, 55, 65, 75),
-        "Normal" to intArrayOf(50, 50, 50, 50, 50),
         "Bass" to intArrayOf(85, 75, 40, 50, 60),
         "Classical" to intArrayOf(65, 60, 50, 55, 60),
         "Dance" to intArrayOf(75, 40, 50, 60, 65),
-        "Flat" to intArrayOf(50, 50, 50, 50, 50),
         "Folk" to intArrayOf(60, 50, 50, 55, 60),
         "Heavy Metal" to intArrayOf(70, 60, 55, 75, 80),
         "Hip Hop" to intArrayOf(80, 65, 45, 55, 75),
@@ -412,7 +411,8 @@ class EqualizerBottomSheet : BottomSheetDialogFragment() {
         container.removeAllViews()
         presetPillViews.clear()
 
-        val savedPreset = AudioEffectManager.getSavedPreset(requireContext())
+        val rawPreset = AudioEffectManager.getSavedPreset(requireContext())
+        val savedPreset = if (rawPreset.equals("Normal", ignoreCase = true)) "Flat" else rawPreset
         val context = requireContext()
 
         customPresets.keys.forEach { presetName ->
@@ -455,7 +455,8 @@ class EqualizerBottomSheet : BottomSheetDialogFragment() {
     }
     
     private fun applyPreset(presetName: String) {
-        val values = customPresets[presetName] ?: return
+        val targetPreset = if (presetName.equals("Normal", ignoreCase = true)) "Flat" else presetName
+        val values = customPresets[targetPreset] ?: return
         val eq = AudioEffectManager.getEqualizer()
         val minLevel = eq?.bandLevelRange?.get(0) ?: -1500
         val maxLevel = eq?.bandLevelRange?.get(1) ?: 1500

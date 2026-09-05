@@ -4,22 +4,24 @@
     android:height="24dp"
     android:viewportWidth="24"
     android:viewportHeight="24">
-    <!-- Speaker body -->
+
+    <!-- Acoustic Speaker Body -->
     <path
-        android:fillColor="#FF000000"
-        android:pathData="M3,9v6h4l5,5V4L7,9H3z" />
-    <!-- Sound wave arc -->
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M3,9v6h3.5L11,19V5L6.5,9H3z" />
+
+    <!-- Safe Audio Check Badge Ring -->
     <path
-        android:fillColor="@android:color/transparent"
-        android:strokeColor="#FF000000"
+        android:strokeColor="#FFFFFFFF"
         android:strokeWidth="1.8"
-        android:pathData="M16.5,8.5c1.2,1.2 1.8,2.8 1.8,4.5s-0.6,3.3 -1.8,4.5" />
-    <!-- Checkmark overlay -->
+        android:pathData="M18,12 A5,5 0 1,1 17.9,12 Z" />
+
+    <!-- Verification Checkmark Inside Badge -->
     <path
-        android:fillColor="@android:color/transparent"
-        android:strokeColor="#FF000000"
-        android:strokeWidth="2.2"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="1.8"
         android:strokeLineCap="round"
         android:strokeLineJoin="round"
-        android:pathData="M15,12.5l2,2 4,-4" />
+        android:pathData="M16,12 L17.5,13.8 L20.2,10.2" />
+
 </vector>
