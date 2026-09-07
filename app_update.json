@@ -1,9 +1,9 @@
 {
-  "versionName": "3.0.2",
-  "versionCode": 64,
-  "releaseTitle": "MusicDeck v3.0.2 - Dynamic Headroom & Anti-Pumping DSP",
-  "releaseNotes": "Studio Acoustic Refinement: Implemented automatic dynamic headroom compensation to eliminate wideband vocal pumping and breathing on heavy kick hits. Coupled stereo envelope limiter with 180ms release and C1-continuous soft-knee saturation to eliminate sub-bass flat-topping odd harmonics. Full native routing for Volume Boost.",
-  "downloadUrl": "https://github.com/WayneChibeu/MusicDeck/releases/download/v3.0.2/MusicDeck-v3.0.2.apk",
+  "versionName": "3.0.3",
+  "versionCode": 65,
+  "releaseTitle": "MusicDeck v3.0.3 - EQ Status Synchronization & Native Bypass",
+  "releaseNotes": "UI & DSP Sync Fix: Synchronized the equalizer master switch and status indicator directly with the native C++ DSP state, eliminating the false 'Effects Disabled (Bypassed)' indicator while platform audiofx remains cleanly isolated.",
+  "downloadUrl": "https://github.com/WayneChibeu/MusicDeck/releases/download/v3.0.3/MusicDeck-v3.0.3.apk",
   "apkSize": 7043289,
-  "htmlUrl": "https://github.com/WayneChibeu/MusicDeck/releases/tag/v3.0.2"
+  "htmlUrl": "https://github.com/WayneChibeu/MusicDeck/releases/tag/v3.0.3"
 }

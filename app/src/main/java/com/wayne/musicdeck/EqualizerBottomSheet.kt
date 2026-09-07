@@ -375,8 +375,7 @@ class EqualizerBottomSheet : BottomSheetDialogFragment() {
     private fun setupSwitch(view: View) {
         val switch = view.findViewById<MaterialSwitch>(R.id.switchEq) ?: return
         val tvEqStatus = view.findViewById<TextView>(R.id.tvEqStatus) ?: return
-        val prefs = requireContext().getSharedPreferences("eq_prefs", Context.MODE_PRIVATE)
-        val isEnabled = AudioEffectManager.getEqualizer()?.enabled ?: prefs.getBoolean("eq_enabled", true)
+        val isEnabled = AudioEffectManager.isEqEnabled(requireContext())
         switch.isChecked = isEnabled
         tvEqStatus.text = if (isEnabled) "Effects Active" else "Effects Disabled (Bypassed)"
         

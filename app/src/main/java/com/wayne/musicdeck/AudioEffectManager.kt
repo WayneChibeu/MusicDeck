@@ -99,6 +99,11 @@ object AudioEffectManager {
     
     fun isInitialized(): Boolean = NativeAudioEngine.isLibraryLoaded || equalizer != null
     
+    fun isEqEnabled(context: Context): Boolean {
+        return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .getBoolean("eq_enabled", true)
+    }
+    
     /**
      * Check if the device supports audio effects.
      * MusicDeck uses an in-house C++ DSP engine, which is always supported across all hardware.
