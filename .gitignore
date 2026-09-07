@@ -91,3 +91,6 @@ gh.zip
 
 # Memory dump files
 *.hprof
+
+# Private Internal Planning & Future Notes
+ROADMAP.md
