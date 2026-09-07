@@ -1,9 +1,9 @@
 {
-  "versionName": "2.10.8",
-  "versionCode": 61,
-  "releaseTitle": "MusicDeck v2.10.8",
-  "releaseNotes": "Sound Check Icon Polish: Replaced circular ring badge with a clean acoustic speaker and sharp precision checkmark.",
-  "downloadUrl": "https://github.com/WayneChibeu/MusicDeck/releases/download/v2.10.8/MusicDeck-v2.10.8.apk",
-  "apkSize": 6026691,
-  "htmlUrl": "https://github.com/WayneChibeu/MusicDeck/releases/tag/v2.10.8"
+  "versionName": "3.0.0",
+  "versionCode": 62,
+  "releaseTitle": "MusicDeck v3.0.0 - Native C++ Audio Engine",
+  "releaseNotes": "Major audio architecture upgrade: in-house 32-bit floating point C++ DSP engine (libmusicdeck_audio.so), studio-grade soft-knee peak limiter with zero digital clipping, resonant 80Hz sub-bass shelf, and precision Direct Form II Transposed biquad EQ.",
+  "downloadUrl": "https://github.com/WayneChibeu/MusicDeck/releases/download/v3.0.0/MusicDeck-v3.0.0.apk",
+  "apkSize": 7041505,
+  "htmlUrl": "https://github.com/WayneChibeu/MusicDeck/releases/tag/v3.0.0"
 }

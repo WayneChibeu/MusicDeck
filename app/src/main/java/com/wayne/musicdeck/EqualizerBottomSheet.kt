@@ -70,7 +70,7 @@ class EqualizerBottomSheet : BottomSheetDialogFragment() {
         
         val eq = AudioEffectManager.getEqualizer()
         
-        if (eq == null) {
+        if (eq == null && !AudioEffectManager.isInitialized()) {
             val errorMsg = AudioEffectManager.lastInitError ?: "Equalizer not available on this device"
             Toast.makeText(context, errorMsg, Toast.LENGTH_LONG).show()
             dismiss()
@@ -157,11 +157,13 @@ class EqualizerBottomSheet : BottomSheetDialogFragment() {
     }
     
     private fun setupEqualizer(view: View) {
-        val eq = AudioEffectManager.getEqualizer() ?: return
+        val eq = AudioEffectManager.getEqualizer()
+        val defaultCenterFreqs = listOf("60 Hz", "230 Hz", "910 Hz", "3.6 kHz", "14 kHz")
+        val prefs = requireContext().getSharedPreferences("eq_prefs", Context.MODE_PRIVATE)
         
-        val bandCount = eq.numberOfBands.toInt()
-        val minLevel = eq.bandLevelRange[0]
-        val maxLevel = eq.bandLevelRange[1]
+        val bandCount = eq?.numberOfBands?.toInt() ?: 5
+        val minLevel: Short = eq?.bandLevelRange?.get(0) ?: -1500
+        val maxLevel: Short = eq?.bandLevelRange?.get(1) ?: 1500
         val range = maxLevel - minLevel
         
         seekBars.clear()
@@ -194,21 +196,25 @@ class EqualizerBottomSheet : BottomSheetDialogFragment() {
         view.findViewById<View>(R.id.eqBandsContainer)?.let { attachTouchDisallow(it) }
 
         for (i in 0 until minOf(bandCount, 5)) {
-            val centerFreq = eq.getCenterFreq(i.toShort()) / 1000
-            val formattedFreq = if (centerFreq >= 1000) {
-                String.format("%.1f kHz", centerFreq / 1000f)
+            val formattedFreq = if (eq != null && i < eq.numberOfBands) {
+                val centerFreq = eq.getCenterFreq(i.toShort()) / 1000
+                if (centerFreq >= 1000) {
+                    String.format("%.1f kHz", centerFreq / 1000f)
+                } else {
+                    "$centerFreq Hz"
+                }
             } else {
-                "$centerFreq Hz"
+                defaultCenterFreqs[i]
             }
             freqLabels[i].text = formattedFreq
             
             seekBars[i].max = 100
             
-            val currentLevel = eq.getBandLevel(i.toShort())
-            val progress = ((currentLevel - minLevel) * 100 / range)
+            val progress = prefs.getInt("eq_band_$i", 50)
             seekBars[i].progress = progress
             
             // Format dynamic dB gain label
+            val currentLevel = (minLevel + (progress * range / 100)).toShort()
             updateGainLabel(i, currentLevel)
 
             // Prevent touch drag conflict
@@ -241,19 +247,13 @@ class EqualizerBottomSheet : BottomSheetDialogFragment() {
     }
     
     private fun setupBassBoost(view: View) {
-        val bb = AudioEffectManager.getBassBoost() ?: return
-        val seekBassBoost = view.findViewById<SeekBar>(R.id.seekBassBoost)
-        val tvBassBoostLevel = view.findViewById<TextView>(R.id.tvBassBoostLevel)
-
-        if (!bb.strengthSupported) {
-            seekBassBoost.isEnabled = false
-            return
-        }
+        val seekBassBoost = view.findViewById<SeekBar>(R.id.seekBassBoost) ?: return
+        val tvBassBoostLevel = view.findViewById<TextView>(R.id.tvBassBoostLevel) ?: return
         
         attachTouchDisallow(seekBassBoost)
 
-        val currentStrength = bb.roundedStrength // 0 - 1000
-        val progress = currentStrength.toInt()
+        val prefs = requireContext().getSharedPreferences("eq_prefs", Context.MODE_PRIVATE)
+        val progress = prefs.getInt("bass_boost_strength", 0)
         
         seekBassBoost.progress = progress
         tvBassBoostLevel.text = "${progress / 10}%"
@@ -373,11 +373,10 @@ class EqualizerBottomSheet : BottomSheetDialogFragment() {
     }
 
     private fun setupSwitch(view: View) {
-        val switch = view.findViewById<MaterialSwitch>(R.id.switchEq)
-        val tvEqStatus = view.findViewById<TextView>(R.id.tvEqStatus)
-        val eq = AudioEffectManager.getEqualizer()
-        
-        val isEnabled = eq?.enabled == true
+        val switch = view.findViewById<MaterialSwitch>(R.id.switchEq) ?: return
+        val tvEqStatus = view.findViewById<TextView>(R.id.tvEqStatus) ?: return
+        val prefs = requireContext().getSharedPreferences("eq_prefs", Context.MODE_PRIVATE)
+        val isEnabled = AudioEffectManager.getEqualizer()?.enabled ?: prefs.getBoolean("eq_enabled", true)
         switch.isChecked = isEnabled
         tvEqStatus.text = if (isEnabled) "Effects Active" else "Effects Disabled (Bypassed)"
         

@@ -59,9 +59,23 @@ class MusicService : MediaSessionService() {
             observeFavoritesFlow()
         }
 
-        val renderersFactory = androidx.media3.exoplayer.DefaultRenderersFactory(this)
-            .setExtensionRendererMode(androidx.media3.exoplayer.DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER)
-            .setEnableAudioFloatOutput(true)
+        val nativeAudioProcessor = com.wayne.musicdeck.audio.NativeAudioProcessor()
+        val renderersFactory = object : androidx.media3.exoplayer.DefaultRenderersFactory(this) {
+            override fun buildAudioSink(
+                context: android.content.Context,
+                enableFloatOutput: Boolean,
+                enableAudioTrackPlaybackParams: Boolean
+            ): androidx.media3.exoplayer.audio.AudioSink {
+                return androidx.media3.exoplayer.audio.DefaultAudioSink.Builder(context)
+                    .setEnableFloatOutput(enableFloatOutput)
+                    .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
+                    .setAudioProcessors(arrayOf(nativeAudioProcessor))
+                    .build()
+            }
+        }.apply {
+            setExtensionRendererMode(androidx.media3.exoplayer.DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER)
+            setEnableAudioFloatOutput(true)
+        }
 
         val exoPlayer: ExoPlayer = ExoPlayer.Builder(this, renderersFactory)
             .setAudioAttributes(AudioAttributes.DEFAULT, true)

@@ -37,3 +37,10 @@
 # Coil Image Loading
 -keep class coil.** { *; }
 -dontwarn coil.**
+
+# Native C++ Audio Engine and JNI
+-keep class com.wayne.musicdeck.audio.** { *; }
+-keepclasseswithmembernames class * {
+    native <methods>;
+}
+
