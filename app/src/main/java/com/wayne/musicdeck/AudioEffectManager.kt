@@ -36,9 +36,9 @@ object AudioEffectManager {
         lastInitError = null
 
         try {
-            // Try with specific audio session ID first
-            equalizer = Equalizer(0, sessionId).apply { enabled = true }
-            bassBoost = BassBoost(0, sessionId).apply { enabled = true }
+            // Initialize platform effects in disabled/bypassed state for reflection & capability queries
+            equalizer = Equalizer(0, sessionId).apply { enabled = false }
+            bassBoost = BassBoost(0, sessionId).apply { enabled = false }
             
             loudnessEnhancer = try {
                 LoudnessEnhancer(sessionId).apply { enabled = true }
@@ -214,10 +214,11 @@ object AudioEffectManager {
 
     fun setEqEnabled(enabled: Boolean, context: Context) {
         NativeAudioEngine.setEnabled(enabled)
-        try { equalizer?.enabled = enabled } catch (_: Exception) {}
-        try { bassBoost?.enabled = enabled } catch (_: Exception) {}
+        // Platform effects remain disabled; native DSP has exclusive control
+        try { equalizer?.enabled = false } catch (_: Exception) {}
+        try { bassBoost?.enabled = false } catch (_: Exception) {}
         try { loudnessEnhancer?.enabled = enabled } catch (_: Exception) {}
-        try { virtualizer?.enabled = enabled } catch (_: Exception) {}
+        try { virtualizer?.enabled = false } catch (_: Exception) {}
 
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             .edit()
@@ -248,16 +249,8 @@ object AudioEffectManager {
     }
     
     fun setBassBoostStrength(progress: Int, context: Context) {
-        // Translate 0..1000 to normalized float 0.0f .. 1.0f
+        // Native C++ DSP handles bass boost cleanly; avoid platform hardware double-amplification
         NativeAudioEngine.setBassBoost(progress / 1000f)
-
-        bassBoost?.let { bb ->
-            try {
-                bb.setStrength(progress.toShort())
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
 
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             .edit()

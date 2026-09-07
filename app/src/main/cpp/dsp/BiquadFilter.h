@@ -90,11 +90,11 @@ public:
         }
 
         // Normalize coefficients so a0 == 1.0
-        mB0 = static_cast<float>(b0 / a0);
-        mB1 = static_cast<float>(b1 / a0);
-        mB2 = static_cast<float>(b2 / a0);
-        mA1 = static_cast<float>(a1 / a0);
-        mA2 = static_cast<float>(a2 / a0);
+        mB0 = b0 / a0;
+        mB1 = b1 / a0;
+        mB2 = b2 / a0;
+        mA1 = a1 / a0;
+        mA2 = a2 / a0;
     }
 
     /**
@@ -102,32 +102,33 @@ public:
      * Prevents clicks/pops when seeking or changing songs.
      */
     void reset() {
-        mZ1 = 0.0f;
-        mZ2 = 0.0f;
+        mZ1 = 0.0;
+        mZ2 = 0.0;
     }
 
     /**
      * Processes a single audio sample through the Direct Form II Transposed topology.
-     * Direct Form II Transposed provides minimal round-off noise and maximum numerical stability.
+     * Computes state in 64-bit double precision to eliminate low-frequency quantization noise.
      */
     inline float process(float inSample) {
-        float outSample = inSample * mB0 + mZ1;
-        mZ1 = inSample * mB1 - outSample * mA1 + mZ2;
-        mZ2 = inSample * mB2 - outSample * mA2;
-        return outSample;
+        double inD = static_cast<double>(inSample);
+        double outD = inD * mB0 + mZ1;
+        mZ1 = inD * mB1 - outD * mA1 + mZ2;
+        mZ2 = inD * mB2 - outD * mA2;
+        return static_cast<float>(outD);
     }
 
 private:
-    // Normalized filter coefficients
-    float mB0 = 1.0f;
-    float mB1 = 0.0f;
-    float mB2 = 0.0f;
-    float mA1 = 0.0f;
-    float mA2 = 0.0f;
+    // Normalized 64-bit double precision filter coefficients
+    double mB0 = 1.0;
+    double mB1 = 0.0;
+    double mB2 = 0.0;
+    double mA1 = 0.0;
+    double mA2 = 0.0;
 
-    // Filter delay memory states
-    float mZ1 = 0.0f;
-    float mZ2 = 0.0f;
+    // Filter delay memory states (64-bit double precision)
+    double mZ1 = 0.0;
+    double mZ2 = 0.0;
 };
 
 } // namespace musicdeck

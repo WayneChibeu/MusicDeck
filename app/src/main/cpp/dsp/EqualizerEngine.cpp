@@ -16,6 +16,8 @@ void EqualizerEngine::setSampleRate(int sampleRate) {
     std::lock_guard<std::mutex> lock(mMutex);
     if (sampleRate > 0 && mSampleRate != sampleRate) {
         mSampleRate = sampleRate;
+        mLimiterL.setSampleRate(sampleRate);
+        mLimiterR.setSampleRate(sampleRate);
         updateFilters_locked();
         reset();
     }
@@ -33,13 +35,13 @@ void EqualizerEngine::setBandGain(int band, float gainDb) {
 
 void EqualizerEngine::setBassBoostStrength(float strength) {
     std::lock_guard<std::mutex> lock(mMutex);
-    // Strength is 0.0 to 1.0 (or 0 to 1000). Map to 0.0dB .. +14.0dB boost
+    // Strength is 0.0 to 1.0 (or 0 to 1000). Map to 0.0dB .. +12.0dB boost
     float clamped = std::max(0.0f, std::min(1.0f, strength));
-    mBassBoostGainDb = clamped * 14.0f;
+    mBassBoostGainDb = clamped * 12.0f;
 
-    // Bass boost low-shelf at 80 Hz with punchy Q = 1.25
-    mBassFilterL.configure(FilterType::LowShelf, 80.0f, static_cast<float>(mSampleRate), mBassBoostGainDb, 1.25f);
-    mBassFilterR.configure(FilterType::LowShelf, 80.0f, static_cast<float>(mSampleRate), mBassBoostGainDb, 1.25f);
+    // Musical warmth low-shelf at 80 Hz with Q = 0.85f (clean sub-bass punch without ringing)
+    mBassFilterL.configure(FilterType::LowShelf, 80.0f, static_cast<float>(mSampleRate), mBassBoostGainDb, 0.85f);
+    mBassFilterR.configure(FilterType::LowShelf, 80.0f, static_cast<float>(mSampleRate), mBassBoostGainDb, 0.85f);
 }
 
 void EqualizerEngine::setVirtualizerStrength(float strength) {
@@ -59,6 +61,8 @@ void EqualizerEngine::reset() {
     }
     mBassFilterL.reset();
     mBassFilterR.reset();
+    mLimiterL.reset();
+    mLimiterR.reset();
     mPrevLeft = 0.0f;
     mPrevRight = 0.0f;
 }
@@ -69,8 +73,8 @@ void EqualizerEngine::updateFilters_locked() {
         mEqFiltersL[i].configure(FilterType::PeakingEQ, mBandFrequencies[i], sr, mBandGains[i], mBandQ[i]);
         mEqFiltersR[i].configure(FilterType::PeakingEQ, mBandFrequencies[i], sr, mBandGains[i], mBandQ[i]);
     }
-    mBassFilterL.configure(FilterType::LowShelf, 80.0f, sr, mBassBoostGainDb, 1.25f);
-    mBassFilterR.configure(FilterType::LowShelf, 80.0f, sr, mBassBoostGainDb, 1.25f);
+    mBassFilterL.configure(FilterType::LowShelf, 80.0f, sr, mBassBoostGainDb, 0.85f);
+    mBassFilterR.configure(FilterType::LowShelf, 80.0f, sr, mBassBoostGainDb, 0.85f);
 }
 
 void EqualizerEngine::process(float* buffer, int numFrames) {

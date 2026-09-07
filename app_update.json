@@ -2,8 +2,8 @@
   "versionName": "3.0.0",
   "versionCode": 62,
   "releaseTitle": "MusicDeck v3.0.0 - Native C++ Audio Engine",
-  "releaseNotes": "Major audio architecture upgrade: in-house 32-bit floating point C++ DSP engine (libmusicdeck_audio.so), studio-grade soft-knee peak limiter with zero digital clipping, resonant 80Hz sub-bass shelf, and precision Direct Form II Transposed biquad EQ.",
+  "releaseNotes": "Major audio architecture upgrade: in-house 32-bit floating point C++ DSP engine (libmusicdeck_audio.so), envelope-follower studio peak limiter with zero digital clipping or buzzing harmonics, resonant 80Hz sub-bass shelf, and precision Direct Form II Transposed biquad EQ.",
   "downloadUrl": "https://github.com/WayneChibeu/MusicDeck/releases/download/v3.0.0/MusicDeck-v3.0.0.apk",
-  "apkSize": 7041505,
+  "apkSize": 7041129,
   "htmlUrl": "https://github.com/WayneChibeu/MusicDeck/releases/tag/v3.0.0"
 }

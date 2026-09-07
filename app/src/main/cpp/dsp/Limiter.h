@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2026 Wayne Chibeu. All rights reserved.
- * MusicDeck Audio DSP Engine - Native C++ Audio Processing Pipeline.
+ * MusicDeck Audio DSP Engine - Studio Peak Limiter.
  */
 
 #ifndef MUSICDECK_LIMITER_H
@@ -12,32 +12,48 @@
 namespace musicdeck {
 
 /**
- * Studio-Grade Soft-Knee Peak Limiter & Audio Safety Guard.
- * Transparently prevents digital clipping distortion when extreme EQ or Bass Boost is applied.
- * Below threshold (0.95), audio is 100% untouched bit-for-bit.
- * Above threshold, audio is smoothly compressed with an analog-modeled soft-knee curve.
+ * Studio-Grade Peak Limiter with Envelope Follower.
+ * Uses instantaneous attack and smooth exponential release decay to scale entire waveform cycles.
+ * Prevents digital clipping without waveshaping distortion, odd harmonics, or buzzing artifacts.
  */
 class Limiter {
 public:
     Limiter() = default;
 
-    inline float process(float sample) {
-        constexpr float threshold = 0.95f;
-        constexpr float range = 1.0f - threshold;
+    void setSampleRate(int sampleRate) {
+        if (sampleRate > 0) {
+            // Smooth release decay (~80ms release time)
+            mReleaseCoeff = std::exp(-1.0f / (0.080f * static_cast<float>(sampleRate)));
+        }
+    }
 
-        float absVal = std::abs(sample);
-        if (absVal <= threshold) {
-            return sample;
+    void reset() {
+        mEnvelope = 0.0f;
+    }
+
+    inline float process(float sample) {
+        float absSample = std::abs(sample);
+        
+        // Instant peak detection (0 attack time to catch every transient)
+        if (absSample > mEnvelope) {
+            mEnvelope = absSample;
+        } else {
+            // Smooth exponential release decay to preserve pure waveforms
+            mEnvelope = mEnvelope * mReleaseCoeff;
         }
 
-        // Soft-knee analog saturation compression
-        float excess = (absVal - threshold) / range;
-        float compressed = threshold + range * std::tanh(excess);
-        
-        // Restore sign and clamp to safe [-1.0f, +1.0f]
-        float result = (sample >= 0.0f) ? compressed : -compressed;
-        return std::max(-1.0f, std::min(1.0f, result));
+        constexpr float maxThreshold = 0.98f;
+        if (mEnvelope > maxThreshold) {
+            float gain = maxThreshold / mEnvelope;
+            return sample * gain;
+        }
+
+        return sample;
     }
+
+private:
+    float mEnvelope = 0.0f;
+    float mReleaseCoeff = 0.9997f; // Approx 80ms at 44.1kHz
 };
 
 } // namespace musicdeck
