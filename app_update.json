@@ -1,9 +1,9 @@
 {
-  "versionName": "3.0.1",
-  "versionCode": 63,
-  "releaseTitle": "MusicDeck v3.0.1 - Studio Envelope Limiter & DSP Polish",
-  "releaseNotes": "Acoustic Hotfix: Upgraded the C++ peak limiter to a true studio envelope follower (80ms smooth release decay) to eliminate buzzing harmonics and waveshaping distortion on bass hits. Upgraded filter states to 64-bit double precision, modernized the 3D Spatial Audio vector icon, and decoupled platform audiofx.",
-  "downloadUrl": "https://github.com/WayneChibeu/MusicDeck/releases/download/v3.0.1/MusicDeck-v3.0.1.apk",
-  "apkSize": 7041129,
-  "htmlUrl": "https://github.com/WayneChibeu/MusicDeck/releases/tag/v3.0.1"
+  "versionName": "3.0.2",
+  "versionCode": 64,
+  "releaseTitle": "MusicDeck v3.0.2 - Dynamic Headroom & Anti-Pumping DSP",
+  "releaseNotes": "Studio Acoustic Refinement: Implemented automatic dynamic headroom compensation to eliminate wideband vocal pumping and breathing on heavy kick hits. Coupled stereo envelope limiter with 180ms release and C1-continuous soft-knee saturation to eliminate sub-bass flat-topping odd harmonics. Full native routing for Volume Boost.",
+  "downloadUrl": "https://github.com/WayneChibeu/MusicDeck/releases/download/v3.0.2/MusicDeck-v3.0.2.apk",
+  "apkSize": 7043289,
+  "htmlUrl": "https://github.com/WayneChibeu/MusicDeck/releases/tag/v3.0.2"
 }

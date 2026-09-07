@@ -18,7 +18,7 @@ constexpr int NUM_EQ_BANDS = 5;
 /**
  * Multi-band Native Audio Processing Engine.
  * Manages 5-band parametric biquad EQ, resonant sub-bass shelf,
- * stereo spatializer, and studio peak limiter for dual-channel (stereo) audio.
+ * dynamic auto-headroom compensation, stereo spatializer, and studio peak limiter.
  */
 class EqualizerEngine {
 public:
@@ -42,6 +42,12 @@ public:
      * @param strength Normalized value from 0.0f to 1.0f (or 0 to 1000).
      */
     void setBassBoostStrength(float strength);
+
+    /**
+     * Sets digital Volume Boost gain in decibels.
+     * @param gainDb Gain in decibels (e.g. 0.0dB to +12.0dB).
+     */
+    void setVolumeBoost(float gainDb);
 
     /**
      * Sets the Virtualizer (Spatial Soundstage) strength.
@@ -68,7 +74,6 @@ public:
 
     /**
      * Processes interleaved stereo 16-bit PCM audio in place.
-     * Automatically converts 16-bit to 32-bit float, applies studio DSP, and converts back with dithering.
      * @param buffer Array of interleaved 16-bit samples [L, R, L, R, ...]
      * @param numFrames Number of stereo frames
      */
@@ -76,6 +81,7 @@ public:
 
 private:
     void updateFilters_locked();
+    void updateHeadroom_locked();
 
     int mSampleRate = 44100;
     bool mEnabled = true;
@@ -86,7 +92,12 @@ private:
 
     float mBandGains[NUM_EQ_BANDS] = { 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
     float mBassBoostGainDb = 0.0f;
+    float mVolumeBoostDb = 0.0f;
     float mVirtualizerStrength = 0.0f;
+
+    // Dynamic Headroom Compensation
+    float mTargetHeadroomLinear = 1.0f;
+    float mCurrentHeadroomLinear = 1.0f;
 
     // Stereo Biquad Filters for the 5 bands
     BiquadFilter mEqFiltersL[NUM_EQ_BANDS];
@@ -96,9 +107,8 @@ private:
     BiquadFilter mBassFilterL;
     BiquadFilter mBassFilterR;
 
-    // Output Soft-Knee Limiters
-    Limiter mLimiterL;
-    Limiter mLimiterR;
+    // Output Coupled Stereo Limiter
+    Limiter mLimiter;
 
     // Spatializer delay line history
     float mPrevLeft = 0.0f;

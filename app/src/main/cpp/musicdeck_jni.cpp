@@ -46,6 +46,13 @@ Java_com_wayne_musicdeck_audio_NativeAudioEngine_nativeSetBassBoost(JNIEnv* env,
 }
 
 JNIEXPORT void JNICALL
+Java_com_wayne_musicdeck_audio_NativeAudioEngine_nativeSetVolumeBoost(JNIEnv* env, jobject thiz, jfloat gainDb) {
+    if (sEngine) {
+        sEngine->setVolumeBoost(gainDb);
+    }
+}
+
+JNIEXPORT void JNICALL
 Java_com_wayne_musicdeck_audio_NativeAudioEngine_nativeSetVirtualizer(JNIEnv* env, jobject thiz, jfloat strength) {
     if (sEngine) {
         sEngine->setVirtualizerStrength(strength);

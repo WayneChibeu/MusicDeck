@@ -36,40 +36,42 @@ object AudioEffectManager {
         lastInitError = null
 
         try {
-            // Initialize platform effects in disabled/bypassed state for reflection & capability queries
+            // Keep platform effects in disabled/bypassed state.
+            // They are retained only for reflection/capability queries if needed,
+            // while our native C++ DSP pipeline has 100% exclusive processing authority.
             equalizer = Equalizer(0, sessionId).apply { enabled = false }
             bassBoost = BassBoost(0, sessionId).apply { enabled = false }
             
             loudnessEnhancer = try {
-                LoudnessEnhancer(sessionId).apply { enabled = true }
+                LoudnessEnhancer(sessionId).apply { enabled = false }
             } catch (e: Exception) {
                 Log.w(TAG, "LoudnessEnhancer session $sessionId failed", e)
                 null
             }
 
             virtualizer = try {
-                Virtualizer(0, sessionId).apply { enabled = true }
+                Virtualizer(0, sessionId).apply { enabled = false }
             } catch (e: Exception) {
                 Log.w(TAG, "Virtualizer session $sessionId failed", e)
                 null
             }
 
             restoreSettings(context)
-            Log.d(TAG, "Initialized audio effects with session $sessionId")
+            Log.d(TAG, "Initialized native audio DSP with session $sessionId")
         } catch (e: Exception) {
             Log.w(TAG, "Session $sessionId failed, trying global fallback", e)
             
-            // Fallback: try global audio output (session ID 0)
+            // Fallback: try global audio output (session ID 0), keeping disabled
             try {
-                equalizer = Equalizer(0, 0).apply { enabled = true }
-                bassBoost = BassBoost(0, 0).apply { enabled = true }
-                loudnessEnhancer = try { LoudnessEnhancer(0).apply { enabled = true } } catch (e2: Exception) { null }
-                virtualizer = try { Virtualizer(0, 0).apply { enabled = true } } catch (e2: Exception) { null }
+                equalizer = Equalizer(0, 0).apply { enabled = false }
+                bassBoost = BassBoost(0, 0).apply { enabled = false }
+                loudnessEnhancer = try { LoudnessEnhancer(0).apply { enabled = false } } catch (e2: Exception) { null }
+                virtualizer = try { Virtualizer(0, 0).apply { enabled = false } } catch (e2: Exception) { null }
                 audioSessionId = 0
                 restoreSettings(context)
                 Log.d(TAG, "Initialized with global session (fallback)")
             } catch (e2: Exception) {
-                Log.e(TAG, "Platform audio effects unavailable, relying on native DSP engine", e2)
+                Log.e(TAG, "Platform audio effects unavailable, relying purely on native DSP engine", e2)
                 equalizer = null
                 bassBoost = null
                 loudnessEnhancer = null
@@ -99,7 +101,7 @@ object AudioEffectManager {
     
     /**
      * Check if the device supports audio effects.
-     * MusicDeck v3.0.0 uses an in-house C++ DSP engine, which is always supported.
+     * MusicDeck uses an in-house C++ DSP engine, which is always supported across all hardware.
      */
     fun isSupported(context: Context): Boolean = true
     
@@ -111,13 +113,15 @@ object AudioEffectManager {
     private fun restoreSettings(context: Context) {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         
-        // Restore Enabled State
+        // Restore Enabled State in Native DSP
         val isEnabled = prefs.getBoolean("eq_enabled", true)
         NativeAudioEngine.setEnabled(isEnabled)
-        try { equalizer?.enabled = isEnabled } catch (_: Exception) {}
-        try { bassBoost?.enabled = isEnabled } catch (_: Exception) {}
-        try { loudnessEnhancer?.enabled = isEnabled } catch (_: Exception) {}
-        try { virtualizer?.enabled = isEnabled } catch (_: Exception) {}
+        
+        // Ensure platform effects remain completely disabled (bypassed) to prevent OEM double-boosting
+        try { equalizer?.enabled = false } catch (_: Exception) {}
+        try { bassBoost?.enabled = false } catch (_: Exception) {}
+        try { loudnessEnhancer?.enabled = false } catch (_: Exception) {}
+        try { virtualizer?.enabled = false } catch (_: Exception) {}
 
         // Restore EQ Bands into Native C++ DSP Engine
         for (i in 0 until 5) {
@@ -126,58 +130,17 @@ object AudioEffectManager {
             NativeAudioEngine.setBandGain(i, gainDb)
         }
 
-        // Also sync platform Equalizer if available
-        equalizer?.let { eq ->
-            val minLevel = eq.bandLevelRange[0]
-            val maxLevel = eq.bandLevelRange[1]
-            val range = maxLevel - minLevel
-            
-            for (i in 0 until eq.numberOfBands) {
-                val savedProgress = prefs.getInt("eq_band_$i", 50)
-                val level = (minLevel + (savedProgress * range / 100)).toShort()
-                try {
-                    eq.setBandLevel(i.toShort(), level)
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                }
-            }
-        }
-
-        // Restore Bass Boost
+        // Restore Bass Boost into Native C++ DSP Engine
         val bassProgress = prefs.getInt("bass_boost_strength", 0)
         NativeAudioEngine.setBassBoost(bassProgress / 1000f)
-        bassBoost?.let { bb ->
-            if (bb.strengthSupported) {
-                try {
-                    bb.setStrength(bassProgress.toShort())
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                }
-            }
-        }
 
-        // Restore Volume Boost (LoudnessEnhancer)
-        loudnessEnhancer?.let { le ->
-            val gain = prefs.getInt("volume_boost_gain", 0)
-            try {
-                le.setTargetGain(gain)
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
+        // Restore Volume Boost into Native C++ DSP Engine
+        val gainmB = prefs.getInt("volume_boost_gain", 0)
+        NativeAudioEngine.setVolumeBoost(gainmB / 100f)
 
-        // Restore Virtualizer (3D Audio)
+        // Restore Virtualizer (3D Audio) into Native C++ DSP Engine
         val virtStrength = prefs.getInt("virtualizer_strength", 0)
         NativeAudioEngine.setVirtualizer(virtStrength / 1000f)
-        virtualizer?.let { virt ->
-            if (virt.strengthSupported) {
-                try {
-                    virt.setStrength(virtStrength.toShort())
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                }
-            }
-        }
 
         // Restore Extreme Bass
         if (prefs.getBoolean("extreme_bass_enabled", false)) {
@@ -190,34 +153,14 @@ object AudioEffectManager {
         NativeAudioEngine.setBandGain(0, 15.0f)
         NativeAudioEngine.setBandGain(1, 15.0f)
         NativeAudioEngine.setBassBoost(1.0f)
-
-        // Sync platform effects if present
-        equalizer?.let { eq ->
-            val maxLevel = eq.bandLevelRange[1]
-            try {
-                if (eq.numberOfBands >= 1) eq.setBandLevel(0, maxLevel)
-                if (eq.numberOfBands >= 2) eq.setBandLevel(1, maxLevel)
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
-        bassBoost?.let { bb ->
-            if (bb.strengthSupported) {
-                try {
-                    bb.setStrength(1000)
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                }
-            }
-        }
     }
 
     fun setEqEnabled(enabled: Boolean, context: Context) {
         NativeAudioEngine.setEnabled(enabled)
-        // Platform effects remain disabled; native DSP has exclusive control
+        // Platform effects remain completely disabled; native DSP has exclusive control
         try { equalizer?.enabled = false } catch (_: Exception) {}
         try { bassBoost?.enabled = false } catch (_: Exception) {}
-        try { loudnessEnhancer?.enabled = enabled } catch (_: Exception) {}
+        try { loudnessEnhancer?.enabled = false } catch (_: Exception) {}
         try { virtualizer?.enabled = false } catch (_: Exception) {}
 
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -230,17 +173,6 @@ object AudioEffectManager {
         // Translate 0..100 slider value (50 = neutral) to dB: -15.0 dB to +15.0 dB
         val gainDb = (progress - 50) * 0.3f
         NativeAudioEngine.setBandGain(band.toInt(), gainDb)
-
-        equalizer?.let { eq ->
-            val minLevel = eq.bandLevelRange[0]
-            val range = eq.bandLevelRange[1] - minLevel
-            val level = (minLevel + (progress * range / 100)).toShort()
-            try {
-                eq.setBandLevel(band, level)
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
         
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             .edit()
@@ -249,7 +181,7 @@ object AudioEffectManager {
     }
     
     fun setBassBoostStrength(progress: Int, context: Context) {
-        // Native C++ DSP handles bass boost cleanly; avoid platform hardware double-amplification
+        // Native C++ DSP handles bass boost cleanly with resonant low-shelf and dynamic headroom
         NativeAudioEngine.setBassBoost(progress / 1000f)
 
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -259,18 +191,15 @@ object AudioEffectManager {
     }
 
     fun setVolumeBoostGain(gainmB: Int, context: Context, saveToPrefs: Boolean = true) {
-        loudnessEnhancer?.let { le ->
-            try {
-                le.setTargetGain(gainmB)
-                if (saveToPrefs) {
-                    context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-                        .edit()
-                        .putInt("volume_boost_gain", gainmB)
-                        .apply()
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
+        // Translate millibels to decibels: 100 mB = 1.0 dB
+        val gainDb = gainmB / 100f
+        NativeAudioEngine.setVolumeBoost(gainDb)
+
+        if (saveToPrefs) {
+            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .edit()
+                .putInt("volume_boost_gain", gainmB)
+                .apply()
         }
     }
 
@@ -282,16 +211,6 @@ object AudioEffectManager {
     fun setVirtualizerStrength(strength: Int, context: Context, saveToPrefs: Boolean = true) {
         // Translate 0..1000 to normalized float 0.0f .. 1.0f
         NativeAudioEngine.setVirtualizer(strength / 1000f)
-
-        virtualizer?.let { virt ->
-            try {
-                if (virt.strengthSupported) {
-                    virt.setStrength(strength.toShort())
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
 
         if (saveToPrefs) {
             context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)

@@ -69,6 +69,16 @@ object NativeAudioEngine {
         }
     }
 
+    fun setVolumeBoost(gainDb: Float) {
+        if (isLibraryLoaded) {
+            try {
+                nativeSetVolumeBoost(gainDb)
+            } catch (e: Exception) {
+                Log.e(TAG, "Error setting native volume boost", e)
+            }
+        }
+    }
+
     fun setVirtualizer(strength: Float) {
         if (isLibraryLoaded) {
             try {
@@ -124,6 +134,7 @@ object NativeAudioEngine {
     private external fun nativeSetSampleRate(sampleRate: Int)
     private external fun nativeSetBandGain(band: Int, gainDb: Float)
     private external fun nativeSetBassBoost(strength: Float)
+    private external fun nativeSetVolumeBoost(gainDb: Float)
     private external fun nativeSetVirtualizer(strength: Float)
     private external fun nativeSetEnabled(enabled: Boolean)
     private external fun nativeReset()
