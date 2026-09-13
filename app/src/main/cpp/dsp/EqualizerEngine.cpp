@@ -90,7 +90,8 @@ void EqualizerEngine::updateFilters_locked() {
     }
     mBassFilterL.configure(FilterType::LowShelf, 80.0f, sr, mBassBoostGainDb, 0.85f);
     mBassFilterR.configure(FilterType::LowShelf, 80.0f, sr, mBassBoostGainDb, 0.85f);
-    mKaraokeFilterMid.configure(FilterType::PeakingEQ, 1200.0f, sr, -24.0f, 0.45f);
+    // Hard Cut: 2nd-order Butterworth LowPass at 180Hz preserves kick/bass while erasing center vocal
+    mKaraokeFilterMid.configure(FilterType::LowPass, 180.0f, sr, 0.0f, 0.707f);
 }
 
 void EqualizerEngine::updateHeadroom_locked() {
@@ -123,13 +124,13 @@ void EqualizerEngine::process(float* buffer, int numFrames) {
         float left = buffer[i * 2] * mCurrentHeadroomLinear;
         float right = buffer[i * 2 + 1] * mCurrentHeadroomLinear;
 
-        // 0. Real-Time Karaoke Mode (Center-Channel Vocal Cut)
+        // 0. Real-Time Karaoke Mode (Hard Cut: 100% Center-Channel Vocal Erasure + Sub-Bass Restoration)
         if (mKaraokeEnabled) {
             float mid = (left + right) * 0.5f;
             float side = (left - right) * 0.5f;
-            float notchedMid = mKaraokeFilterMid.process(mid);
-            left = notchedMid + side;
-            right = notchedMid - side;
+            float subBass = mKaraokeFilterMid.process(mid);
+            left = side + subBass;
+            right = -side + subBass;
         }
 
         // 1. Spatializer / Virtualizer (Interaural crossfeed & subtle phase widening)
@@ -173,13 +174,13 @@ void EqualizerEngine::process(int16_t* buffer, int numFrames) {
         float left = (static_cast<float>(buffer[i * 2]) * int16ToFloat) * mCurrentHeadroomLinear;
         float right = (static_cast<float>(buffer[i * 2 + 1]) * int16ToFloat) * mCurrentHeadroomLinear;
 
-        // 0. Real-Time Karaoke Mode (Center-Channel Vocal Cut)
+        // 0. Real-Time Karaoke Mode (Hard Cut: 100% Center-Channel Vocal Erasure + Sub-Bass Restoration)
         if (mKaraokeEnabled) {
             float mid = (left + right) * 0.5f;
             float side = (left - right) * 0.5f;
-            float notchedMid = mKaraokeFilterMid.process(mid);
-            left = notchedMid + side;
-            right = notchedMid - side;
+            float subBass = mKaraokeFilterMid.process(mid);
+            left = side + subBass;
+            right = -side + subBass;
         }
 
         // 1. Spatializer / Virtualizer

@@ -79,10 +79,19 @@ public:
                 double twoSqrtAAlpha = 2.0 * sqrtA * alpha;
                 b0 = A * ((A + 1.0) + (A - 1.0) * cosOmega + twoSqrtAAlpha);
                 b1 = -2.0 * A * ((A - 1.0) + (A + 1.0) * cosOmega);
-                b2 = A * ((A + 1.0) + (A - 1.0) * cosOmega - twoSqrtAAlpha);
+                b2 = A * ((A + 1.0) - (A - 1.0) * cosOmega - twoSqrtAAlpha);
                 a0 = (A + 1.0) - (A - 1.0) * cosOmega + twoSqrtAAlpha;
                 a1 = 2.0 * ((A - 1.0) - (A + 1.0) * cosOmega);
                 a2 = (A + 1.0) - (A - 1.0) * cosOmega - twoSqrtAAlpha;
+                break;
+            }
+            case FilterType::LowPass: {
+                b0 = (1.0 - cosOmega) * 0.5;
+                b1 = 1.0 - cosOmega;
+                b2 = (1.0 - cosOmega) * 0.5;
+                a0 = 1.0 + alpha;
+                a1 = -2.0 * cosOmega;
+                a2 = 1.0 - alpha;
                 break;
             }
             default:

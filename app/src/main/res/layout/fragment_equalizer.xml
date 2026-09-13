@@ -627,9 +627,7 @@
             <com.google.android.material.materialswitch.MaterialSwitch
                 android:id="@+id/switchKaraoke"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                app:thumbTint="?attr/colorPrimary"
-                app:trackTint="?attr/colorPrimaryContainer" />
+                android:layout_height="wrap_content" />
         </LinearLayout>
 
         <!-- Extreme Bass Mode Card -->

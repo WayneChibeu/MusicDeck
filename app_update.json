@@ -1,9 +1,10 @@
 {
-  "versionName": "3.0.4",
-  "versionCode": 66,
-  "releaseTitle": "MusicDeck v3.0.4 - Real-Time Karaoke Mode",
-  "releaseNotes": "New Feature: Real-Time Karaoke Mode (Center-Channel Vocal Cut)! Suppresses lead vocals in real time (>90% attenuation) using mid/side speech notch filtering directly in the 32-bit floating point C++ audio engine while preserving sub-bass, kick drum impact, and wide stereo instruments.",
-  "downloadUrl": "https://github.com/WayneChibeu/MusicDeck/releases/download/v3.0.4/MusicDeck-v3.0.4.apk",
-  "apkSize": 7044669,
-  "htmlUrl": "https://github.com/WayneChibeu/MusicDeck/releases/tag/v3.0.4"
+  "versionName": "3.0.5",
+  "versionCode": 67,
+  "releaseTitle": "MusicDeck v3.0.5 - Hard Cut Karaoke & UI Polish",
+  "releaseNotes": "Upgraded Real-Time Karaoke Mode to a 100% Center-Channel Vocal Cut (Hard Cut) with 180 Hz Butterworth sub-bass preservation. Restored the Karaoke toggle switch to standard Material 3 neutral grey in its inactive state.",
+  "downloadUrl": "https://github.com/WayneChibeu/MusicDeck/releases/download/v3.0.5/MusicDeck-v3.0.5.apk",
+  "apkSize": 7044657,
+  "htmlUrl": "https://github.com/WayneChibeu/MusicDeck/releases/tag/v3.0.5"
 }
+
