@@ -147,6 +147,10 @@ object AudioEffectManager {
         val virtStrength = prefs.getInt("virtualizer_strength", 0)
         NativeAudioEngine.setVirtualizer(virtStrength / 1000f)
 
+        // Restore Karaoke Mode into Native C++ DSP Engine
+        val isKaraoke = prefs.getBoolean("karaoke_enabled", false)
+        NativeAudioEngine.setKaraokeEnabled(isKaraoke)
+
         // Restore Extreme Bass
         if (prefs.getBoolean("extreme_bass_enabled", false)) {
             applyExtremeBass()
@@ -259,5 +263,18 @@ object AudioEffectManager {
     fun isExtremeBassEnabled(context: Context): Boolean {
         return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             .getBoolean("extreme_bass_enabled", false)
+    }
+
+    fun setKaraokeEnabled(enabled: Boolean, context: Context) {
+        NativeAudioEngine.setKaraokeEnabled(enabled)
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .edit()
+            .putBoolean("karaoke_enabled", enabled)
+            .apply()
+    }
+
+    fun isKaraokeEnabled(context: Context): Boolean {
+        return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .getBoolean("karaoke_enabled", false)
     }
 }

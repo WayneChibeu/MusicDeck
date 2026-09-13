@@ -82,6 +82,7 @@ class EqualizerBottomSheet : BottomSheetDialogFragment() {
             setupBassBoost(view)
             setupVolumeBoost(view)
             setupVirtualizer(view)
+            setupKaraoke(view)
             setupExtremeBass(view)
             setupPresets(view)
             setupSwitch(view)
@@ -387,6 +388,18 @@ class EqualizerBottomSheet : BottomSheetDialogFragment() {
         }
     }
 
+    private fun setupKaraoke(view: View) {
+        val switchKaraoke = view.findViewById<MaterialSwitch>(R.id.switchKaraoke) ?: return
+        val isKaraoke = AudioEffectManager.isKaraokeEnabled(requireContext())
+        switchKaraoke.isChecked = isKaraoke
+
+        switchKaraoke.setOnCheckedChangeListener { _, isChecked ->
+            AudioEffectManager.setKaraokeEnabled(isChecked, requireContext())
+            val status = if (isChecked) "ON" else "OFF"
+            Toast.makeText(context, "Karaoke Mode $status", Toast.LENGTH_SHORT).show()
+        }
+    }
+
     private fun setupExtremeBass(view: View) {
         val switchExtreme = view.findViewById<MaterialSwitch>(R.id.switchExtremeBass)
         val isExtreme = AudioEffectManager.isExtremeBassEnabled(requireContext())
@@ -528,6 +541,13 @@ class EqualizerBottomSheet : BottomSheetDialogFragment() {
             if (switchExtreme?.isChecked == true) {
                 switchExtreme.isChecked = false
                 AudioEffectManager.setExtremeBassEnabled(false, requireContext())
+            }
+
+            // Turn off karaoke mode
+            val switchKaraoke = view.findViewById<MaterialSwitch>(R.id.switchKaraoke)
+            if (switchKaraoke?.isChecked == true) {
+                switchKaraoke.isChecked = false
+                AudioEffectManager.setKaraokeEnabled(false, requireContext())
             }
             
             Toast.makeText(context, "Audio effects reset to Flat", Toast.LENGTH_SHORT).show()

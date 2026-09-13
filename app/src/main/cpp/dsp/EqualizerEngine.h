@@ -50,6 +50,11 @@ public:
     void setVolumeBoost(float gainDb);
 
     /**
+     * Enables or disables real-time Karaoke mode (center-channel vocal suppression).
+     */
+    void setKaraokeEnabled(bool enabled);
+
+    /**
      * Sets the Virtualizer (Spatial Soundstage) strength.
      * @param strength Normalized value from 0.0f to 1.0f.
      */
@@ -94,6 +99,7 @@ private:
     float mBassBoostGainDb = 0.0f;
     float mVolumeBoostDb = 0.0f;
     float mVirtualizerStrength = 0.0f;
+    bool mKaraokeEnabled = false;
 
     // Dynamic Headroom Compensation
     float mTargetHeadroomLinear = 1.0f;
@@ -106,6 +112,9 @@ private:
     // Stereo Bass Boost Low-Shelf Filters
     BiquadFilter mBassFilterL;
     BiquadFilter mBassFilterR;
+
+    // Real-Time Karaoke Center-Channel Vocal Suppression Filter
+    BiquadFilter mKaraokeFilterMid;
 
     // Output Coupled Stereo Limiter
     Limiter mLimiter;

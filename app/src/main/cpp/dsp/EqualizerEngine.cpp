@@ -53,6 +53,11 @@ void EqualizerEngine::setVolumeBoost(float gainDb) {
     updateHeadroom_locked();
 }
 
+void EqualizerEngine::setKaraokeEnabled(bool enabled) {
+    std::lock_guard<std::mutex> lock(mMutex);
+    mKaraokeEnabled = enabled;
+}
+
 void EqualizerEngine::setVirtualizerStrength(float strength) {
     std::lock_guard<std::mutex> lock(mMutex);
     mVirtualizerStrength = std::max(0.0f, std::min(1.0f, strength));
@@ -70,6 +75,7 @@ void EqualizerEngine::reset() {
     }
     mBassFilterL.reset();
     mBassFilterR.reset();
+    mKaraokeFilterMid.reset();
     mLimiter.reset();
     mCurrentHeadroomLinear = mTargetHeadroomLinear;
     mPrevLeft = 0.0f;
@@ -84,6 +90,7 @@ void EqualizerEngine::updateFilters_locked() {
     }
     mBassFilterL.configure(FilterType::LowShelf, 80.0f, sr, mBassBoostGainDb, 0.85f);
     mBassFilterR.configure(FilterType::LowShelf, 80.0f, sr, mBassBoostGainDb, 0.85f);
+    mKaraokeFilterMid.configure(FilterType::PeakingEQ, 1200.0f, sr, -24.0f, 0.45f);
 }
 
 void EqualizerEngine::updateHeadroom_locked() {
@@ -115,6 +122,15 @@ void EqualizerEngine::process(float* buffer, int numFrames) {
 
         float left = buffer[i * 2] * mCurrentHeadroomLinear;
         float right = buffer[i * 2 + 1] * mCurrentHeadroomLinear;
+
+        // 0. Real-Time Karaoke Mode (Center-Channel Vocal Cut)
+        if (mKaraokeEnabled) {
+            float mid = (left + right) * 0.5f;
+            float side = (left - right) * 0.5f;
+            float notchedMid = mKaraokeFilterMid.process(mid);
+            left = notchedMid + side;
+            right = notchedMid - side;
+        }
 
         // 1. Spatializer / Virtualizer (Interaural crossfeed & subtle phase widening)
         if (mVirtualizerStrength > 0.001f) {
@@ -156,6 +172,15 @@ void EqualizerEngine::process(int16_t* buffer, int numFrames) {
 
         float left = (static_cast<float>(buffer[i * 2]) * int16ToFloat) * mCurrentHeadroomLinear;
         float right = (static_cast<float>(buffer[i * 2 + 1]) * int16ToFloat) * mCurrentHeadroomLinear;
+
+        // 0. Real-Time Karaoke Mode (Center-Channel Vocal Cut)
+        if (mKaraokeEnabled) {
+            float mid = (left + right) * 0.5f;
+            float side = (left - right) * 0.5f;
+            float notchedMid = mKaraokeFilterMid.process(mid);
+            left = notchedMid + side;
+            right = notchedMid - side;
+        }
 
         // 1. Spatializer / Virtualizer
         if (mVirtualizerStrength > 0.001f) {

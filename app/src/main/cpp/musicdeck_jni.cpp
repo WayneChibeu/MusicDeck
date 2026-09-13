@@ -60,6 +60,13 @@ Java_com_wayne_musicdeck_audio_NativeAudioEngine_nativeSetVirtualizer(JNIEnv* en
 }
 
 JNIEXPORT void JNICALL
+Java_com_wayne_musicdeck_audio_NativeAudioEngine_nativeSetKaraokeEnabled(JNIEnv* env, jobject thiz, jboolean enabled) {
+    if (sEngine) {
+        sEngine->setKaraokeEnabled(enabled);
+    }
+}
+
+JNIEXPORT void JNICALL
 Java_com_wayne_musicdeck_audio_NativeAudioEngine_nativeSetEnabled(JNIEnv* env, jobject thiz, jboolean enabled) {
     if (sEngine) {
         sEngine->setEnabled(enabled);

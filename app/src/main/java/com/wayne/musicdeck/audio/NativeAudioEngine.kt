@@ -89,6 +89,16 @@ object NativeAudioEngine {
         }
     }
 
+    fun setKaraokeEnabled(enabled: Boolean) {
+        if (isLibraryLoaded) {
+            try {
+                nativeSetKaraokeEnabled(enabled)
+            } catch (e: Exception) {
+                Log.e(TAG, "Error setting native karaoke state", e)
+            }
+        }
+    }
+
     fun setEnabled(enabled: Boolean) {
         if (isLibraryLoaded) {
             try {
@@ -136,6 +146,7 @@ object NativeAudioEngine {
     private external fun nativeSetBassBoost(strength: Float)
     private external fun nativeSetVolumeBoost(gainDb: Float)
     private external fun nativeSetVirtualizer(strength: Float)
+    private external fun nativeSetKaraokeEnabled(enabled: Boolean)
     private external fun nativeSetEnabled(enabled: Boolean)
     private external fun nativeReset()
     private external fun nativeProcessBuffer(buffer: ByteBuffer, offset: Int, length: Int, encoding: Int)
