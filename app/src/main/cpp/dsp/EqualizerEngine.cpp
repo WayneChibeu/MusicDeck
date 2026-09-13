@@ -75,7 +75,8 @@ void EqualizerEngine::reset() {
     }
     mBassFilterL.reset();
     mBassFilterR.reset();
-    mKaraokeFilterMid.reset();
+    mKaraokeFilterMidLP.reset();
+    mKaraokeFilterMidHP.reset();
     mLimiter.reset();
     mCurrentHeadroomLinear = mTargetHeadroomLinear;
     mPrevLeft = 0.0f;
@@ -90,8 +91,9 @@ void EqualizerEngine::updateFilters_locked() {
     }
     mBassFilterL.configure(FilterType::LowShelf, 80.0f, sr, mBassBoostGainDb, 0.85f);
     mBassFilterR.configure(FilterType::LowShelf, 80.0f, sr, mBassBoostGainDb, 0.85f);
-    // Hard Cut: 2nd-order Butterworth LowPass at 180Hz preserves kick/bass while erasing center vocal
-    mKaraokeFilterMid.configure(FilterType::LowPass, 180.0f, sr, 0.0f, 0.707f);
+    // Dual Crossover: 2nd-order Butterworth LowPass at 180Hz preserves kick/bass; HighPass at 4000Hz preserves cymbals/air
+    mKaraokeFilterMidLP.configure(FilterType::LowPass, 180.0f, sr, 0.0f, 0.707f);
+    mKaraokeFilterMidHP.configure(FilterType::HighPass, 4000.0f, sr, 0.0f, 0.707f);
 }
 
 void EqualizerEngine::updateHeadroom_locked() {
@@ -124,13 +126,15 @@ void EqualizerEngine::process(float* buffer, int numFrames) {
         float left = buffer[i * 2] * mCurrentHeadroomLinear;
         float right = buffer[i * 2 + 1] * mCurrentHeadroomLinear;
 
-        // 0. Real-Time Karaoke Mode (Hard Cut: 100% Center-Channel Vocal Erasure + Sub-Bass Restoration)
+        // 0. Real-Time Karaoke Mode (Dual-Crossover Vocal Cut: Sub-Bass + High-End Sparkle)
         if (mKaraokeEnabled) {
             float mid = (left + right) * 0.5f;
             float side = (left - right) * 0.5f;
-            float subBass = mKaraokeFilterMid.process(mid);
-            left = side + subBass;
-            right = -side + subBass;
+            float midLow = mKaraokeFilterMidLP.process(mid);
+            float midHigh = mKaraokeFilterMidHP.process(mid);
+            float keptMid = midLow + midHigh;
+            left = keptMid + side;
+            right = keptMid - side;
         }
 
         // 1. Spatializer / Virtualizer (Interaural crossfeed & subtle phase widening)
@@ -174,13 +178,15 @@ void EqualizerEngine::process(int16_t* buffer, int numFrames) {
         float left = (static_cast<float>(buffer[i * 2]) * int16ToFloat) * mCurrentHeadroomLinear;
         float right = (static_cast<float>(buffer[i * 2 + 1]) * int16ToFloat) * mCurrentHeadroomLinear;
 
-        // 0. Real-Time Karaoke Mode (Hard Cut: 100% Center-Channel Vocal Erasure + Sub-Bass Restoration)
+        // 0. Real-Time Karaoke Mode (Dual-Crossover Vocal Cut: Sub-Bass + High-End Sparkle)
         if (mKaraokeEnabled) {
             float mid = (left + right) * 0.5f;
             float side = (left - right) * 0.5f;
-            float subBass = mKaraokeFilterMid.process(mid);
-            left = side + subBass;
-            right = -side + subBass;
+            float midLow = mKaraokeFilterMidLP.process(mid);
+            float midHigh = mKaraokeFilterMidHP.process(mid);
+            float keptMid = midLow + midHigh;
+            left = keptMid + side;
+            right = keptMid - side;
         }
 
         // 1. Spatializer / Virtualizer

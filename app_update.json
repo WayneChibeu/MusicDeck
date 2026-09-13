@@ -1,10 +1,11 @@
 {
-  "versionName": "3.0.5",
-  "versionCode": 67,
-  "releaseTitle": "MusicDeck v3.0.5 - Hard Cut Karaoke & UI Polish",
-  "releaseNotes": "Upgraded Real-Time Karaoke Mode to a 100% Center-Channel Vocal Cut (Hard Cut) with 180 Hz Butterworth sub-bass preservation. Restored the Karaoke toggle switch to standard Material 3 neutral grey in its inactive state.",
-  "downloadUrl": "https://github.com/WayneChibeu/MusicDeck/releases/download/v3.0.5/MusicDeck-v3.0.5.apk",
-  "apkSize": 7044657,
-  "htmlUrl": "https://github.com/WayneChibeu/MusicDeck/releases/tag/v3.0.5"
+  "versionName": "3.0.6",
+  "versionCode": 68,
+  "releaseTitle": "MusicDeck v3.0.6 - Dual-Crossover Karaoke Mode",
+  "releaseNotes": "Upgraded Real-Time Karaoke Mode with an advanced Dual-Crossover architecture (180 Hz sub-bass + 4000 Hz high-end air). Eliminates center lead vocals while preserving punchy bass and restoring crisp cymbals, snares, and acoustic presence—completely removing the muffled low-pass effect.",
+  "downloadUrl": "https://github.com/WayneChibeu/MusicDeck/releases/download/v3.0.6/MusicDeck-v3.0.6.apk",
+  "apkSize": 7045313,
+  "htmlUrl": "https://github.com/WayneChibeu/MusicDeck/releases/tag/v3.0.6"
 }
+
 

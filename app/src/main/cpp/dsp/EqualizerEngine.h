@@ -113,8 +113,9 @@ private:
     BiquadFilter mBassFilterL;
     BiquadFilter mBassFilterR;
 
-    // Real-Time Karaoke Center-Channel Vocal Suppression Filter
-    BiquadFilter mKaraokeFilterMid;
+    // Real-Time Karaoke Dual-Crossover Vocal Suppression Filters (Sub-Bass & High-End Air)
+    BiquadFilter mKaraokeFilterMidLP;
+    BiquadFilter mKaraokeFilterMidHP;
 
     // Output Coupled Stereo Limiter
     Limiter mLimiter;
