@@ -70,6 +70,24 @@ Java_com_wayne_musicdeck_audio_NativeAudioEngine_nativeSetKaraokeEnabled(JNIEnv*
 }
 
 JNIEXPORT void JNICALL
+Java_com_wayne_musicdeck_audio_NativeAudioEngine_nativeSetReverbParams(
+        JNIEnv* env,
+        jobject thiz,
+        jboolean enabled,
+        jfloat roomSize,
+        jfloat damping,
+        jfloat wetLevel,
+        jint engineId) {
+    if (engineId >= 0 && engineId < MAX_ENGINES) {
+        if (sEngines[engineId]) sEngines[engineId]->setReverbParams(enabled, roomSize, damping, wetLevel);
+    } else {
+        for (int i = 0; i < MAX_ENGINES; ++i) {
+            if (sEngines[i]) sEngines[i]->setReverbParams(enabled, roomSize, damping, wetLevel);
+        }
+    }
+}
+
+JNIEXPORT void JNICALL
 Java_com_wayne_musicdeck_audio_NativeAudioEngine_nativeSetEnabled(JNIEnv* env, jobject thiz, jboolean enabled) {
     for (int i = 0; i < MAX_ENGINES; ++i) {
         if (sEngines[i]) sEngines[i]->setEnabled(enabled);

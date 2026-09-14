@@ -51,7 +51,7 @@
                     android:id="@+id/tvEqStatus"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Customized Soundstage"
+                    android:text="DeckAcoustix DSP • Studio Audio Engine"
                     android:textSize="12sp"
                     android:textColor="?attr/colorOnSurfaceVariant"
                     android:alpha="0.7"

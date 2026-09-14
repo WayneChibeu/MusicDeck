@@ -11,6 +11,7 @@
 #include "BiquadFilter.h"
 #include "Limiter.h"
 #include "FftProcessor.h"
+#include "Freeverb.h"
 
 namespace musicdeck {
 
@@ -60,6 +61,15 @@ public:
      * @param strength Normalized value from 0.0f to 1.0f.
      */
     void setVirtualizerStrength(float strength);
+
+    /**
+     * Configures atmospheric reverb parameters for Slowed + Reverb.
+     * @param enabled Enable or bypass reverb.
+     * @param roomSize Room size (0.0f to 1.0f).
+     * @param damping High-frequency absorption (0.0f to 1.0f).
+     * @param wetLevel Wet signal mix level (0.0f to 1.0f).
+     */
+    void setReverbParams(bool enabled, float roomSize, float damping, float wetLevel);
 
     /**
      * Enables or bypasses the equalizer processing.
@@ -130,9 +140,13 @@ private:
     float mPrevLeft = 0.0f;
     float mPrevRight = 0.0f;
 
+    // Atmospheric Algorithmic Reverb (Freeverb)
+    Freeverb mReverb;
+
     // Real-Time 60 FPS FFT Spectrum Analyzer
     FftProcessor mFftProcessor;
     std::vector<float> mMonoBuffer;
+    std::vector<float> mTempFloatBuffer;
 
     std::mutex mMutex;
 };

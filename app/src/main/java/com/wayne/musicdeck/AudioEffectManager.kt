@@ -151,10 +151,57 @@ object AudioEffectManager {
         val isKaraoke = prefs.getBoolean("karaoke_enabled", false)
         NativeAudioEngine.setKaraokeEnabled(isKaraoke)
 
+        // Restore Atmospheric Reverb (Freeverb) into Native C++ DSP Engine
+        val isReverb = prefs.getBoolean("reverb_enabled", false)
+        val roomSize = prefs.getFloat("reverb_room_size", 0.75f)
+        val damping = prefs.getFloat("reverb_damping", 0.40f)
+        val wetLevel = prefs.getFloat("reverb_wet_level", 0.35f)
+        NativeAudioEngine.setReverbParams(isReverb, roomSize, damping, wetLevel)
+
         // Restore Extreme Bass
         if (prefs.getBoolean("extreme_bass_enabled", false)) {
             applyExtremeBass()
         }
+    }
+
+    fun setReverbParams(
+        enabled: Boolean,
+        roomSize: Float,
+        damping: Float,
+        wetLevel: Float,
+        context: Context,
+        saveToPrefs: Boolean = true
+    ) {
+        NativeAudioEngine.setReverbParams(enabled, roomSize, damping, wetLevel)
+        if (saveToPrefs) {
+            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .edit()
+                .putBoolean("reverb_enabled", enabled)
+                .putFloat("reverb_room_size", roomSize)
+                .putFloat("reverb_damping", damping)
+                .putFloat("reverb_wet_level", wetLevel)
+                .apply()
+        }
+    }
+
+    fun isReverbEnabled(context: Context): Boolean {
+        return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .getBoolean("reverb_enabled", false)
+    }
+
+    fun getReverbRoomSize(context: Context): Float {
+        return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .getFloat("reverb_room_size", 0.75f)
+    }
+
+    fun getReverbDamping(context: Context): Float {
+        return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .getFloat("reverb_damping", 0.40f)
+    }
+
+    fun getReverbWetLevel(context: Context): Float {
+        return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .getFloat("reverb_wet_level", 0.35f)
     }
 
     fun applyExtremeBass() {

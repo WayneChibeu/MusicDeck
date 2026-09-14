@@ -19,6 +19,7 @@ void EqualizerEngine::setSampleRate(int sampleRate) {
     if (sampleRate > 0 && mSampleRate != sampleRate) {
         mSampleRate = sampleRate;
         mLimiter.setSampleRate(sampleRate);
+        mReverb.setSampleRate(sampleRate);
         updateFilters_locked();
         reset();
     }
@@ -63,6 +64,12 @@ void EqualizerEngine::setVirtualizerStrength(float strength) {
     mVirtualizerStrength = std::max(0.0f, std::min(1.0f, strength));
 }
 
+void EqualizerEngine::setReverbParams(bool enabled, float roomSize, float damping, float wetLevel) {
+    std::lock_guard<std::mutex> lock(mMutex);
+    mReverb.setEnabled(enabled);
+    mReverb.setParams(roomSize, damping, wetLevel);
+}
+
 void EqualizerEngine::setEnabled(bool enabled) {
     std::lock_guard<std::mutex> lock(mMutex);
     mEnabled = enabled;
@@ -77,6 +84,7 @@ void EqualizerEngine::reset() {
     mBassFilterR.reset();
     mKaraokeFilterMidLP.reset();
     mKaraokeFilterMidHP.reset();
+    mReverb.reset();
     mLimiter.reset();
     mCurrentHeadroomLinear = mTargetHeadroomLinear;
     mPrevLeft = 0.0f;
@@ -161,6 +169,9 @@ void EqualizerEngine::process(float* buffer, int numFrames) {
             right = mEqFiltersR[b].process(right);
         }
 
+        // 3.5. Studio Algorithmic Reverb (Freeverb: 8 combs + 4 allpasses)
+        mReverb.processSample(left, right);
+
         // 4. Studio Coupled Peak Limiter (Prevents all digital clipping transparently)
         mLimiter.process(left, right);
 
@@ -219,6 +230,9 @@ void EqualizerEngine::process(int16_t* buffer, int numFrames) {
             left = mEqFiltersL[b].process(left);
             right = mEqFiltersR[b].process(right);
         }
+
+        // 3.5. Studio Algorithmic Reverb (Freeverb: 8 combs + 4 allpasses)
+        mReverb.processSample(left, right);
 
         // 4. Studio Coupled Peak Limiter
         mLimiter.process(left, right);

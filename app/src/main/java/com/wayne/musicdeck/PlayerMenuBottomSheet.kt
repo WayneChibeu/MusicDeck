@@ -202,22 +202,24 @@ class PlayerMenuBottomSheet : BottomSheetDialogFragment() {
             }
         }
 
-        // Playback Speed
+        // Tempo & Pitch Shifter (Slowed + Reverb, Nightcore)
         val tvCurrentSpeed = view.findViewById<TextView>(R.id.tvCurrentSpeed)
-        val player = viewModel.mediaController.value
-        if (player != null) {
-            currentPlaybackSpeed = player.playbackParameters.speed
-            currentSpeedIndex = speeds.indexOfFirst { it == currentPlaybackSpeed }.takeIf { it >= 0 } ?: 2
-            tvCurrentSpeed.text = formatSpeed(currentPlaybackSpeed)
+        val currentTempo = settingsManager.playbackTempo
+        val currentPitch = settingsManager.playbackPitchSemitones
+        val isReverb = settingsManager.isReverbEnabled
+
+        val speedText = String.format(java.util.Locale.US, "%.2fx", currentTempo)
+        val pitchText = when {
+            kotlin.math.abs(currentPitch) < 0.05f -> ""
+            currentPitch > 0 -> " • +${String.format(java.util.Locale.US, "%.1f", currentPitch)}st"
+            else -> " • ${String.format(java.util.Locale.US, "%.1f", currentPitch)}st"
         }
-        
+        val reverbText = if (isReverb) " • Reverb" else ""
+        tvCurrentSpeed.text = "$speedText$pitchText$reverbText"
+
         view.findViewById<View>(R.id.menuPlaybackSpeed).setOnClickListener {
-            val p = viewModel.mediaController.value ?: return@setOnClickListener
-            currentSpeedIndex = (currentSpeedIndex + 1) % speeds.size
-            val newSpeed = speeds[currentSpeedIndex]
-            p.setPlaybackSpeed(newSpeed)
-            tvCurrentSpeed.text = formatSpeed(newSpeed)
-            Toast.makeText(context, "Speed: ${formatSpeed(newSpeed)}", Toast.LENGTH_SHORT).show()
+            dismiss()
+            TempoPitchBottomSheet().show(parentFragmentManager, "TempoPitch")
         }
 
         // Sunset Transition Toggle

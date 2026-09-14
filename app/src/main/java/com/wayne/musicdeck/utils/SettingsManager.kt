@@ -131,5 +131,33 @@ class SettingsManager(context: Context) {
     var isVisualizerEnabled: Boolean
         get() = kv.decodeBool("visualizer_enabled", true)
         set(value) { kv.encode("visualizer_enabled", value) }
+
+    var playbackTempo: Float
+        get() = kv.decodeFloat("playback_tempo", 1.0f).coerceIn(0.5f, 2.0f)
+        set(value) { kv.encode("playback_tempo", value.coerceIn(0.5f, 2.0f)) }
+
+    var playbackPitchSemitones: Float
+        get() = kv.decodeFloat("playback_pitch_semitones", 0.0f).coerceIn(-12.0f, 12.0f)
+        set(value) { kv.encode("playback_pitch_semitones", value.coerceIn(-12.0f, 12.0f)) }
+
+    var isReverbEnabled: Boolean
+        get() = kv.decodeBool("reverb_enabled", false)
+        set(value) { kv.encode("reverb_enabled", value) }
+
+    var reverbRoomSize: Float
+        get() = kv.decodeFloat("reverb_room_size", 0.75f).coerceIn(0.0f, 1.0f)
+        set(value) { kv.encode("reverb_room_size", value.coerceIn(0.0f, 1.0f)) }
+
+    var reverbDamping: Float
+        get() = kv.decodeFloat("reverb_damping", 0.40f).coerceIn(0.0f, 1.0f)
+        set(value) { kv.encode("reverb_damping", value.coerceIn(0.0f, 1.0f)) }
+
+    var reverbWetLevel: Float
+        get() = kv.decodeFloat("reverb_wet_level", 0.35f).coerceIn(0.0f, 1.0f)
+        set(value) { kv.encode("reverb_wet_level", value.coerceIn(0.0f, 1.0f)) }
+
+    var tempoPitchPreset: String
+        get() = kv.decodeString("tempo_pitch_preset", "Normal") ?: "Normal"
+        set(value) { kv.encode("tempo_pitch_preset", value) }
 }
 

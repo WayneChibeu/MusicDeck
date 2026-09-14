@@ -41,8 +41,15 @@ class LicensesBottomSheetFragment : BottomSheetDialogFragment() {
             <br><br>
             ----------------------------------------
             <br><br>
-            <b><h2>Retrofit (com.squareup.retrofit2)</h2></b>
-            Copyright 2013 Square, Inc.<br>
+            <b><h2>Retrofit and OkHttp (com.squareup)</h2></b>
+            Copyright 2013-2024 Square, Inc.<br>
+            Apache License, Version 2.0<br><br>
+            Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at <a href="http://www.apache.org/licenses/LICENSE-2.0">http://www.apache.org/licenses/LICENSE-2.0</a>
+            <br><br>
+            ----------------------------------------
+            <br><br>
+            <b><h2>Gson (com.google.code.gson)</h2></b>
+            Copyright 2008-2024 Google LLC<br>
             Apache License, Version 2.0<br><br>
             Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at <a href="http://www.apache.org/licenses/LICENSE-2.0">http://www.apache.org/licenses/LICENSE-2.0</a>
             <br><br>
@@ -72,6 +79,20 @@ class LicensesBottomSheetFragment : BottomSheetDialogFragment() {
             Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:<br><br>
             The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.<br><br>
             THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+            <br><br>
+            ----------------------------------------
+            <br><br>
+            <b><h2>Audio DSP and Mathematical Foundations</h2></b>
+            The proprietary DeckAcoustix DSP Engine acknowledges the following public domain research and foundational algorithms:
+            <br><br>
+            <b>Freeverb Algorithmic Reverberator</b><br>
+            Originally formulated by Jezar at Dreampoint and dedicated to the Public Domain. Schroeder-Freeverb parallel comb and all-pass filter topologies adapted and optimized for DeckAcoustix DSP.
+            <br><br>
+            <b>Audio EQ Cookbook (Biquad Filter Design)</b><br>
+            Formulated by Robert Bristow-Johnson (RBJ) and dedicated to the Public Domain. Peaking, shelving, and biquadratic filter coefficient equations adapted for DeckAcoustix DSP.
+            <br><br>
+            <b>Radix-2 Cooley-Tukey Fast Fourier Transform (FFT)</b><br>
+            Standard public mathematical algorithm utilized for real-time 32-band spectrum visualization and ballistic decay analysis.
         """.trimIndent()
         
         tvLicensesText.text = HtmlCompat.fromHtml(htmlText, HtmlCompat.FROM_HTML_MODE_COMPACT)

@@ -99,6 +99,16 @@ object NativeAudioEngine {
         }
     }
 
+    fun setReverbParams(enabled: Boolean, roomSize: Float, damping: Float, wetLevel: Float, engineId: Int = -1) {
+        if (isLibraryLoaded) {
+            try {
+                nativeSetReverbParams(enabled, roomSize, damping, wetLevel, engineId)
+            } catch (e: Exception) {
+                Log.e(TAG, "Error setting native reverb params", e)
+            }
+        }
+    }
+
     fun setEnabled(enabled: Boolean) {
         if (isLibraryLoaded) {
             try {
@@ -157,6 +167,7 @@ object NativeAudioEngine {
     private external fun nativeSetVolumeBoost(gainDb: Float)
     private external fun nativeSetVirtualizer(strength: Float)
     private external fun nativeSetKaraokeEnabled(enabled: Boolean)
+    private external fun nativeSetReverbParams(enabled: Boolean, roomSize: Float, damping: Float, wetLevel: Float, engineId: Int)
     private external fun nativeSetEnabled(enabled: Boolean)
     private external fun nativeReset(engineId: Int)
     private external fun nativeProcessBuffer(engineId: Int, buffer: ByteBuffer, offset: Int, length: Int, encoding: Int)

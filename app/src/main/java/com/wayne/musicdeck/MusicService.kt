@@ -59,10 +59,19 @@ class MusicService : MediaSessionService() {
         const val ACTION_SET_SLEEP_TIMER_END_OF_SONG = "com.wayne.musicdeck.ACTION_SET_SLEEP_TIMER_END_OF_SONG"
         const val ACTION_CANCEL_SLEEP_TIMER = "com.wayne.musicdeck.ACTION_CANCEL_SLEEP_TIMER"
         const val EXTRA_TIMER_MINUTES = "extra_timer_minutes"
+
+        const val ACTION_SET_TEMPO_PITCH = "com.wayne.musicdeck.ACTION_SET_TEMPO_PITCH"
+        const val EXTRA_TEMPO = "extra_tempo"
+        const val EXTRA_PITCH_SEMITONES = "extra_pitch_semitones"
+
+        @Volatile
+        var instance: MusicService? = null
+            private set
     }
 
     override fun onCreate() {
         super.onCreate()
+        instance = this
         
         // Initialize favorites ID and observe changes reactively
         serviceScope.launch(kotlinx.coroutines.Dispatchers.IO) {
@@ -80,7 +89,7 @@ class MusicService : MediaSessionService() {
             ): androidx.media3.exoplayer.audio.AudioSink {
                 return androidx.media3.exoplayer.audio.DefaultAudioSink.Builder(context)
                     .setEnableFloatOutput(enableFloatOutput)
-                    .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
+                    .setEnableAudioTrackPlaybackParams(false) // Force Sonic WSOLA time-stretch & pitch-shift
                     .setAudioProcessors(arrayOf(nativeAudioProcessor))
                     .build()
             }
@@ -108,7 +117,7 @@ class MusicService : MediaSessionService() {
             ): androidx.media3.exoplayer.audio.AudioSink {
                 return androidx.media3.exoplayer.audio.DefaultAudioSink.Builder(context)
                     .setEnableFloatOutput(enableFloatOutput)
-                    .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
+                    .setEnableAudioTrackPlaybackParams(false) // Force Sonic WSOLA time-stretch & pitch-shift
                     .setAudioProcessors(arrayOf(secondaryAudioProcessor))
                     .build()
             }
@@ -130,6 +139,9 @@ class MusicService : MediaSessionService() {
         // Initialize Audio Effects Manager eagerly. If it fails due to Session 0 hardware restrictions,
         // it will retry dynamically during onIsPlayingChanged.
         AudioEffectManager.initialize(primaryExoPlayer.audioSessionId, this)
+
+        // Restore and apply saved tempo and pitch
+        applyTempoAndPitch(settingsManager.playbackTempo, settingsManager.playbackPitchSemitones)
 
         volumeManager = com.wayne.musicdeck.utils.VolumeManager(primaryExoPlayer, serviceScope)
 
@@ -657,6 +669,7 @@ class MusicService : MediaSessionService() {
             try {
                 // 1. Prepare standbyDeck on incoming track at 0:00, silent
                 incomingDeck.volume = 0f
+                incomingDeck.playbackParameters = activeDeck.playbackParameters
                 incomingDeck.seekTo(nextIndex, 0L)
                 incomingDeck.prepare()
                 incomingDeck.play()
@@ -971,6 +984,11 @@ class MusicService : MediaSessionService() {
                 ACTION_CANCEL_SLEEP_TIMER -> {
                     cancelSleepTimer()
                 }
+                ACTION_SET_TEMPO_PITCH -> {
+                    val tempo = intent.getFloatExtra(EXTRA_TEMPO, 1.0f)
+                    val pitch = intent.getFloatExtra(EXTRA_PITCH_SEMITONES, 0.0f)
+                    applyTempoAndPitch(tempo, pitch)
+                }
                 MusicWidgetProvider.ACTION_SHUFFLE -> {
                     player.shuffleModeEnabled = !player.shuffleModeEnabled
                 }
@@ -1115,6 +1133,9 @@ class MusicService : MediaSessionService() {
     }
 
     override fun onDestroy() {
+        if (instance == this) {
+            instance = null
+        }
         cancelCrossfade()
         secondaryExoPlayer.release()
         shakeDetector?.stop()
@@ -1283,6 +1304,23 @@ class MusicService : MediaSessionService() {
             primaryExoPlayer.clearMediaItems()
             secondaryExoPlayer.clearMediaItems()
         }
+
+        override fun setPlaybackParameters(playbackParameters: androidx.media3.common.PlaybackParameters) {
+            primaryExoPlayer.playbackParameters = playbackParameters
+            secondaryExoPlayer.playbackParameters = playbackParameters
+            super.setPlaybackParameters(playbackParameters)
+        }
+    }
+
+    /**
+     * Applies independent tempo (speed) and pitch (semitones) across both dual-deck players.
+     */
+    fun applyTempoAndPitch(speed: Float, pitchSemitones: Float) {
+        val pitchFactor = Math.pow(2.0, pitchSemitones.toDouble() / 12.0).toFloat().coerceIn(0.5f, 2.0f)
+        val clampedSpeed = speed.coerceIn(0.5f, 2.0f)
+        val params = androidx.media3.common.PlaybackParameters(clampedSpeed, pitchFactor)
+        primaryExoPlayer.playbackParameters = params
+        secondaryExoPlayer.playbackParameters = params
     }
 
     // ============================

@@ -281,7 +281,7 @@
             android:textColor="?attr/colorOnSurface" />
     </LinearLayout>
 
-    <!-- Playback Speed -->
+    <!-- Tempo & Pitch Shifter (Slowed + Reverb, Nightcore) -->
     <LinearLayout
         android:id="@+id/menuPlaybackSpeed"
         android:layout_width="match_parent"
@@ -298,26 +298,44 @@
         <ImageView
             android:layout_width="28dp"
             android:layout_height="28dp"
-            android:src="@drawable/ic_speed"
+            android:src="@drawable/ic_tune"
             app:tint="?attr/colorOnSurface"
             android:layout_marginEnd="16dp" />
 
-        <TextView
-            android:id="@+id/tvSpeedLabel"
+        <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Playback Speed"
-            android:textSize="16sp"
-            android:textColor="?attr/colorOnSurface" />
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tvSpeedLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Tempo &amp; Pitch Shifter"
+                android:textSize="16sp"
+                android:textColor="?attr/colorOnSurface" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Slowed + Reverb, Nightcore, Key &amp; Speed"
+                android:textSize="12sp"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:alpha="0.7" />
+        </LinearLayout>
 
         <TextView
             android:id="@+id/tvCurrentSpeed"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="1.0x"
-            android:textSize="14sp"
-            android:textColor="?attr/colorPrimary" />
+            android:text="1.00x"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:textColor="?attr/colorPrimary"
+            android:background="@drawable/bg_glassmorphic_item"
+            android:paddingHorizontal="8dp"
+            android:paddingVertical="4dp" />
     </LinearLayout>
 
     <!-- Sunset Transition -->
