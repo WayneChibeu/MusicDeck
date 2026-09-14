@@ -45,6 +45,11 @@ class NativeAudioProcessor(val engineId: Int = 0) : BaseAudioProcessor() {
         outputBuffer.put(inputBuffer)
         outputBuffer.flip()
 
+        // If Bit-Perfect Pure Direct is active, bypass C++ DSP for bit-for-bit passthrough
+        if (UsbDacManager.isPureDirectActive()) {
+            return
+        }
+
         // Process audio in-place through C++ DSP
         NativeAudioEngine.processBuffer(
             buffer = outputBuffer,

@@ -222,6 +222,23 @@ class PlayerMenuBottomSheet : BottomSheetDialogFragment() {
             TempoPitchBottomSheet().show(parentFragmentManager, "TempoPitch")
         }
 
+        // Bit-Perfect USB-DAC Passthrough
+        val tvUsbDacBadge = view.findViewById<TextView>(R.id.tvUsbDacBadge)
+        val tvUsbDacSubtitle = view.findViewById<TextView>(R.id.tvUsbDacSubtitle)
+        val dacState = com.wayne.musicdeck.audio.UsbDacManager.dacState.value
+        if (dacState.isConnected) {
+            tvUsbDacBadge.text = if (dacState.isPassthroughEnabled) "BIT-PERFECT" else "STANDBY"
+            tvUsbDacSubtitle.text = dacState.deviceName
+        } else {
+            tvUsbDacBadge.text = "OFF"
+            tvUsbDacSubtitle.text = "Connect USB-C DAC or interface"
+        }
+
+        view.findViewById<View>(R.id.menuUsbDac).setOnClickListener {
+            dismiss()
+            UsbDacBottomSheet().show(parentFragmentManager, "UsbDac")
+        }
+
         // Sunset Transition Toggle
         val sunsetSwitch = view.findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.switchSunset)
         val isSunsetEnabled = settingsManager.isSunsetTransitionEnabled

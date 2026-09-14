@@ -71,6 +71,13 @@ class PlaylistDetailAdapter(
         fun bind(playlist: Playlist, count: Int) {
             tvSongCount.text = "$count song(s)"
             
+            val primaryColor = com.google.android.material.color.MaterialColors.getColor(
+                itemView,
+                com.google.android.material.R.attr.colorPrimary,
+                android.graphics.Color.WHITE
+            )
+            btnPlayAll.imageTintList = android.content.res.ColorStateList.valueOf(primaryColor)
+
             val playAllAction = { onPlayAllClick() }
             btnPlayAll.setOnClickListener { playAllAction() }
             tvPlayAll.setOnClickListener { playAllAction() }

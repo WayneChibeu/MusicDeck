@@ -121,6 +121,7 @@ public:
             mAllpassesL[i].setBufferSize(sizeL);
             mAllpassesR[i].setBufferSize(sizeR);
         }
+        updateLowCut();
         reset();
     }
 
@@ -147,6 +148,8 @@ public:
     }
 
     void reset() {
+        mHpPrevX = 0.0f;
+        mHpPrevY = 0.0f;
         for (int i = 0; i < NUM_COMBS; ++i) {
             mCombsL[i].reset();
             mCombsR[i].reset();
@@ -163,7 +166,13 @@ public:
     inline void processSample(float& left, float& right) {
         if (!isEnabled()) return;
 
-        float inMono = (left + right) * 0.015f; // Input attenuation into comb bank
+        // Input attenuation and 160 Hz Low-Cut (High-Pass) filter to strip sub-bass 808
+        // frequencies from the reverb tank, completely eliminating low-end gurgling/beating.
+        float rawMono = (left + right) * 0.015f;
+        float inMono = mHpAlpha * (mHpPrevY + rawMono - mHpPrevX);
+        mHpPrevX = rawMono;
+        mHpPrevY = inMono;
+
         float outL = 0.0f;
         float outR = 0.0f;
 
@@ -208,6 +217,15 @@ private:
         mWet2 = wet * ((1.0f - width) / 2.0f);
     }
 
+    void updateLowCut() {
+        // 1st-order High-Pass (Low-Cut) filter at fc = 160.0 Hz
+        // alpha = rc / (rc + dt) where rc = 1.0 / (2 * pi * fc) and dt = 1.0 / fs
+        float fc = 160.0f;
+        float dt = 1.0f / static_cast<float>(mSampleRate > 0 ? mSampleRate : 44100);
+        float rc = 1.0f / (2.0f * 3.14159265358979323846f * fc);
+        mHpAlpha = rc / (rc + dt);
+    }
+
     int mSampleRate = 44100;
     bool mEnabled = false;
     float mRoomSize = 0.75f;
@@ -219,6 +237,10 @@ private:
     float mDry = 1.0f;
     float mWet1 = 0.0f;
     float mWet2 = 0.0f;
+
+    float mHpAlpha = 0.97f;
+    float mHpPrevX = 0.0f;
+    float mHpPrevY = 0.0f;
 
     CombFilter mCombsL[NUM_COMBS];
     CombFilter mCombsR[NUM_COMBS];

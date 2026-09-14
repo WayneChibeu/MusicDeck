@@ -159,5 +159,18 @@ class SettingsManager(context: Context) {
     var tempoPitchPreset: String
         get() = kv.decodeString("tempo_pitch_preset", "Normal") ?: "Normal"
         set(value) { kv.encode("tempo_pitch_preset", value) }
+
+    companion object {
+        const val USB_DAC_MODE_PURE_DIRECT = "pure_direct"
+        const val USB_DAC_MODE_DECKACOUSTIX_DSP = "deckacoustix_dsp"
+    }
+
+    var isUsbDacPassthroughEnabled: Boolean
+        get() = kv.decodeBool("usb_dac_passthrough_enabled", true)
+        set(value) { kv.encode("usb_dac_passthrough_enabled", value) }
+
+    var usbDacMode: String
+        get() = kv.decodeString("usb_dac_mode", USB_DAC_MODE_PURE_DIRECT) ?: USB_DAC_MODE_PURE_DIRECT
+        set(value) { kv.encode("usb_dac_mode", value) }
 }
 

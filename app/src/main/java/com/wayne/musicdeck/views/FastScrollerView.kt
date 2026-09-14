@@ -99,7 +99,7 @@ class FastScrollerView @JvmOverloads constructor(
                 val effectiveY = (event.y - trackRect.top).coerceIn(0f, trackRect.height())
                 val index = (effectiveY / letterHeight).toInt().coerceIn(0, letters.size - 1)
                 
-                if (selectedIndex != index) {
+                if (event.action == MotionEvent.ACTION_DOWN || selectedIndex != index) {
                     selectedIndex = index
                     val selectedLetter = letters[index]
                     listener?.onLetterSelected(selectedLetter)
@@ -149,6 +149,11 @@ class FastScrollerView @JvmOverloads constructor(
     
     fun setTextColor(color: Int) {
         textPaint.color = color
+        invalidate()
+    }
+
+    fun setActiveColor(color: Int) {
+        activeColor = color
         invalidate()
     }
     

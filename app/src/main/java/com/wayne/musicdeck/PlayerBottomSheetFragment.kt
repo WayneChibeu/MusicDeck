@@ -10,6 +10,7 @@ import android.view.ViewConfiguration
 import android.widget.Toast
 import android.widget.ImageView
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -38,6 +39,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.media.AudioManager
 import android.os.Build
+import kotlinx.coroutines.launch
 
 class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
 
@@ -131,6 +133,28 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         
         // Setup view switching
         setupViewSwitching()
+
+        // Observe USB DAC Telemetry State
+        viewLifecycleOwner.lifecycleScope.launch {
+            com.wayne.musicdeck.audio.UsbDacManager.dacState.collect { dacState ->
+                if (_binding != null) {
+                    if (dacState.isConnected && dacState.isPassthroughEnabled) {
+                        binding.tvUsbDacPill.visibility = View.VISIBLE
+                        binding.tvUsbDacPill.text = if (dacState.passthroughMode == SettingsManager.USB_DAC_MODE_PURE_DIRECT) {
+                            "BIT-PERFECT"
+                        } else {
+                            "HI-RES DIRECT"
+                        }
+                    } else {
+                        binding.tvUsbDacPill.visibility = View.GONE
+                    }
+                }
+            }
+        }
+
+        binding.tvUsbDacPill.setOnClickListener {
+            UsbDacBottomSheet().show(parentFragmentManager, "UsbDac")
+        }
         
         // Swipe Gestures
         val gestureDetector = GestureDetector(context, object : GestureDetector.SimpleOnGestureListener() {

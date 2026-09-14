@@ -203,23 +203,77 @@ class MainActivity : AppCompatActivity() {
         }
         
         binding.fastScroller.attachBubble(binding.tvFastScrollBubble)
+        val primaryFastScrollColor = com.google.android.material.color.MaterialColors.getColor(
+            this,
+            com.google.android.material.R.attr.colorPrimary,
+            android.graphics.Color.WHITE
+        )
+        binding.fastScroller.setActiveColor(primaryFastScrollColor)
+
         binding.fastScroller.setListener(object : com.wayne.musicdeck.views.FastScrollerView.OnFastScrollListener {
             override fun onLetterSelected(letter: String) {
-                val layoutManager = binding.recyclerView.layoutManager as? androidx.recyclerview.widget.LinearLayoutManager
-                if (layoutManager != null) {
+                val layoutManager = binding.recyclerView.layoutManager as? androidx.recyclerview.widget.LinearLayoutManager ?: return
+                if (isViewingPlaylistDetails && ::playlistDetailAdapter.isInitialized) {
+                    if (letter == "★") {
+                        layoutManager.scrollToPositionWithOffset(0, 0)
+                        return
+                    }
+                    val songs = playlistDetailAdapter.currentList
+                    var targetSongIndex = songs.indexOfFirst { song ->
+                        if (letter == "#") {
+                            val fc = song.title.firstOrNull()?.uppercaseChar()
+                            fc == null || !fc.isLetter()
+                        } else {
+                            song.title.startsWith(letter, ignoreCase = true)
+                        }
+                    }
+                    if (targetSongIndex == -1 && letter != "#") {
+                        val charTarget = letter.firstOrNull()?.uppercaseChar() ?: 'A'
+                        targetSongIndex = songs.indexOfFirst { song ->
+                            val fc = song.title.firstOrNull()?.uppercaseChar() ?: ' '
+                            fc.isLetter() && fc > charTarget
+                        }
+                        if (targetSongIndex == -1 && songs.isNotEmpty()) {
+                            val letterIdx = ('A'..'Z').indexOf(charTarget).coerceAtLeast(0)
+                            targetSongIndex = ((letterIdx.toFloat() / 26f) * (songs.size - 1)).toInt().coerceIn(0, songs.size - 1)
+                        }
+                    }
+                    if (targetSongIndex != -1) {
+                        layoutManager.scrollToPositionWithOffset(targetSongIndex + 1, 0)
+                    } else if (songs.isNotEmpty()) {
+                        layoutManager.scrollToPositionWithOffset(songs.size, 0)
+                    }
+                } else {
+                    if (letter == "★") {
+                        layoutManager.scrollToPositionWithOffset(0, 0)
+                        return
+                    }
                     val currentList = adapter.currentList
-                    val index = currentList.indexOfFirst { item ->
+                    var index = currentList.indexOfFirst { item ->
                         when(item) {
                             is com.wayne.musicdeck.SongListItem.Header -> item.letter == letter
-                            is com.wayne.musicdeck.SongListItem.SongItem -> item.song.title.uppercase().startsWith(letter)
+                            is com.wayne.musicdeck.SongListItem.SongItem -> item.song.title.startsWith(letter, ignoreCase = true)
                             else -> false
+                        }
+                    }
+                    if (index == -1 && letter != "#") {
+                        val charTarget = letter.firstOrNull()?.uppercaseChar() ?: 'A'
+                        index = currentList.indexOfFirst { item ->
+                            when(item) {
+                                is com.wayne.musicdeck.SongListItem.Header -> {
+                                    val c = item.letter.firstOrNull() ?: ' '
+                                    c.isLetter() && c > charTarget
+                                }
+                                is com.wayne.musicdeck.SongListItem.SongItem -> {
+                                    val c = item.song.title.firstOrNull()?.uppercaseChar() ?: ' '
+                                    c.isLetter() && c > charTarget
+                                }
+                                else -> false
+                            }
                         }
                     }
                     if (index != -1) {
                         layoutManager.scrollToPositionWithOffset(index, 0)
-                    } else {
-                        // Fallback logic for sections without exact match?
-                        // Just scroll to approximate? Simplified for now.
                     }
                 }
             }
@@ -233,19 +287,44 @@ class MainActivity : AppCompatActivity() {
                 val firstPos = layoutManager.findFirstVisibleItemPosition()
                 
                 if (firstPos != androidx.recyclerview.widget.RecyclerView.NO_POSITION) {
-                    val item = adapter.currentList.getOrNull(firstPos) ?: return
-                    val letter = when (item) {
-                        is com.wayne.musicdeck.SongListItem.Header -> item.letter
-                        is com.wayne.musicdeck.SongListItem.SongItem -> {
-                            val firstChar = item.song.title.firstOrNull()?.uppercaseChar()
-                            if (firstChar != null && firstChar.isLetter()) firstChar.toString() else "#"
+                    if (isViewingPlaylistDetails && ::playlistDetailAdapter.isInitialized) {
+                        if (firstPos == 0) {
+                            val headerView = layoutManager.findViewByPosition(0)
+                            if (headerView != null && headerView.bottom <= (headerView.height / 2)) {
+                                val song = playlistDetailAdapter.currentList.firstOrNull()
+                                if (song != null) {
+                                    val firstChar = song.title.firstOrNull()?.uppercaseChar()
+                                    val letter = if (firstChar != null && firstChar.isLetter()) firstChar.toString() else "#"
+                                    binding.fastScroller.setActiveLetter(letter)
+                                } else {
+                                    binding.fastScroller.setActiveLetter("★")
+                                }
+                            } else {
+                                binding.fastScroller.setActiveLetter("★")
+                            }
+                        } else {
+                            val song = playlistDetailAdapter.currentList.getOrNull(firstPos - 1)
+                            if (song != null) {
+                                val firstChar = song.title.firstOrNull()?.uppercaseChar()
+                                val letter = if (firstChar != null && firstChar.isLetter()) firstChar.toString() else "#"
+                                binding.fastScroller.setActiveLetter(letter)
+                            }
                         }
-                        is com.wayne.musicdeck.SongListItem.FolderItem -> {
-                             val firstChar = item.name.firstOrNull()?.uppercaseChar()
-                             if (firstChar != null && firstChar.isLetter()) firstChar.toString() else "#"
+                    } else {
+                        val item = adapter.currentList.getOrNull(firstPos) ?: return
+                        val letter = when (item) {
+                            is com.wayne.musicdeck.SongListItem.Header -> item.letter
+                            is com.wayne.musicdeck.SongListItem.SongItem -> {
+                                val firstChar = item.song.title.firstOrNull()?.uppercaseChar()
+                                if (firstChar != null && firstChar.isLetter()) firstChar.toString() else "#"
+                            }
+                            is com.wayne.musicdeck.SongListItem.FolderItem -> {
+                                 val firstChar = item.name.firstOrNull()?.uppercaseChar()
+                                 if (firstChar != null && firstChar.isLetter()) firstChar.toString() else "#"
+                            }
                         }
+                        binding.fastScroller.setActiveLetter(letter)
                     }
-                    binding.fastScroller.setActiveLetter(letter)
                 }
             }
         })
@@ -550,8 +629,8 @@ class MainActivity : AppCompatActivity() {
                 viewModel.getPlaylistSongs(playlist.id).observe(this) { songs ->
                     if (isViewingPlaylistDetails && currentViewingPlaylistId == playlist.id) {
                          playlistDetailAdapter.submitList(songs)
-                          // updateAlphabetIndex(songs) removed
-                          binding.fastScroller.visibility = View.VISIBLE
+                         binding.fastScroller.visibility = View.VISIBLE
+                         binding.fastScroller.setActiveLetter("★")
                     }
                 }
             },

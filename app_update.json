@@ -1,9 +1,9 @@
 {
-  "versionName": "3.0.10",
-  "versionCode": 72,
-  "releaseTitle": "MusicDeck v3.0.10 - DeckAcoustix DSP: Independent Tempo & Pitch Shifter",
-  "releaseNotes": "Introducing DeckAcoustix DSP: proprietary studio-grade decoupled tempo (0.50x to 2.00x) and pitch (-6.0 to +6.0 semitones) shifter powered by software WSOLA time-stretching and native C++ 8-comb 4-allpass Schroeder-Freeverb algorithmic reverberation. Features 1-tap studio presets (Slowed + Reverb, Nightcore, Sped Up, Lofi Chill, Normal), continuous fine sliders with haptic center snaps, live reverb parameters, and dual-deck crossfade parameter synchronization.",
-  "downloadUrl": "https://github.com/WayneChibeu/MusicDeck/releases/download/v3.0.10/MusicDeck-v3.0.10.apk",
-  "apkSize": 7116915,
-  "htmlUrl": "https://github.com/WayneChibeu/MusicDeck/releases/tag/v3.0.10"
+  "versionName": "3.0.11",
+  "versionCode": 73,
+  "releaseTitle": "MusicDeck v3.0.11 - Bit-Perfect USB-DAC Passthrough & DeckAcoustix DSP Polish",
+  "releaseNotes": "Milestone 2 Complete: Introducing Bit-Perfect USB-DAC Passthrough for external headphone amplifiers, DAC dongles, and studio USB audio interfaces. Features Android 14+ MIXER_BEHAVIOR_BIT_PERFECT to bypass the Android 48kHz resampler, dynamic track clock rate matching (44.1k to 192k at 16/24/32-bit), dual Pure Direct vs DeckAcoustix DSP modes, real-time signal path telemetry, Abbey Road 160Hz Low-Cut reverb filter, dynamic Playlist Play All theme color, and synchronized alphabet fast scroller.",
+  "downloadUrl": "https://github.com/WayneChibeu/MusicDeck/releases/download/v3.0.11/MusicDeck-v3.0.11.apk",
+  "apkSize": 7137991,
+  "htmlUrl": "https://github.com/WayneChibeu/MusicDeck/releases/tag/v3.0.11"
 }

@@ -143,6 +143,10 @@ class MusicService : MediaSessionService() {
         // Restore and apply saved tempo and pitch
         applyTempoAndPitch(settingsManager.playbackTempo, settingsManager.playbackPitchSemitones)
 
+        // Initialize Audiophile USB-DAC Passthrough Subsystem
+        com.wayne.musicdeck.audio.UsbDacManager.init(this)
+        observeUsbDacState()
+
         volumeManager = com.wayne.musicdeck.utils.VolumeManager(primaryExoPlayer, serviceScope)
 
         playerA = AutoPlayForwardingPlayer(primaryExoPlayer)
@@ -467,6 +471,34 @@ class MusicService : MediaSessionService() {
                         playCountJob?.cancel()
                         playbackPositionJob?.cancel()
                         saveFinalPosition(activeDeck)
+                    }
+                }
+            }
+
+            override fun onTracksChanged(tracks: androidx.media3.common.Tracks) {
+                for (group in tracks.groups) {
+                    if (group.type == C.TRACK_TYPE_AUDIO && group.isSelected) {
+                        val format = group.getTrackFormat(0)
+                        val sampleRate = format.sampleRate
+                        val pcmEncoding = format.pcmEncoding
+                        val bitDepth = when (pcmEncoding) {
+                            C.ENCODING_PCM_16BIT -> 16
+                            C.ENCODING_PCM_24BIT -> 24
+                            C.ENCODING_PCM_32BIT, C.ENCODING_PCM_FLOAT -> 32
+                            else -> 16
+                        }
+                        val mime = format.sampleMimeType ?: "audio/raw"
+                        val formatName = when {
+                            mime.contains("flac", ignoreCase = true) -> "FLAC"
+                            mime.contains("wav", ignoreCase = true) -> "WAV"
+                            mime.contains("alac", ignoreCase = true) -> "ALAC"
+                            mime.contains("mp4a", ignoreCase = true) || mime.contains("aac", ignoreCase = true) -> "AAC"
+                            mime.contains("mpeg", ignoreCase = true) -> "MP3"
+                            mime.contains("ogg", ignoreCase = true) || mime.contains("vorbis", ignoreCase = true) -> "OGG"
+                            else -> "PCM"
+                        }
+                        com.wayne.musicdeck.audio.UsbDacManager.updateTrackTelemetry(sampleRate, bitDepth, formatName)
+                        break
                     }
                 }
             }
@@ -1321,6 +1353,20 @@ class MusicService : MediaSessionService() {
         val params = androidx.media3.common.PlaybackParameters(clampedSpeed, pitchFactor)
         primaryExoPlayer.playbackParameters = params
         secondaryExoPlayer.playbackParameters = params
+    }
+
+    private fun observeUsbDacState() {
+        serviceScope.launch {
+            com.wayne.musicdeck.audio.UsbDacManager.dacState.collect { dacState ->
+                val device = if (dacState.isConnected && dacState.isPassthroughEnabled) {
+                    com.wayne.musicdeck.audio.UsbDacManager.getConnectedDevice()
+                } else {
+                    null
+                }
+                primaryExoPlayer.setPreferredAudioDevice(device)
+                secondaryExoPlayer.setPreferredAudioDevice(device)
+            }
+        }
     }
 
     // ============================

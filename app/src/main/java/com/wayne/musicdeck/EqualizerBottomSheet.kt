@@ -403,11 +403,11 @@ class EqualizerBottomSheet : BottomSheetDialogFragment() {
         val tvEqStatus = view.findViewById<TextView>(R.id.tvEqStatus) ?: return
         val isEnabled = AudioEffectManager.isEqEnabled(requireContext())
         switch.isChecked = isEnabled
-        tvEqStatus.text = if (isEnabled) "Effects Active" else "Effects Disabled (Bypassed)"
+        tvEqStatus.text = if (isEnabled) "DeckAcoustix DSP • Active" else "DeckAcoustix DSP • Bypassed"
         
         switch.setOnCheckedChangeListener { _, isChecked ->
             AudioEffectManager.setEqEnabled(isChecked, requireContext())
-            tvEqStatus.text = if (isChecked) "Effects Active" else "Effects Disabled (Bypassed)"
+            tvEqStatus.text = if (isChecked) "DeckAcoustix DSP • Active" else "DeckAcoustix DSP • Bypassed"
             eqGraphView?.setEqEnabled(isChecked)
             val status = if (isChecked) "ON" else "OFF"
             Toast.makeText(context, "Equalizer $status", Toast.LENGTH_SHORT).show()
