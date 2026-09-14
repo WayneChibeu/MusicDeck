@@ -1,9 +1,9 @@
 {
-  "versionName": "3.0.8",
-  "versionCode": 70,
-  "releaseTitle": "MusicDeck v3.0.8 - Native 60 FPS Spectrum Visualizer",
-  "releaseNotes": "Introduced real-time Native C++ 60 FPS FFT Spectrum Visualizer powered by an in-place Radix-2 FFT and Hann windowing directly in libmusicdeck_audio.so. Features 32 logarithmic frequency bands with natural ballistic physics, dynamic album-art gradient mapping, floating peak caps, and an instant ON/OFF toggle in the Player Menu.",
-  "downloadUrl": "https://github.com/WayneChibeu/MusicDeck/releases/download/v3.0.8/MusicDeck-v3.0.8.apk",
-  "apkSize": 7073359,
-  "htmlUrl": "https://github.com/WayneChibeu/MusicDeck/releases/tag/v3.0.8"
+  "versionName": "3.0.9",
+  "versionCode": 71,
+  "releaseTitle": "MusicDeck v3.0.9 - Interactive Frequency Response EQ Graph",
+  "releaseNotes": "Introduced studio-grade interactive parametric Frequency Response EQ Graph in the Equalizer with 5 draggable frequency nodes anchored directly on the curve, live dB tooltips, tactile 0 dB haptic snapping, bidirectional slider sync, preset morphing animations, and background Real-Time Analyzer (RTA) audio spectrum.",
+  "downloadUrl": "https://github.com/WayneChibeu/MusicDeck/releases/download/v3.0.9/MusicDeck-v3.0.9.apk",
+  "apkSize": 7089915,
+  "htmlUrl": "https://github.com/WayneChibeu/MusicDeck/releases/tag/v3.0.9"
 }

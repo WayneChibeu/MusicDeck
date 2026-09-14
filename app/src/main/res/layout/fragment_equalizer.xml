@@ -127,7 +127,7 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="Graphic Equalizer"
+                    android:text="Frequency Response &amp; Graphic EQ"
                     android:textSize="13sp"
                     android:textStyle="bold"
                     android:textColor="?attr/colorOnSurface" />
@@ -140,6 +140,14 @@
                     android:textColor="?attr/colorOnSurfaceVariant"
                     android:alpha="0.8" />
             </LinearLayout>
+
+            <!-- Interactive Frequency Response EQ Graph -->
+            <com.wayne.musicdeck.views.EqualizerGraphView
+                android:id="@+id/eqGraphView"
+                android:layout_width="match_parent"
+                android:layout_height="145dp"
+                android:layout_marginBottom="16dp"
+                android:contentDescription="Interactive Parametric Equalizer Graph" />
 
             <!-- 5 Channel Columns -->
             <LinearLayout

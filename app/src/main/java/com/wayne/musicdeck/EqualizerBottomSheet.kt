@@ -18,9 +18,11 @@ import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.materialswitch.MaterialSwitch
+import com.wayne.musicdeck.views.EqualizerGraphView
 
 class EqualizerBottomSheet : BottomSheetDialogFragment() {
     
+    private var eqGraphView: EqualizerGraphView? = null
     private val seekBars = mutableListOf<SeekBar>()
     private val freqLabels = mutableListOf<TextView>()
     private val gainLabels = mutableListOf<TextView>()
@@ -196,6 +198,27 @@ class EqualizerBottomSheet : BottomSheetDialogFragment() {
         // Touch interception protection for bands container
         view.findViewById<View>(R.id.eqBandsContainer)?.let { attachTouchDisallow(it) }
 
+        // Setup Interactive Parametric EQ Graph
+        val eqGraph = view.findViewById<EqualizerGraphView>(R.id.eqGraphView)
+        eqGraphView = eqGraph
+        if (eqGraph != null) {
+            val initialGains = FloatArray(5) { b ->
+                val p = prefs.getInt("eq_band_$b", 50)
+                (p - 50) * 0.3f
+            }
+            eqGraph.setAllGains(initialGains)
+            eqGraph.setEqEnabled(AudioEffectManager.isEqEnabled(requireContext()))
+
+            eqGraph.onBandGainChanged = { bandIndex, _, progress ->
+                if (bandIndex in seekBars.indices) {
+                    seekBars[bandIndex].progress = progress
+                    AudioEffectManager.setBandLevel(bandIndex.toShort(), progress, requireContext())
+                    val level = (minLevel + (progress * range / 100)).toShort()
+                    updateGainLabel(bandIndex, level)
+                }
+            }
+        }
+
         for (i in 0 until minOf(bandCount, 5)) {
             val formattedFreq = if (eq != null && i < eq.numberOfBands) {
                 val centerFreq = eq.getCenterFreq(i.toShort()) / 1000
@@ -225,6 +248,8 @@ class EqualizerBottomSheet : BottomSheetDialogFragment() {
             seekBars[i].setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                     if (fromUser) {
+                        val gainDb = (progress - 50) * 0.3f
+                        eqGraphView?.setBandGain(bandIndex, gainDb)
                         AudioEffectManager.setBandLevel(bandIndex.toShort(), progress, requireContext())
                         val level = (minLevel + (progress * range / 100)).toShort()
                         updateGainLabel(bandIndex, level)
@@ -383,6 +408,7 @@ class EqualizerBottomSheet : BottomSheetDialogFragment() {
         switch.setOnCheckedChangeListener { _, isChecked ->
             AudioEffectManager.setEqEnabled(isChecked, requireContext())
             tvEqStatus.text = if (isChecked) "Effects Active" else "Effects Disabled (Bypassed)"
+            eqGraphView?.setEqEnabled(isChecked)
             val status = if (isChecked) "ON" else "OFF"
             Toast.makeText(context, "Equalizer $status", Toast.LENGTH_SHORT).show()
         }
@@ -473,6 +499,11 @@ class EqualizerBottomSheet : BottomSheetDialogFragment() {
         val maxLevel = eq?.bandLevelRange?.get(1) ?: 1500
         val range = maxLevel - minLevel
         
+        val targetGains = FloatArray(minOf(values.size, 5)) { i ->
+            (values[i] - 50) * 0.3f
+        }
+        eqGraphView?.animateToGains(targetGains)
+
         for (i in 0 until minOf(values.size, seekBars.size)) {
             seekBars[i].progress = values[i]
             AudioEffectManager.setBandLevel(i.toShort(), values[i], requireContext())
@@ -514,6 +545,7 @@ class EqualizerBottomSheet : BottomSheetDialogFragment() {
         view.findViewById<ImageView>(R.id.btnResetEq)?.setOnClickListener {
             selectPresetPill("Flat")
             applyPreset("Flat")
+            eqGraphView?.animateToGains(FloatArray(5) { 0f })
             
             // Reset bass boost
             val seekBassBoost = view.findViewById<SeekBar>(R.id.seekBassBoost)
@@ -558,9 +590,21 @@ class EqualizerBottomSheet : BottomSheetDialogFragment() {
         val density = resources.displayMetrics.density
         return (dp * density).toInt()
     }
+
+    override fun onResume() {
+        super.onResume()
+        eqGraphView?.setRtaActive(true)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        eqGraphView?.setRtaActive(false)
+    }
     
     override fun onDestroyView() {
         super.onDestroyView()
+        eqGraphView?.setRtaActive(false)
+        eqGraphView = null
         seekBars.clear()
         freqLabels.clear()
         gainLabels.clear()
