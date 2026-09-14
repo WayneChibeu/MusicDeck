@@ -16,6 +16,7 @@ import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
 import coil.load
 import coil.transform.RoundedCornersTransformation
+import com.wayne.musicdeck.utils.setupBouncyPress
 import com.wayne.musicdeck.databinding.ActivityMainBinding
 import androidx.activity.addCallback
 import org.koin.androidx.viewmodel.ext.android.viewModel
@@ -298,7 +299,7 @@ class MainActivity : AppCompatActivity() {
                 "edit" -> TagEditorFragment.newInstance(song.id).show(supportFragmentManager, "TagEditor")
                 "add_to_playlist" -> showAddToPlaylistDialog(song)
                 "remove_from_playlist" -> { /* Handled in PlaylistDetailFragment usually, but if here... */ }
-                "delete" -> deleteSong(song)
+                "delete" -> showDeleteConfirmationDialog(song)
                 "share" -> shareSong(song)
                 else -> {
                     // Handle other actions
@@ -1262,7 +1263,7 @@ class MainActivity : AppCompatActivity() {
             "share" -> shareSong(song)
             "ringtone" -> setAsRingtone(song)
             "details" -> showSongDetailsDialog(song)
-            "delete" -> deleteSong(song)
+            "delete" -> showDeleteConfirmationDialog(song)
             "add_to_playlist" -> showAddToPlaylistDialog(song)
             "remove_from_playlist" -> {
                 // Determine current playlist ID. This requires state tracking.
@@ -1485,7 +1486,7 @@ class MainActivity : AppCompatActivity() {
         viewModel.playlists.observe(this, playlistDialogObserver!!)
     }
 
-    private fun showDeleteConfirmationDialog(song: Song) {
+    fun showDeleteConfirmationDialog(song: Song) {
         val dialogView = layoutInflater.inflate(R.layout.dialog_delete_confirmation, null)
         val alert = androidx.appcompat.app.AlertDialog.Builder(this)
             .setView(dialogView)
@@ -1494,16 +1495,48 @@ class MainActivity : AppCompatActivity() {
         // Transparent background for rounded corners
         alert.window?.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT))
         
-        dialogView.findViewById<android.widget.TextView>(R.id.dialogMessage).text = 
-            "Are you sure you want to delete '${song.title}' from your device?"
-            
-        dialogView.findViewById<android.view.View>(R.id.btnCancel).setOnClickListener {
+        // Populate song preview card
+        val tvTitle = dialogView.findViewById<android.widget.TextView>(R.id.tvDeleteSongTitle)
+        val tvArtist = dialogView.findViewById<android.widget.TextView>(R.id.tvDeleteSongArtist)
+        val tvMeta = dialogView.findViewById<android.widget.TextView>(R.id.tvDeleteSongMeta)
+        val ivArt = dialogView.findViewById<android.widget.ImageView>(R.id.ivDeleteSongArt)
+        
+        tvTitle.text = song.title
+        tvArtist.text = song.artist
+        
+        val extension = song.data.substringAfterLast('.', "").uppercase()
+        tvMeta.text = if (extension.isNotEmpty() && extension.length <= 4) extension else "AUDIO"
+        
+        val albumArtUri = android.content.ContentUris.withAppendedId(
+            android.net.Uri.parse("content://media/external/audio/album_art"),
+            song.albumId
+        )
+        ivArt.load(albumArtUri) {
+            crossfade(true)
+            placeholder(R.drawable.default_album_art)
+            error(R.drawable.default_album_art)
+            transformations(RoundedCornersTransformation(10f))
+        }
+        
+        val btnCancel = dialogView.findViewById<android.view.View>(R.id.btnCancel)
+        val btnDelete = dialogView.findViewById<android.view.View>(R.id.btnDelete)
+        
+        btnCancel.setupBouncyPress()
+        btnDelete.setupBouncyPress()
+        
+        btnCancel.setOnClickListener {
+            try {
+                com.wayne.musicdeck.utils.HapticManager.performSpringClick(this)
+            } catch (_: Exception) {}
             alert.dismiss()
         }
         
-        dialogView.findViewById<android.view.View>(R.id.btnDelete).setOnClickListener {
-            deleteSong(song)
+        btnDelete.setOnClickListener {
+            try {
+                com.wayne.musicdeck.utils.HapticManager.performSpringClick(this)
+            } catch (_: Exception) {}
             alert.dismiss()
+            deleteSong(song)
         }
         
         alert.show()

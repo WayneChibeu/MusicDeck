@@ -235,15 +235,40 @@ class PlayerMenuBottomSheet : BottomSheetDialogFragment() {
             sunsetSwitch.isChecked = !sunsetSwitch.isChecked
         }
 
-        // Crossfade Transition Toggle
+        // Crossfade Transition Toggle & Duration Slider
         val crossfadeSwitch = view.findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.switchCrossfade)
+        val layoutCrossfadeDuration = view.findViewById<View>(R.id.layoutCrossfadeDuration)
+        val tvCrossfadeDuration = view.findViewById<TextView>(R.id.tvCrossfadeDuration)
+        val seekCrossfadeDuration = view.findViewById<androidx.appcompat.widget.AppCompatSeekBar>(R.id.seekCrossfadeDuration)
+
         crossfadeSwitch.isChecked = settingsManager.isCrossfadeEnabled
- 
+        layoutCrossfadeDuration.visibility = if (settingsManager.isCrossfadeEnabled) View.VISIBLE else View.GONE
+        
+        val initialDuration = settingsManager.crossfadeDurationSeconds.coerceIn(1, 12)
+        seekCrossfadeDuration.progress = initialDuration
+        tvCrossfadeDuration.text = "${initialDuration}s"
+
         crossfadeSwitch.setOnCheckedChangeListener { _, isChecked ->
             settingsManager.isCrossfadeEnabled = isChecked
-            val msg = if (isChecked) "Crossfade enabled" else "Crossfade disabled"
+            layoutCrossfadeDuration.visibility = if (isChecked) View.VISIBLE else View.GONE
+            val msg = if (isChecked) "Crossfade enabled (${settingsManager.crossfadeDurationSeconds}s)" else "Crossfade disabled"
             Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
         }
+
+        seekCrossfadeDuration.setOnSeekBarChangeListener(object : android.widget.SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: android.widget.SeekBar?, progress: Int, fromUser: Boolean) {
+                val sec = progress.coerceAtLeast(1)
+                if (progress < 1) {
+                    seekBar?.progress = 1
+                }
+                if (fromUser) {
+                    settingsManager.crossfadeDurationSeconds = sec
+                    tvCrossfadeDuration.text = "${sec}s"
+                }
+            }
+            override fun onStartTrackingTouch(seekBar: android.widget.SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: android.widget.SeekBar?) {}
+        })
 
         view.findViewById<View>(R.id.menuCrossfade).setOnClickListener {
             crossfadeSwitch.isChecked = !crossfadeSwitch.isChecked

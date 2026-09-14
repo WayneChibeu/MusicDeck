@@ -109,20 +109,20 @@ object NativeAudioEngine {
         }
     }
 
-    fun reset() {
+    fun reset(engineId: Int = -1) {
         if (isLibraryLoaded) {
             try {
-                nativeReset()
+                nativeReset(engineId)
             } catch (e: Exception) {
                 Log.e(TAG, "Error resetting native engine", e)
             }
         }
     }
 
-    fun processBuffer(buffer: ByteBuffer, offset: Int, length: Int, encoding: Int) {
+    fun processBuffer(buffer: ByteBuffer, offset: Int, length: Int, encoding: Int, engineId: Int = 0) {
         if (isLibraryLoaded && buffer.isDirect) {
             try {
-                nativeProcessBuffer(buffer, offset, length, encoding)
+                nativeProcessBuffer(engineId, buffer, offset, length, encoding)
             } catch (e: Exception) {
                 Log.e(TAG, "Error processing native buffer", e)
             }
@@ -148,7 +148,7 @@ object NativeAudioEngine {
     private external fun nativeSetVirtualizer(strength: Float)
     private external fun nativeSetKaraokeEnabled(enabled: Boolean)
     private external fun nativeSetEnabled(enabled: Boolean)
-    private external fun nativeReset()
-    private external fun nativeProcessBuffer(buffer: ByteBuffer, offset: Int, length: Int, encoding: Int)
+    private external fun nativeReset(engineId: Int)
+    private external fun nativeProcessBuffer(engineId: Int, buffer: ByteBuffer, offset: Int, length: Int, encoding: Int)
     private external fun nativeRelease()
 }

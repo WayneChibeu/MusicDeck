@@ -1,11 +1,9 @@
 {
-  "versionName": "3.0.6",
-  "versionCode": 68,
-  "releaseTitle": "MusicDeck v3.0.6 - Dual-Crossover Karaoke Mode",
-  "releaseNotes": "Upgraded Real-Time Karaoke Mode with an advanced Dual-Crossover architecture (180 Hz sub-bass + 4000 Hz high-end air). Eliminates center lead vocals while preserving punchy bass and restoring crisp cymbals, snares, and acoustic presence—completely removing the muffled low-pass effect.",
-  "downloadUrl": "https://github.com/WayneChibeu/MusicDeck/releases/download/v3.0.6/MusicDeck-v3.0.6.apk",
-  "apkSize": 7045313,
-  "htmlUrl": "https://github.com/WayneChibeu/MusicDeck/releases/tag/v3.0.6"
+  "versionName": "3.0.7",
+  "versionCode": 69,
+  "releaseTitle": "MusicDeck v3.0.7 - Gapless DJ Crossfade & Modern Delete Dialog",
+  "releaseNotes": "Introduced true Gapless DJ Crossfade powered by an overlapping dual-deck ping-pong architecture with mathematical equal-power sine/cosine blending curves (0-12s configurable) and a modern rounded knob slider. Features redesigned Material 3 Expressive song deletion confirmation with track artwork preview cards and tactile haptic feedback.",
+  "downloadUrl": "https://github.com/WayneChibeu/MusicDeck/releases/download/v3.0.7/MusicDeck-v3.0.7.apk",
+  "apkSize": 7050247,
+  "htmlUrl": "https://github.com/WayneChibeu/MusicDeck/releases/tag/v3.0.7"
 }
-
-

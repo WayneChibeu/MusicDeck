@@ -6,7 +6,12 @@ import kotlinx.coroutines.*
 /**
  * Handles smooth volume transitions for a Media3 Player.
  */
-class VolumeManager(private val player: Player, private val scope: CoroutineScope) {
+class VolumeManager(player: Player, private val scope: CoroutineScope) {
+    var player: Player = player
+        set(value) {
+            fadeJob?.cancel()
+            field = value
+        }
     private var fadeJob: Job? = null
 
     /**
@@ -62,10 +67,64 @@ class VolumeManager(private val player: Player, private val scope: CoroutineScop
     }
 
     /**
+     * Executes a synchronized equal-power crossfade between an outgoing player and an incoming player.
+     * @param outgoingPlayer The player fading out along cos(pi/2 * p).
+     * @param incomingPlayer The player fading in along sin(pi/2 * p).
+     * @param durationMs Duration of transition in milliseconds.
+     * @param onComplete Invoked when crossfade reaches 100%.
+     */
+    fun crossfade(
+        outgoingPlayer: Player,
+        incomingPlayer: Player,
+        durationMs: Long,
+        onComplete: () -> Unit
+    ): Job {
+        fadeJob?.cancel()
+        val job = scope.launch {
+            val steps = (durationMs / 25L).toInt().coerceIn(20, 2000) // 25ms micro-steps
+            val interval = durationMs / steps
+
+            for (step in 0..steps) {
+                val progress = step.toFloat() / steps.toFloat()
+                val gainOut = computeEqualPowerGainOut(progress)
+                val gainIn = computeEqualPowerGainIn(progress)
+                outgoingPlayer.volume = gainOut
+                incomingPlayer.volume = gainIn
+                delay(interval)
+            }
+            outgoingPlayer.volume = 0f
+            incomingPlayer.volume = 1f
+            onComplete()
+        }
+        fadeJob = job
+        return job
+    }
+
+    /**
      * Immediately resets the volume to full (1.0f) and cancels any active fade.
      */
     fun resetVolume() {
         fadeJob?.cancel()
         player.volume = 1.0f
     }
+
+    companion object {
+        /**
+         * Equal-power quarter-sine fade-out curve: cos(pi/2 * progress)
+         * Guarantees that cos^2(p) + sin^2(p) == 1.0 (0 dB acoustic power drop).
+         */
+        fun computeEqualPowerGainOut(progress: Float): Float {
+            val p = progress.coerceIn(0f, 1f)
+            return kotlin.math.cos(Math.PI * 0.5 * p).toFloat().coerceIn(0f, 1f)
+        }
+
+        /**
+         * Equal-power quarter-sine fade-in curve: sin(pi/2 * progress)
+         */
+        fun computeEqualPowerGainIn(progress: Float): Float {
+            val p = progress.coerceIn(0f, 1f)
+            return kotlin.math.sin(Math.PI * 0.5 * p).toFloat().coerceIn(0f, 1f)
+        }
+    }
 }
+

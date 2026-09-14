@@ -14,7 +14,7 @@ import java.nio.ByteBuffer
  * Media3 AudioProcessor that routes audio through the MusicDeck C++ DSP engine.
  * Transparently applies studio-grade 32-bit float EQ, bass boost, and limiting.
  */
-class NativeAudioProcessor : BaseAudioProcessor() {
+class NativeAudioProcessor(val engineId: Int = 0) : BaseAudioProcessor() {
 
     init {
         NativeAudioEngine.init()
@@ -50,17 +50,18 @@ class NativeAudioProcessor : BaseAudioProcessor() {
             buffer = outputBuffer,
             offset = 0,
             length = remaining,
-            encoding = inputAudioFormat.encoding
+            encoding = inputAudioFormat.encoding,
+            engineId = engineId
         )
     }
 
     override fun onFlush() {
         super.onFlush()
-        NativeAudioEngine.reset()
+        NativeAudioEngine.reset(engineId)
     }
 
     override fun onReset() {
         super.onReset()
-        NativeAudioEngine.reset()
+        NativeAudioEngine.reset(engineId)
     }
 }

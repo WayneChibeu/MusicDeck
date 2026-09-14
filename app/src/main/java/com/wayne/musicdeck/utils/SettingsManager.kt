@@ -79,6 +79,10 @@ class SettingsManager(context: Context) {
     var isCrossfadeEnabled: Boolean
         get() = kv.decodeBool("crossfade_enabled", false)
         set(value) { kv.encode("crossfade_enabled", value) }
+
+    var crossfadeDurationSeconds: Int
+        get() = kv.decodeInt("crossfade_duration_seconds", 4).coerceIn(1, 12)
+        set(value) { kv.encode("crossfade_duration_seconds", value.coerceIn(1, 12)) }
         
     var isInsightsEnabled: Boolean
         get() = kv.decodeBool("insights_enabled", true)

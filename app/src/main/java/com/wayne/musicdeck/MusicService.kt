@@ -40,6 +40,18 @@ class MusicService : MediaSessionService() {
     private var cachedArtBitmap: android.graphics.Bitmap? = null
     private var cachedArtSongPath: String? = null
     private var favoritesObserverJob: kotlinx.coroutines.Job? = null
+    private lateinit var primaryExoPlayer: ExoPlayer
+    private lateinit var secondaryExoPlayer: ExoPlayer
+    private lateinit var playerA: AutoPlayForwardingPlayer
+    private lateinit var playerB: AutoPlayForwardingPlayer
+    private lateinit var activeDeck: ExoPlayer
+    private lateinit var standbyDeck: ExoPlayer
+    private lateinit var activeForwardingPlayer: AutoPlayForwardingPlayer
+    private lateinit var standbyForwardingPlayer: AutoPlayForwardingPlayer
+    private val player: AutoPlayForwardingPlayer
+        get() = activeForwardingPlayer
+    private var crossfadeJob: kotlinx.coroutines.Job? = null
+    private var isCrossfading = false
     
     companion object {
         private const val USER_AGENT = "MusicDeck/2.10.2"
@@ -59,7 +71,7 @@ class MusicService : MediaSessionService() {
             observeFavoritesFlow()
         }
 
-        val nativeAudioProcessor = com.wayne.musicdeck.audio.NativeAudioProcessor()
+        val nativeAudioProcessor = com.wayne.musicdeck.audio.NativeAudioProcessor(engineId = 0)
         val renderersFactory = object : androidx.media3.exoplayer.DefaultRenderersFactory(this) {
             override fun buildAudioSink(
                 context: android.content.Context,
@@ -77,7 +89,7 @@ class MusicService : MediaSessionService() {
             setEnableAudioFloatOutput(true)
         }
 
-        val exoPlayer: ExoPlayer = ExoPlayer.Builder(this, renderersFactory)
+        primaryExoPlayer = ExoPlayer.Builder(this, renderersFactory)
             .setAudioAttributes(AudioAttributes.DEFAULT, true)
             .setWakeMode(C.WAKE_MODE_LOCAL)
             .setSeekBackIncrementMs(5000)
@@ -85,18 +97,50 @@ class MusicService : MediaSessionService() {
             .build().apply {
                 setSeekParameters(androidx.media3.exoplayer.SeekParameters.CLOSEST_SYNC)
             }
-            
+
+        // Secondary player for true overlapping DJ crossfades (Deck B)
+        val secondaryAudioProcessor = com.wayne.musicdeck.audio.NativeAudioProcessor(engineId = 1)
+        val secondaryRenderersFactory = object : androidx.media3.exoplayer.DefaultRenderersFactory(this) {
+            override fun buildAudioSink(
+                context: android.content.Context,
+                enableFloatOutput: Boolean,
+                enableAudioTrackPlaybackParams: Boolean
+            ): androidx.media3.exoplayer.audio.AudioSink {
+                return androidx.media3.exoplayer.audio.DefaultAudioSink.Builder(context)
+                    .setEnableFloatOutput(enableFloatOutput)
+                    .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
+                    .setAudioProcessors(arrayOf(secondaryAudioProcessor))
+                    .build()
+            }
+        }.apply {
+            setExtensionRendererMode(androidx.media3.exoplayer.DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER)
+            setEnableAudioFloatOutput(true)
+        }
+
+        secondaryExoPlayer = ExoPlayer.Builder(this, secondaryRenderersFactory)
+            .setAudioAttributes(AudioAttributes.DEFAULT, false) // false avoids competing for audio focus
+            .setWakeMode(C.WAKE_MODE_LOCAL)
+            .build().apply {
+                setSeekParameters(androidx.media3.exoplayer.SeekParameters.CLOSEST_SYNC)
+            }
+
+        activeDeck = primaryExoPlayer
+        standbyDeck = secondaryExoPlayer
+
         // Initialize Audio Effects Manager eagerly. If it fails due to Session 0 hardware restrictions,
         // it will retry dynamically during onIsPlayingChanged.
-        AudioEffectManager.initialize(exoPlayer.audioSessionId, this)
-        
-        volumeManager = com.wayne.musicdeck.utils.VolumeManager(exoPlayer, serviceScope)
-            
-        val player = AutoPlayForwardingPlayer(exoPlayer)
-        
+        AudioEffectManager.initialize(primaryExoPlayer.audioSessionId, this)
+
+        volumeManager = com.wayne.musicdeck.utils.VolumeManager(primaryExoPlayer, serviceScope)
+
+        playerA = AutoPlayForwardingPlayer(primaryExoPlayer)
+        playerB = AutoPlayForwardingPlayer(secondaryExoPlayer)
+        activeForwardingPlayer = playerA
+        standbyForwardingPlayer = playerB
+
         shakeDetector = com.wayne.musicdeck.utils.ShakeDetector(this) {
             if (settingsManager.isShakeToShuffleEnabled) {
-                triggerShakeShuffle(player)
+                triggerShakeShuffle(activeForwardingPlayer)
             }
         }
 
@@ -109,7 +153,7 @@ class MusicService : MediaSessionService() {
         )
 
 
-        mediaSession = MediaSession.Builder(this, player)
+        mediaSession = MediaSession.Builder(this, activeForwardingPlayer)
             .setSessionActivity(pendingIntent)
             .setCallback(object : MediaSession.Callback {
                 // Must authorize custom commands for controllers to use them
@@ -319,111 +363,121 @@ class MusicService : MediaSessionService() {
                 }
             })
             .setExtras(android.os.Bundle().apply {
-                putInt("AUDIO_SESSION_ID", exoPlayer.audioSessionId)
+                putInt("AUDIO_SESSION_ID", primaryExoPlayer.audioSessionId)
             })
             .build()
             
-        player.addListener(object : Player.Listener {
-             private var suppressFadeIn = false
+        val playerListener = object : Player.Listener {
+            private var suppressFadeIn = false
 
-             override fun onPositionDiscontinuity(
-                 oldPosition: Player.PositionInfo,
-                 newPosition: Player.PositionInfo,
-                 reason: Int
-             ) {
-                 if (reason == Player.DISCONTINUITY_REASON_SEEK || reason == Player.DISCONTINUITY_REASON_SEEK_ADJUSTMENT) {
-                     suppressFadeIn = true
-                     volumeManager.resetVolume()
-                 }
-             }
+            override fun onPositionDiscontinuity(
+                oldPosition: Player.PositionInfo,
+                newPosition: Player.PositionInfo,
+                reason: Int
+            ) {
+                if (!isCrossfading && (reason == Player.DISCONTINUITY_REASON_SEEK || reason == Player.DISCONTINUITY_REASON_SEEK_ADJUSTMENT)) {
+                    cancelCrossfade()
+                    suppressFadeIn = true
+                    volumeManager.resetVolume()
+                }
+            }
 
-             override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) {
-                 updateMediaSessionLayout(player)
-             }
-             override fun onRepeatModeChanged(repeatMode: Int) {
-                 updateMediaSessionLayout(player)
-             }
-             override fun onAudioSessionIdChanged(audioSessionId: Int) {
-                 super.onAudioSessionIdChanged(audioSessionId)
-                 // This is the absolute golden moment to initialize the Equalizer.
-                 // Before this triggers, the sessionId is 0 and fails on many devices.
-                 if (audioSessionId != 0) {
-                     android.util.Log.d("MusicService", "Audio Session ID generated: $audioSessionId. Initializing EQ...")
-                     AudioEffectManager.initialize(audioSessionId, this@MusicService)
-                 }
-             }
-             override fun onMediaItemTransition(mediaItem: androidx.media3.common.MediaItem?, reason: Int) {
-                 if (stopAtEndOfCurrentSong && reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO) {
-                     stopAtEndOfCurrentSong = false
-                     player.pause()
-                     cancelSleepTimer()
-                 }
-                 
-                 // Suppress fade-in during song transitions to prevent "skip-stop-play" glitch.
-                 // We only want to fade in when resuming from a paused/stopped state,
-                 // OR if crossfade is enabled.
-                 if (settingsManager.isCrossfadeEnabled && reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO) {
-                     suppressFadeIn = false
-                     volumeManager.fadeIn(1500)
-                 } else {
-                     suppressFadeIn = true
-                     volumeManager.resetVolume()
-                 }
-                 updateWidget(player)
-                 startPlayCountHeartbeat(mediaItem)
-                 
-                 // Sound Check: Automatically normalize volume to safe hearing level
-                 if (settingsManager.isSoundCheckEnabled) {
-                     applySoundCheckVolumeLimit()
-                 }
-             }
-             override fun onIsPlayingChanged(isPlaying: Boolean) {
-                  updateWidget(player)
-                  if (isPlaying) {
-                      if (settingsManager.isShakeToShuffleEnabled) {
-                          shakeDetector?.start()
-                      }
-                      // Always start/resume at 100% full volume instantly without stutter
-                      volumeManager.resetVolume()
-                      suppressFadeIn = false
-                      
-                      // Sound Check: Automatically normalize volume to safe hearing level
-                      if (settingsManager.isSoundCheckEnabled) {
-                          applySoundCheckVolumeLimit()
-                      }
-                      
-                      startPlayCountHeartbeat(player.currentMediaItem)
-                      startPlaybackPositionHeartbeat(player)
-                      
-                      // Aggressive EQ Init Retry: If it failed early (session 0), try again now
-                      // that the audio engine is actively pumping output.
-                      if (!AudioEffectManager.isInitialized()) {
-                          val currentSession = exoPlayer.audioSessionId
-                          if (currentSession != 0) {
-                              android.util.Log.d("MusicService", "Aggressive EQ Retry on playing start")
-                              AudioEffectManager.initialize(currentSession, this@MusicService)
-                          }
-                      }
-                  } else {
-                      shakeDetector?.stop()
-                      playCountJob?.cancel()
-                      playbackPositionJob?.cancel()
-                      saveFinalPosition(player)
-                  }
-             }
-         
-          override fun onPlaybackStateChanged(playbackState: Int) {
-              if (playbackState == Player.STATE_ENDED) {
-                  if (settingsManager.isSunsetTransitionEnabled) {
-                      // Note: STATE_ENDED means it already stopped, but we can reset volume for next play
-                      volumeManager.resetVolume()
-                  }
-              }
-          }
-    })
-        
-        updateMediaSessionLayout(player)
-        exoPlayer.setHandleAudioBecomingNoisy(true)
+            override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) {
+                updateMediaSessionLayout(activeForwardingPlayer)
+            }
+            override fun onRepeatModeChanged(repeatMode: Int) {
+                updateMediaSessionLayout(activeForwardingPlayer)
+            }
+            override fun onAudioSessionIdChanged(audioSessionId: Int) {
+                super.onAudioSessionIdChanged(audioSessionId)
+                // This is the absolute golden moment to initialize the Equalizer.
+                // Before this triggers, the sessionId is 0 and fails on many devices.
+                if (audioSessionId != 0) {
+                    android.util.Log.d("MusicService", "Audio Session ID generated: $audioSessionId. Initializing EQ...")
+                    AudioEffectManager.initialize(audioSessionId, this@MusicService)
+                }
+            }
+            override fun onMediaItemTransition(mediaItem: androidx.media3.common.MediaItem?, reason: Int) {
+                if (stopAtEndOfCurrentSong && reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO) {
+                    stopAtEndOfCurrentSong = false
+                    activeDeck.pause()
+                    cancelSleepTimer()
+                }
+
+                if (isCrossfading) {
+                    // Prevent outgoing deck from ever starting playback of the incoming track
+                    standbyDeck.volume = 0f
+                    standbyDeck.pause()
+                    return
+                }
+
+                suppressFadeIn = true
+                volumeManager.resetVolume()
+                updateWidget(activeDeck)
+                startPlayCountHeartbeat(mediaItem)
+
+                // Sound Check: Automatically normalize volume to safe hearing level
+                if (settingsManager.isSoundCheckEnabled) {
+                    applySoundCheckVolumeLimit()
+                }
+            }
+            override fun onIsPlayingChanged(isPlaying: Boolean) {
+                updateWidget(activeDeck)
+                if (isPlaying) {
+                    if (settingsManager.isShakeToShuffleEnabled) {
+                        shakeDetector?.start()
+                    }
+                    if (!isCrossfading) {
+                        volumeManager.resetVolume()
+                    }
+                    suppressFadeIn = false
+
+                    // Sound Check: Automatically normalize volume to safe hearing level
+                    if (settingsManager.isSoundCheckEnabled) {
+                        applySoundCheckVolumeLimit()
+                    }
+
+                    startPlayCountHeartbeat(activeDeck.currentMediaItem)
+                    startPlaybackPositionHeartbeat()
+
+                    // Aggressive EQ Init Retry: If it failed early (session 0), try again now
+                    // that the audio engine is actively pumping output.
+                    if (!AudioEffectManager.isInitialized()) {
+                        val currentSession = activeDeck.audioSessionId
+                        if (currentSession != 0) {
+                            android.util.Log.d("MusicService", "Aggressive EQ Retry on playing start")
+                            AudioEffectManager.initialize(currentSession, this@MusicService)
+                        }
+                    }
+                } else {
+                    if (!isCrossfading) {
+                        shakeDetector?.stop()
+                        playCountJob?.cancel()
+                        playbackPositionJob?.cancel()
+                        saveFinalPosition(activeDeck)
+                    }
+                }
+            }
+
+            override fun onPlaybackStateChanged(playbackState: Int) {
+                if (playbackState == Player.STATE_ENDED) {
+                    if (isCrossfading) {
+                        standbyDeck.volume = 0f
+                        standbyDeck.pause()
+                    }
+                    if (settingsManager.isSunsetTransitionEnabled) {
+                        volumeManager.resetVolume()
+                    }
+                }
+            }
+        }
+
+        playerA.addListener(playerListener)
+        playerB.addListener(playerListener)
+
+        updateMediaSessionLayout(activeForwardingPlayer)
+        primaryExoPlayer.setHandleAudioBecomingNoisy(true)
+        secondaryExoPlayer.setHandleAudioBecomingNoisy(true)
         
         val notificationProvider = CustomNotificationProvider(this)
         setMediaNotificationProvider(notificationProvider)
@@ -555,25 +609,135 @@ class MusicService : MediaSessionService() {
         }
     }
 
-    private fun startPlaybackPositionHeartbeat(player: Player) {
+    private fun startPlaybackPositionHeartbeat() {
         playbackPositionJob?.cancel()
         playbackPositionJob = serviceScope.launch {
-            var hasStartedCrossfade = false
+            var saveCounter = 0
             while (isActive) {
-                kotlinx.coroutines.delay(1000)
-                saveFinalPosition(player)
+                kotlinx.coroutines.delay(100)
+                val currentDeck = activeDeck
                 
-                if (settingsManager.isCrossfadeEnabled && player.isPlaying) {
-                    val pos = player.currentPosition
-                    val dur = player.duration
-                    if (dur > 0 && dur - pos <= 2000 && !hasStartedCrossfade) {
-                        hasStartedCrossfade = true
-                        volumeManager.fadeOut(dur - pos) {}
-                    }
-                    if (dur > 0 && dur - pos > 2000) {
-                        hasStartedCrossfade = false // reset for next track
+                saveCounter++
+                if (saveCounter >= 10) {
+                    saveCounter = 0
+                    saveFinalPosition(currentDeck)
+                }
+                
+                if (settingsManager.isCrossfadeEnabled && !stopAtEndOfCurrentSong && currentDeck.isPlaying && !isCrossfading) {
+                    val dur = currentDeck.duration
+                    val pos = currentDeck.currentPosition
+                    val xfadeDurationMs = settingsManager.crossfadeDurationSeconds * 1000L
+
+                    if (dur > 0 && xfadeDurationMs > 0 && dur > xfadeDurationMs + 2000L) {
+                        val timeRemaining = dur - pos
+                        if (timeRemaining <= xfadeDurationMs && timeRemaining > 0) {
+                            val nextIndex = currentDeck.nextMediaItemIndex
+                            if (nextIndex != C.INDEX_UNSET && nextIndex < currentDeck.mediaItemCount) {
+                                triggerPingPongCrossfade(xfadeDurationMs, nextIndex)
+                            }
+                        }
                     }
                 }
+            }
+        }
+    }
+
+    private fun triggerPingPongCrossfade(xfadeDurationMs: Long, nextIndex: Int) {
+        if (isCrossfading) return
+        isCrossfading = true
+        
+        val incomingDeck = standbyDeck
+        val outgoingDeck = activeDeck
+        
+        // Prevent outgoing deck from auto-advancing to the incoming track when it finishes
+        outgoingDeck.pauseAtEndOfMediaItems = true
+        
+        crossfadeJob?.cancel()
+        crossfadeJob = serviceScope.launch {
+            try {
+                // 1. Prepare standbyDeck on incoming track at 0:00, silent
+                incomingDeck.volume = 0f
+                incomingDeck.seekTo(nextIndex, 0L)
+                incomingDeck.prepare()
+                incomingDeck.play()
+
+                // Wait until incoming deck is ready
+                var waitCount = 0
+                while (isActive && incomingDeck.playbackState == Player.STATE_BUFFERING && waitCount < 50) {
+                    kotlinx.coroutines.delay(20)
+                    waitCount++
+                }
+
+                // 2. Perform Ping-Pong swap so mediaSession, notification, and UI point to incoming song
+                val oldActive = activeDeck
+                val oldStandby = standbyDeck
+                val oldActiveForwarding = activeForwardingPlayer
+                val oldStandbyForwarding = standbyForwardingPlayer
+
+                activeDeck = oldStandby
+                standbyDeck = oldActive
+                activeForwardingPlayer = oldStandbyForwarding
+                standbyForwardingPlayer = oldActiveForwarding
+
+                mediaSession?.setPlayer(activeForwardingPlayer)
+                volumeManager.player = activeDeck
+                updateWidget(activeDeck)
+                updateMediaSessionLayout(activeForwardingPlayer)
+
+                // 3. Smooth equal-power crossfade loop:
+                // activeDeck (incoming song) fades in 0 -> 1
+                // standbyDeck (outgoing song) fades out 1 -> 0
+                val steps = (xfadeDurationMs / 25L).toInt().coerceIn(20, 2000)
+                val interval = xfadeDurationMs / steps
+
+                for (step in 0..steps) {
+                    if (!isActive) break
+                    val progress = step.toFloat() / steps.toFloat()
+
+                    val gainIn = com.wayne.musicdeck.utils.VolumeManager.computeEqualPowerGainIn(progress)
+                    val gainOut = com.wayne.musicdeck.utils.VolumeManager.computeEqualPowerGainOut(progress)
+
+                    activeDeck.volume = gainIn
+
+                    // If outgoing deck has finished its track, silence and pause it immediately
+                    if (standbyDeck.playbackState == Player.STATE_ENDED || !standbyDeck.isPlaying) {
+                        standbyDeck.volume = 0f
+                        standbyDeck.pause()
+                    } else {
+                        standbyDeck.volume = gainOut
+                    }
+
+                    kotlinx.coroutines.delay(interval)
+                }
+
+                // 4. Fade complete: pause and silence standbyDeck (outgoing song)
+                standbyDeck.volume = 0f
+                standbyDeck.pause()
+                standbyDeck.pauseAtEndOfMediaItems = false
+                activeDeck.volume = 1f
+
+            } catch (e: Exception) {
+                android.util.Log.e("MusicService", "Error during Ping-Pong crossfade", e)
+            } finally {
+                isCrossfading = false
+                standbyDeck.volume = 0f
+                standbyDeck.pause()
+                standbyDeck.pauseAtEndOfMediaItems = false
+                activeDeck.volume = 1f
+            }
+        }
+    }
+
+    private fun cancelCrossfade(resetVolume: Boolean = true) {
+        if (isCrossfading) {
+            crossfadeJob?.cancel()
+            crossfadeJob = null
+            isCrossfading = false
+            standbyDeck.volume = 0f
+            standbyDeck.pause()
+            standbyDeck.pauseAtEndOfMediaItems = false
+            if (resetVolume) {
+                activeDeck.volume = 1f
             }
         }
     }
@@ -904,18 +1068,20 @@ class MusicService : MediaSessionService() {
                 }
                 
                 kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-                    player.setMediaItems(allSongs)
+                    primaryExoPlayer.setMediaItems(allSongs)
+                    secondaryExoPlayer.setMediaItems(allSongs)
                     
                     if (lastIndex != -1) {
-                        player.seekTo(lastIndex, lastPos)
+                        activeDeck.seekTo(lastIndex, lastPos)
                     } else {
                         // If last song not found, just start from the first one
-                        player.seekTo(0, 0L)
+                        activeDeck.seekTo(0, 0L)
                     }
                     
-                    player.prepare()
+                    primaryExoPlayer.prepare()
+                    secondaryExoPlayer.prepare()
                     if (startPlaying) {
-                        player.play()
+                        activeDeck.play()
                     }
                     
                     // Small delay to ensure player state is updated before calling onReady
@@ -923,7 +1089,7 @@ class MusicService : MediaSessionService() {
                     onReady?.invoke()
                     
                     // Update widget to show current song info
-                    updateWidget(player)
+                    updateWidget(activeDeck)
                 }
             } catch (e: Exception) {
                 android.util.Log.e("MusicService", "Session restoration failed: ${e.message}")
@@ -949,6 +1115,8 @@ class MusicService : MediaSessionService() {
     }
 
     override fun onDestroy() {
+        cancelCrossfade()
+        secondaryExoPlayer.release()
         shakeDetector?.stop()
         shakeDetector = null
         mediaSession?.run {
@@ -1015,6 +1183,7 @@ class MusicService : MediaSessionService() {
     // softFadeOut removed in favor of VolumeManager.fadeOut for ultra-smooth rendering
     private inner class AutoPlayForwardingPlayer(player: Player) : ForwardingPlayer(player) {
         override fun pause() {
+            cancelCrossfade()
             if (settingsManager.isSunsetTransitionEnabled) {
                 volumeManager.fadeOut(500) {
                     super.pause()
@@ -1025,25 +1194,94 @@ class MusicService : MediaSessionService() {
                 super.pause()
             }
         }
+
+        override fun seekTo(positionMs: Long) {
+            cancelCrossfade()
+            super.seekTo(positionMs)
+        }
+
+        override fun seekTo(mediaItemIndex: Int, positionMs: Long) {
+            cancelCrossfade()
+            super.seekTo(mediaItemIndex, positionMs)
+        }
         
         override fun seekToNext() {
+            cancelCrossfade()
             super.seekToNextMediaItem()
             play()
         }
 
         override fun seekToPrevious() {
+            cancelCrossfade()
             super.seekToPreviousMediaItem()
             play()
         }
 
         override fun seekToNextMediaItem() {
+            cancelCrossfade()
             super.seekToNextMediaItem()
             play()
         }
 
         override fun seekToPreviousMediaItem() {
+            cancelCrossfade()
             super.seekToPreviousMediaItem()
             play()
+        }
+
+        override fun setRepeatMode(repeatMode: Int) {
+            primaryExoPlayer.repeatMode = repeatMode
+            secondaryExoPlayer.repeatMode = repeatMode
+        }
+
+        override fun setShuffleModeEnabled(shuffleModeEnabled: Boolean) {
+            primaryExoPlayer.shuffleModeEnabled = shuffleModeEnabled
+            secondaryExoPlayer.shuffleModeEnabled = shuffleModeEnabled
+        }
+
+        override fun setMediaItems(mediaItems: List<androidx.media3.common.MediaItem>, resetPosition: Boolean) {
+            primaryExoPlayer.setMediaItems(mediaItems, resetPosition)
+            secondaryExoPlayer.setMediaItems(mediaItems, resetPosition)
+        }
+
+        override fun setMediaItems(mediaItems: List<androidx.media3.common.MediaItem>, startIndex: Int, startPositionMs: Long) {
+            primaryExoPlayer.setMediaItems(mediaItems, startIndex, startPositionMs)
+            secondaryExoPlayer.setMediaItems(mediaItems, startIndex, startPositionMs)
+        }
+
+        override fun setMediaItems(mediaItems: List<androidx.media3.common.MediaItem>) {
+            primaryExoPlayer.setMediaItems(mediaItems)
+            secondaryExoPlayer.setMediaItems(mediaItems)
+        }
+
+        override fun addMediaItems(mediaItems: List<androidx.media3.common.MediaItem>) {
+            primaryExoPlayer.addMediaItems(mediaItems)
+            secondaryExoPlayer.addMediaItems(mediaItems)
+        }
+
+        override fun addMediaItems(index: Int, mediaItems: List<androidx.media3.common.MediaItem>) {
+            primaryExoPlayer.addMediaItems(index, mediaItems)
+            secondaryExoPlayer.addMediaItems(index, mediaItems)
+        }
+
+        override fun removeMediaItem(index: Int) {
+            primaryExoPlayer.removeMediaItem(index)
+            secondaryExoPlayer.removeMediaItem(index)
+        }
+
+        override fun removeMediaItems(fromIndex: Int, toIndex: Int) {
+            primaryExoPlayer.removeMediaItems(fromIndex, toIndex)
+            secondaryExoPlayer.removeMediaItems(fromIndex, toIndex)
+        }
+
+        override fun moveMediaItem(currentIndex: Int, newIndex: Int) {
+            primaryExoPlayer.moveMediaItem(currentIndex, newIndex)
+            secondaryExoPlayer.moveMediaItem(currentIndex, newIndex)
+        }
+
+        override fun clearMediaItems() {
+            primaryExoPlayer.clearMediaItems()
+            secondaryExoPlayer.clearMediaItems()
         }
     }
 

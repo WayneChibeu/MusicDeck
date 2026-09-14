@@ -394,6 +394,63 @@
             android:minHeight="0dp" />
     </LinearLayout>
 
+    <!-- Crossfade Duration Slider Modern Card -->
+    <LinearLayout
+        android:id="@+id/layoutCrossfadeDuration"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginTop="4dp"
+        android:layout_marginBottom="12dp"
+        android:background="@drawable/bg_eq_card"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="12dp"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="4dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="OVERLAP DURATION"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.08"
+                android:textColor="?attr/colorOnSurfaceVariant" />
+
+            <TextView
+                android:id="@+id/tvCrossfadeDuration"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="4s"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:textColor="?attr/colorPrimary" />
+        </LinearLayout>
+
+        <androidx.appcompat.widget.AppCompatSeekBar
+            android:id="@+id/seekCrossfadeDuration"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:max="12"
+            android:progress="4"
+            android:paddingStart="0dp"
+            android:paddingEnd="0dp"
+            android:splitTrack="false"
+            android:thumb="@drawable/seek_thumb_primary"
+            android:progressDrawable="@drawable/seek_progress_primary"
+            android:minHeight="4dp"
+            android:maxHeight="4dp"
+            android:paddingVertical="12dp" />
+    </LinearLayout>
+
     <!-- Sound Check (Loudness Normalization) -->
     <LinearLayout
         android:id="@+id/menuSoundCheck"

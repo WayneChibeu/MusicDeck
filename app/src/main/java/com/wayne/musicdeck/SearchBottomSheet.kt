@@ -86,7 +86,7 @@ class SearchBottomSheet : BottomSheetDialogFragment() {
                              "details" -> mainActivity.showSongDetailsDialog(song)
                              "edit" -> TagEditorFragment.newInstance(song.id).show(parentFragmentManager, "TagEditor")
                              "add_to_playlist" -> mainActivity.showAddToPlaylistDialog(song)
-                             "delete" -> mainActivity.deleteSong(song)
+                             "delete" -> mainActivity.showDeleteConfirmationDialog(song)
                              "share" -> mainActivity.shareSong(song)
                              "play_next" -> {
                                  mainActivity.viewModel.playNext(song)
