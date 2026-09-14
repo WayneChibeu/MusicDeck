@@ -81,6 +81,7 @@ void EqualizerEngine::reset() {
     mCurrentHeadroomLinear = mTargetHeadroomLinear;
     mPrevLeft = 0.0f;
     mPrevRight = 0.0f;
+    mFftProcessor.reset();
 }
 
 void EqualizerEngine::updateFilters_locked() {
@@ -118,6 +119,10 @@ void EqualizerEngine::process(float* buffer, int numFrames) {
     if (!mEnabled || buffer == nullptr || numFrames <= 0) return;
 
     std::lock_guard<std::mutex> lock(mMutex);
+
+    if (mMonoBuffer.size() < static_cast<size_t>(numFrames)) {
+        mMonoBuffer.resize(numFrames);
+    }
 
     for (int i = 0; i < numFrames; ++i) {
         // Smooth headroom slew to prevent slider zipper noise
@@ -161,7 +166,10 @@ void EqualizerEngine::process(float* buffer, int numFrames) {
 
         buffer[i * 2] = left;
         buffer[i * 2 + 1] = right;
+        mMonoBuffer[i] = (left + right) * 0.5f;
     }
+
+    mFftProcessor.pushSamples(mMonoBuffer.data(), numFrames);
 }
 
 void EqualizerEngine::process(int16_t* buffer, int numFrames) {
@@ -171,6 +179,10 @@ void EqualizerEngine::process(int16_t* buffer, int numFrames) {
     constexpr float floatToInt16 = 32767.0f;
 
     std::lock_guard<std::mutex> lock(mMutex);
+
+    if (mMonoBuffer.size() < static_cast<size_t>(numFrames)) {
+        mMonoBuffer.resize(numFrames);
+    }
 
     for (int i = 0; i < numFrames; ++i) {
         mCurrentHeadroomLinear += 0.002f * (mTargetHeadroomLinear - mCurrentHeadroomLinear);
@@ -217,7 +229,14 @@ void EqualizerEngine::process(int16_t* buffer, int numFrames) {
 
         buffer[i * 2] = static_cast<int16_t>(std::max(-32768, std::min(32767, outL)));
         buffer[i * 2 + 1] = static_cast<int16_t>(std::max(-32768, std::min(32767, outR)));
+        mMonoBuffer[i] = (left + right) * 0.5f;
     }
+
+    mFftProcessor.pushSamples(mMonoBuffer.data(), numFrames);
+}
+
+void EqualizerEngine::getVisualizerBins(float* outBins, int numBins) {
+    mFftProcessor.getBands(outBins, numBins);
 }
 
 } // namespace musicdeck

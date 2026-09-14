@@ -1,9 +1,9 @@
 {
-  "versionName": "3.0.7",
-  "versionCode": 69,
-  "releaseTitle": "MusicDeck v3.0.7 - Gapless DJ Crossfade & Modern Delete Dialog",
-  "releaseNotes": "Introduced true Gapless DJ Crossfade powered by an overlapping dual-deck ping-pong architecture with mathematical equal-power sine/cosine blending curves (0-12s configurable) and a modern rounded knob slider. Features redesigned Material 3 Expressive song deletion confirmation with track artwork preview cards and tactile haptic feedback.",
-  "downloadUrl": "https://github.com/WayneChibeu/MusicDeck/releases/download/v3.0.7/MusicDeck-v3.0.7.apk",
-  "apkSize": 7050247,
-  "htmlUrl": "https://github.com/WayneChibeu/MusicDeck/releases/tag/v3.0.7"
+  "versionName": "3.0.8",
+  "versionCode": 70,
+  "releaseTitle": "MusicDeck v3.0.8 - Native 60 FPS Spectrum Visualizer",
+  "releaseNotes": "Introduced real-time Native C++ 60 FPS FFT Spectrum Visualizer powered by an in-place Radix-2 FFT and Hann windowing directly in libmusicdeck_audio.so. Features 32 logarithmic frequency bands with natural ballistic physics, dynamic album-art gradient mapping, floating peak caps, and an instant ON/OFF toggle in the Player Menu.",
+  "downloadUrl": "https://github.com/WayneChibeu/MusicDeck/releases/download/v3.0.8/MusicDeck-v3.0.8.apk",
+  "apkSize": 7073359,
+  "htmlUrl": "https://github.com/WayneChibeu/MusicDeck/releases/tag/v3.0.8"
 }

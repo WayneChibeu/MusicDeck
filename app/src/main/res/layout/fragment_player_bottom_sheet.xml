@@ -34,7 +34,7 @@
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintBottom_toTopOf="@+id/tvFullTitle"
+            app:layout_constraintBottom_toTopOf="@+id/visualizerView"
             app:layout_constraintVertical_chainStyle="packed"
             android:elevation="4dp">
 
@@ -173,12 +173,25 @@
                 android:alpha="0" />
         </FrameLayout>
 
+        <!-- Spectrum Visualizer (60 FPS Native FFT) -->
+        <com.wayne.musicdeck.views.VisualizerView
+            android:id="@+id/visualizerView"
+            android:layout_width="0dp"
+            android:layout_height="22dp"
+            android:layout_marginTop="4dp"
+            android:layout_marginBottom="2dp"
+            app:layout_constraintTop_toBottomOf="@+id/artContainer"
+            app:layout_constraintBottom_toTopOf="@+id/tvFullTitle"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
         <!-- Title + Favorite -->
         <TextView
             android:id="@+id/tvFullTitle"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="28dp"
+            android:layout_marginTop="2dp"
+            app:layout_goneMarginTop="28dp"
             android:text="Song Title"
             android:textAppearance="?attr/textAppearanceTitleLarge"
             android:textColor="?attr/colorOnSurface"
@@ -188,7 +201,7 @@
             android:marqueeRepeatLimit="marquee_forever"
             android:focusable="true"
             android:focusableInTouchMode="true"
-            app:layout_constraintTop_toBottomOf="@+id/artContainer"
+            app:layout_constraintTop_toBottomOf="@+id/visualizerView"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toStartOf="@+id/btnFavorite"
             app:layout_constraintBottom_toTopOf="@+id/tvFullArtist"

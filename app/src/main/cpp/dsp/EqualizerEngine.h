@@ -10,6 +10,7 @@
 #include <mutex>
 #include "BiquadFilter.h"
 #include "Limiter.h"
+#include "FftProcessor.h"
 
 namespace musicdeck {
 
@@ -84,6 +85,11 @@ public:
      */
     void process(int16_t* buffer, int numFrames);
 
+    /**
+     * Retrieves the latest normalized 32-band spectrum magnitude array.
+     */
+    void getVisualizerBins(float* outBins, int numBins);
+
 private:
     void updateFilters_locked();
     void updateHeadroom_locked();
@@ -123,6 +129,10 @@ private:
     // Spatializer delay line history
     float mPrevLeft = 0.0f;
     float mPrevRight = 0.0f;
+
+    // Real-Time 60 FPS FFT Spectrum Analyzer
+    FftProcessor mFftProcessor;
+    std::vector<float> mMonoBuffer;
 
     std::mutex mMutex;
 };

@@ -305,6 +305,22 @@ class PlayerMenuBottomSheet : BottomSheetDialogFragment() {
         view.findViewById<View>(R.id.menuSoundCheck).setOnClickListener {
             soundCheckSwitch.isChecked = !soundCheckSwitch.isChecked
         }
+
+        // Spectrum Visualizer Toggle
+        val visualizerSwitch = view.findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.switchVisualizer)
+        visualizerSwitch.isChecked = settingsManager.isVisualizerEnabled
+
+        visualizerSwitch.setOnCheckedChangeListener { _, isChecked ->
+            settingsManager.isVisualizerEnabled = isChecked
+            // Update active PlayerBottomSheetFragment immediately
+            (parentFragmentManager.fragments.filterIsInstance<PlayerBottomSheetFragment>().firstOrNull()
+                ?: (activity as? MainActivity)?.supportFragmentManager?.fragments?.filterIsInstance<PlayerBottomSheetFragment>()?.firstOrNull())
+                ?.setVisualizerEnabled(isChecked)
+        }
+
+        view.findViewById<View>(R.id.menuVisualizer).setOnClickListener {
+            visualizerSwitch.isChecked = !visualizerSwitch.isChecked
+        }
     }
 
     private fun formatSpeed(speed: Float): String {

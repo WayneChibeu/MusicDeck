@@ -13,8 +13,8 @@ android {
         applicationId "com.wayne.musicdeck"
         minSdk 24
         targetSdk 34
-        versionCode 69
-        versionName "3.0.7"
+        versionCode 70
+        versionName "3.0.8"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 

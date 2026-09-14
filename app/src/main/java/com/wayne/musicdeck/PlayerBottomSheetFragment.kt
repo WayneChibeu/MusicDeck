@@ -1034,6 +1034,8 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         // Proactive Refresh: Ensure metadata is current when returning from background
         viewModel.mediaController.value?.let { player ->
             updateMetadata(player.currentMediaItem)
+            _binding?.visualizerView?.setVisualizerEnabled(settingsManager.isVisualizerEnabled)
+            _binding?.visualizerView?.setPlaying(player.isPlaying)
         }
     }
     
@@ -1098,6 +1100,8 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         if (_binding == null) return
         
         updateMetadata(player.currentMediaItem)
+        binding.visualizerView.setVisualizerEnabled(settingsManager.isVisualizerEnabled)
+        binding.visualizerView.setPlaying(player.isPlaying)
         
         binding.tvTotalTime.text = formatTime(player.duration)
         if (player.duration > 0) {
@@ -1232,6 +1236,7 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
             } else {
                 stopBreathingAnimation()
             }
+            binding.visualizerView.setPlaying(isPlaying)
             updateScreenOnState()
         }
         override fun onPlaybackStateChanged(playbackState: Int) {
@@ -1364,6 +1369,7 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         if (palette == null) {
             applyMeshBackground(defaultColor, darkenColor(defaultColor, 0.7f), false)
             updateSeekBarColor(android.graphics.Color.WHITE, false)
+            _binding?.visualizerView?.setThemeColors(defaultColor, android.graphics.Color.WHITE)
             return
         }
         
@@ -1415,6 +1421,7 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         )
         
         updateSeekBarColor(accentColor, false)
+        _binding?.visualizerView?.setThemeColors(selectedColor, accentColor)
         // Lyrics: Always crisp white for flagship readability and visual unity
         lyricsAdapter.activeColor = android.graphics.Color.WHITE
         updateTextColors(true)
@@ -1444,6 +1451,11 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         // Re-apply repeat icon color based on new dynamic theme colors
         updatePlaybackModeIcon()
     }
+
+    fun setVisualizerEnabled(enabled: Boolean) {
+        _binding?.visualizerView?.setVisualizerEnabled(enabled)
+    }
+
     
     private fun applyMeshBackground(primary: Int, secondary: Int, isLightMode: Boolean = false) {
         if (isLightMode) {

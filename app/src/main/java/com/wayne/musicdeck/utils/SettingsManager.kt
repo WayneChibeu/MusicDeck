@@ -127,4 +127,9 @@ class SettingsManager(context: Context) {
     var isSoundCheckEnabled: Boolean
         get() = kv.decodeBool("sound_check_enabled", false)
         set(value) { kv.encode("sound_check_enabled", value) }
+
+    var isVisualizerEnabled: Boolean
+        get() = kv.decodeBool("visualizer_enabled", true)
+        set(value) { kv.encode("visualizer_enabled", value) }
 }
+

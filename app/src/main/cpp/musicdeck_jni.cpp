@@ -129,6 +129,30 @@ Java_com_wayne_musicdeck_audio_NativeAudioEngine_nativeProcessBuffer(
 }
 
 JNIEXPORT void JNICALL
+Java_com_wayne_musicdeck_audio_NativeAudioEngine_nativeGetVisualizerBins(
+        JNIEnv* env,
+        jobject thiz,
+        jfloatArray outArray) {
+    if (!outArray) return;
+    jsize len = env->GetArrayLength(outArray);
+    if (len <= 0) return;
+
+    float tempBinsA[musicdeck::NUM_SPECTRUM_BANDS] = { 0.0f };
+    float tempBinsB[musicdeck::NUM_SPECTRUM_BANDS] = { 0.0f };
+
+    if (sEngines[0]) sEngines[0]->getVisualizerBins(tempBinsA, musicdeck::NUM_SPECTRUM_BANDS);
+    if (sEngines[1]) sEngines[1]->getVisualizerBins(tempBinsB, musicdeck::NUM_SPECTRUM_BANDS);
+
+    float combined[musicdeck::NUM_SPECTRUM_BANDS];
+    int count = std::min(static_cast<int>(len), musicdeck::NUM_SPECTRUM_BANDS);
+    for (int i = 0; i < count; ++i) {
+        combined[i] = std::max(tempBinsA[i], tempBinsB[i]);
+    }
+
+    env->SetFloatArrayRegion(outArray, 0, count, combined);
+}
+
+JNIEXPORT void JNICALL
 Java_com_wayne_musicdeck_audio_NativeAudioEngine_nativeRelease(JNIEnv* env, jobject thiz) {
     for (int i = 0; i < MAX_ENGINES; ++i) {
         sEngines[i].reset();

@@ -129,6 +129,16 @@ object NativeAudioEngine {
         }
     }
 
+    fun getVisualizerBins(outBins: FloatArray) {
+        if (isLibraryLoaded) {
+            try {
+                nativeGetVisualizerBins(outBins)
+            } catch (e: Exception) {
+                Log.e(TAG, "Error getting visualizer bins", e)
+            }
+        }
+    }
+
     fun release() {
         if (isLibraryLoaded) {
             try {
@@ -150,5 +160,7 @@ object NativeAudioEngine {
     private external fun nativeSetEnabled(enabled: Boolean)
     private external fun nativeReset(engineId: Int)
     private external fun nativeProcessBuffer(engineId: Int, buffer: ByteBuffer, offset: Int, length: Int, encoding: Int)
+    private external fun nativeGetVisualizerBins(outArray: FloatArray)
     private external fun nativeRelease()
 }
+
