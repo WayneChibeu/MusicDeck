@@ -239,6 +239,13 @@ class PlayerMenuBottomSheet : BottomSheetDialogFragment() {
             UsbDacBottomSheet().show(parentFragmentManager, "UsbDac")
         }
 
+        // Dedicated Car Mode
+        view.findViewById<View>(R.id.menuCarMode)?.setOnClickListener {
+            dismiss()
+            val intent = Intent(requireContext(), CarModeActivity::class.java)
+            startActivity(intent)
+        }
+
         // Sunset Transition Toggle
         val sunsetSwitch = view.findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.switchSunset)
         val isSunsetEnabled = settingsManager.isSunsetTransitionEnabled

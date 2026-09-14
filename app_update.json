@@ -1,9 +1,9 @@
 {
-  "versionName": "3.0.11",
-  "versionCode": 73,
-  "releaseTitle": "MusicDeck v3.0.11 - Bit-Perfect USB-DAC Passthrough & DeckAcoustix DSP Polish",
-  "releaseNotes": "Milestone 2 Complete: Introducing Bit-Perfect USB-DAC Passthrough for external headphone amplifiers, DAC dongles, and studio USB audio interfaces. Features Android 14+ MIXER_BEHAVIOR_BIT_PERFECT to bypass the Android 48kHz resampler, dynamic track clock rate matching (44.1k to 192k at 16/24/32-bit), dual Pure Direct vs DeckAcoustix DSP modes, real-time signal path telemetry, Abbey Road 160Hz Low-Cut reverb filter, dynamic Playlist Play All theme color, and synchronized alphabet fast scroller.",
-  "downloadUrl": "https://github.com/WayneChibeu/MusicDeck/releases/download/v3.0.11/MusicDeck-v3.0.11.apk",
-  "apkSize": 7137991,
-  "htmlUrl": "https://github.com/WayneChibeu/MusicDeck/releases/tag/v3.0.11"
+  "versionName": "3.0.12",
+  "versionCode": 74,
+  "releaseTitle": "MusicDeck v3.0.12 - Android Auto & Dedicated Car Mode",
+  "releaseNotes": "Milestone 3 Item 7: Android Auto vehicle integration & high-contrast in-app Car Mode. Exposes music library directly to automotive head units (All Tracks, Playlists, Favorites, Recently Added) via MediaLibraryService and automotive_app_desc.xml. Features dedicated distraction-free CarModeActivity with 78dp touch targets, keep-screen-on wake lock, tactile haptic feedback, and in-dash voice search.",
+  "downloadUrl": "https://github.com/WayneChibeu/MusicDeck/releases/download/v3.0.12/MusicDeck-v3.0.12.apk",
+  "apkSize": 7144889,
+  "htmlUrl": "https://github.com/WayneChibeu/MusicDeck/releases/tag/v3.0.12"
 }

@@ -11,7 +11,11 @@ import androidx.media3.common.Player
 import androidx.media3.common.ForwardingPlayer
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaSession
-import androidx.media3.session.MediaSessionService
+import androidx.media3.session.MediaLibraryService
+import androidx.media3.session.MediaLibraryService.LibraryParams
+import androidx.media3.session.MediaLibraryService.MediaLibrarySession
+import androidx.media3.session.LibraryResult
+import com.google.common.util.concurrent.SettableFuture
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.isActive
@@ -20,12 +24,12 @@ import androidx.media3.session.CommandButton
 import org.koin.android.ext.android.inject
 import com.wayne.musicdeck.utils.SettingsManager
 
-class MusicService : MediaSessionService() {
+class MusicService : MediaLibraryService() {
 
     private val playlistRepository: com.wayne.musicdeck.data.PlaylistRepository by inject()
     private val serviceScope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Main + kotlinx.coroutines.Job())
     private var favoritesPlaylistId: Long = -1L
-    private var mediaSession: MediaSession? = null
+    private var mediaSession: MediaLibrarySession? = null
     private var sleepTimerJob: kotlinx.coroutines.Job? = null
     private var isCurrentSongFavorite = false
     private lateinit var volumeManager: com.wayne.musicdeck.utils.VolumeManager
@@ -169,215 +173,425 @@ class MusicService : MediaSessionService() {
         )
 
 
-        mediaSession = MediaSession.Builder(this, activeForwardingPlayer)
-            .setSessionActivity(pendingIntent)
-            .setCallback(object : MediaSession.Callback {
-                // Must authorize custom commands for controllers to use them
-                override fun onConnect(
-                    session: MediaSession,
-                    controller: MediaSession.ControllerInfo
-                ): MediaSession.ConnectionResult {
-                    // Define custom commands that controllers can use
-                    val shuffleCommand = SessionCommand("SHUFFLE", android.os.Bundle.EMPTY)
-                    val repeatCommand = SessionCommand("REPEAT", android.os.Bundle.EMPTY)
-                    
-                    // Add custom commands to the session commands
-                    val sessionCommands = MediaSession.ConnectionResult.DEFAULT_SESSION_COMMANDS.buildUpon()
-                        .add(shuffleCommand)
-                        .add(repeatCommand)
-                        .add(SessionCommand("TOGGLE_FAVORITE", android.os.Bundle.EMPTY))
-                        .build()
-                    
-                    return MediaSession.ConnectionResult.AcceptedResultBuilder(session)
-                        .setAvailableSessionCommands(sessionCommands)
-                        .build()
-                }
+        val libraryCallback = object : MediaLibrarySession.Callback {
+            // Must authorize custom commands for controllers to use them
+            override fun onConnect(
+                session: MediaSession,
+                controller: MediaSession.ControllerInfo
+            ): MediaSession.ConnectionResult {
+                // Define custom commands that controllers can use
+                val shuffleCommand = SessionCommand("SHUFFLE", android.os.Bundle.EMPTY)
+                val repeatCommand = SessionCommand("REPEAT", android.os.Bundle.EMPTY)
                 
-                override fun onCustomCommand(
-                    session: MediaSession,
-                    controller: MediaSession.ControllerInfo,
-                    customCommand: SessionCommand,
-                    args: android.os.Bundle
-                ): com.google.common.util.concurrent.ListenableFuture<SessionResult> {
-                    android.util.Log.d("MusicService", "onCustomCommand received: ${customCommand.customAction}")
-                    when (customCommand.customAction) {
-                        "TOGGLE_FAVORITE" -> {
-                            val currentPath = player.currentMediaItem?.mediaId
-                            val currentId = player.currentMediaItem?.requestMetadata?.extras?.getLong("songId") ?: -1L
-                            if (currentPath != null && favoritesPlaylistId != -1L) {
-                                serviceScope.launch(kotlinx.coroutines.Dispatchers.IO) {
-                                    val isFav = playlistRepository.isSongInPlaylist(favoritesPlaylistId, currentPath)
-                                    if (isFav) {
-                                        playlistRepository.removeSongFromPlaylist(favoritesPlaylistId, currentPath)
-                                    } else {
-                                        playlistRepository.addSongToPlaylist(favoritesPlaylistId, currentId, currentPath)
-                                    }
-                                    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-                                        updateFavoriteState(!isFav)
-                                    }
-                                }
-                            }
-                            return com.google.common.util.concurrent.Futures.immediateFuture(
-                                SessionResult(SessionResult.RESULT_SUCCESS)
-                            )
-                        }
-                        "SHUFFLE" -> {
-                            android.util.Log.d("MusicService", "Toggling shuffle")
-                            player.shuffleModeEnabled = !player.shuffleModeEnabled
-                            return com.google.common.util.concurrent.Futures.immediateFuture(
-                                SessionResult(SessionResult.RESULT_SUCCESS)
-                            )
-                        }
-                        "REPEAT" -> {
-                            android.util.Log.d("MusicService", "Cycling repeat mode")
-                            player.repeatMode = when (player.repeatMode) {
-                                Player.REPEAT_MODE_OFF -> Player.REPEAT_MODE_ALL
-                                Player.REPEAT_MODE_ALL -> Player.REPEAT_MODE_ONE
-                                else -> Player.REPEAT_MODE_OFF
-                            }
-                            return com.google.common.util.concurrent.Futures.immediateFuture(
-                                SessionResult(SessionResult.RESULT_SUCCESS)
-                            )
-                        }
-                    }
-                    return super.onCustomCommand(session, controller, customCommand, args)
-                }
+                val defaultResult = super.onConnect(session, controller)
+                val sessionCommands = defaultResult.availableSessionCommands.buildUpon()
+                    .add(shuffleCommand)
+                    .add(repeatCommand)
+                    .add(SessionCommand("TOGGLE_FAVORITE", android.os.Bundle.EMPTY))
+                    .build()
+                
+                return MediaSession.ConnectionResult.AcceptedResultBuilder(session)
+                    .setAvailableSessionCommands(sessionCommands)
+                    .build()
+            }
 
-                private var mediaButtonPressCount = 0
-                private val mediaButtonPressTimeout = 400L
-                private var mediaButtonPressJob: kotlinx.coroutines.Job? = null
-                private var lastSkipKeyCode = 0
-                private var lastSkipTimestamp = 0L
+            override fun onGetLibraryRoot(
+                session: MediaLibrarySession,
+                browser: MediaSession.ControllerInfo,
+                params: LibraryParams?
+            ): ListenableFuture<LibraryResult<androidx.media3.common.MediaItem>> {
+                val rootItem = buildCategoryItem("root", "MusicDeck", androidx.media3.common.MediaMetadata.MEDIA_TYPE_FOLDER_MIXED)
+                return com.google.common.util.concurrent.Futures.immediateFuture(
+                    LibraryResult.ofItem(rootItem, params)
+                )
+            }
 
-                override fun onMediaButtonEvent(
-                    session: MediaSession,
-                    controllerInfo: MediaSession.ControllerInfo,
-                    intent: Intent
-                ): Boolean {
-                    val ke = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-                        intent.getParcelableExtra(Intent.EXTRA_KEY_EVENT, android.view.KeyEvent::class.java)
-                    } else {
-                        @Suppress("DEPRECATION")
-                        intent.getParcelableExtra<android.view.KeyEvent>(Intent.EXTRA_KEY_EVENT)
+            override fun onGetChildren(
+                session: MediaLibrarySession,
+                browser: MediaSession.ControllerInfo,
+                parentId: String,
+                page: Int,
+                pageSize: Int,
+                params: LibraryParams?
+            ): ListenableFuture<LibraryResult<com.google.common.collect.ImmutableList<androidx.media3.common.MediaItem>>> {
+                when (parentId) {
+                    "root" -> {
+                        val items = com.google.common.collect.ImmutableList.of(
+                            buildCategoryItem("category_tracks", "All Tracks", androidx.media3.common.MediaMetadata.MEDIA_TYPE_FOLDER_MIXED),
+                            buildCategoryItem("category_playlists", "Playlists", androidx.media3.common.MediaMetadata.MEDIA_TYPE_FOLDER_PLAYLISTS),
+                            buildCategoryItem("category_favorites", "Favorites", androidx.media3.common.MediaMetadata.MEDIA_TYPE_FOLDER_PLAYLISTS),
+                            buildCategoryItem("category_recent", "Recently Added", androidx.media3.common.MediaMetadata.MEDIA_TYPE_FOLDER_MIXED)
+                        )
+                        return com.google.common.util.concurrent.Futures.immediateFuture(
+                            LibraryResult.ofItemList(items, params)
+                        )
                     }
-                    if (ke != null && ke.action == android.view.KeyEvent.ACTION_DOWN) {
-                        when (ke.keyCode) {
-                            android.view.KeyEvent.KEYCODE_HEADSETHOOK,
-                            android.view.KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> {
-                                mediaButtonPressCount++
-                                mediaButtonPressJob?.cancel()
-                                mediaButtonPressJob = serviceScope.launch {
-                                    kotlinx.coroutines.delay(mediaButtonPressTimeout)
-                                    when (mediaButtonPressCount) {
-                                        1 -> {
-                                            if (player.isPlaying) player.pause() else player.play()
-                                        }
-                                        2 -> {
-                                            player.seekToNextMediaItem()
-                                        }
-                                        3 -> {
-                                            player.seekToPreviousMediaItem()
-                                        }
-                                        4 -> {
-                                            if (settingsManager.isEarbudComboShuffleEnabled) {
-                                                triggerShakeShuffle(player)
-                                            }
-                                        }
-                                    }
-                                    mediaButtonPressCount = 0
-                                }
-                                return true
-                            }
-                            android.view.KeyEvent.KEYCODE_MEDIA_NEXT -> {
-                                if (settingsManager.isEarbudComboShuffleEnabled) {
-                                    val now = System.currentTimeMillis()
-                                    if (lastSkipKeyCode == android.view.KeyEvent.KEYCODE_MEDIA_PREVIOUS && (now - lastSkipTimestamp) <= 1200L) {
-                                        lastSkipKeyCode = 0
-                                        triggerShakeShuffle(player)
-                                        return true
-                                    }
-                                    lastSkipKeyCode = android.view.KeyEvent.KEYCODE_MEDIA_NEXT
-                                    lastSkipTimestamp = now
-                                }
-                            }
-                            android.view.KeyEvent.KEYCODE_MEDIA_PREVIOUS -> {
-                                if (settingsManager.isEarbudComboShuffleEnabled) {
-                                    val now = System.currentTimeMillis()
-                                    if (lastSkipKeyCode == android.view.KeyEvent.KEYCODE_MEDIA_NEXT && (now - lastSkipTimestamp) <= 1200L) {
-                                        lastSkipKeyCode = 0
-                                        triggerShakeShuffle(player)
-                                        return true
-                                    }
-                                    lastSkipKeyCode = android.view.KeyEvent.KEYCODE_MEDIA_PREVIOUS
-                                    lastSkipTimestamp = now
-                                }
+                    "category_tracks" -> {
+                        val future = SettableFuture.create<LibraryResult<com.google.common.collect.ImmutableList<androidx.media3.common.MediaItem>>>()
+                        serviceScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                            try {
+                                val tracks = getAllSongsMediaItems()
+                                future.set(LibraryResult.ofItemList(tracks, params))
+                            } catch (e: Exception) {
+                                android.util.Log.e("MusicService", "Error loading tracks for Auto", e)
+                                future.set(LibraryResult.ofError(LibraryResult.RESULT_ERROR_UNKNOWN))
                             }
                         }
+                        return future
                     }
-                    return super.onMediaButtonEvent(session, controllerInfo, intent)
-                }
-                
-                override fun onPostConnect(
-                    session: MediaSession,
-                    controller: MediaSession.ControllerInfo
-                ) {
-                    // Send custom layout with shuffle/repeat buttons to all controllers
-                    val shuffleButton = CommandButton.Builder()
-                        .setDisplayName("Shuffle")
-                        .setIconResId(R.drawable.ic_notif_shuffle_off)
-                        .setSessionCommand(SessionCommand("SHUFFLE", android.os.Bundle.EMPTY))
-                        .setEnabled(true)
-                        .build()
-                    
-                    val repeatButton = CommandButton.Builder()
-                        .setDisplayName("Repeat")
-                        .setIconResId(R.drawable.ic_notif_repeat_off)
-                        .setSessionCommand(SessionCommand("REPEAT", android.os.Bundle.EMPTY))
-                        .setEnabled(true)
-                        .build()
-                    
-                    session.setCustomLayout(listOf(shuffleButton, repeatButton))
-                }
-                
-                // === GOOGLE ASSISTANT VOICE SEARCH HANDLER ===
-                // "Hey Google, play I Feel It Coming by The Weeknd"
-                override fun onAddMediaItems(
-                    mediaSession: MediaSession,
-                    controller: MediaSession.ControllerInfo,
-                    mediaItems: MutableList<androidx.media3.common.MediaItem>
-                ): ListenableFuture<MutableList<androidx.media3.common.MediaItem>> {
-                    val resolvedItems = mutableListOf<androidx.media3.common.MediaItem>()
-                    
-                    for (requestItem in mediaItems) {
-                        val searchQuery = requestItem.requestMetadata.searchQuery
-                        val mediaUri = requestItem.requestMetadata.mediaUri
-                        val mediaId = requestItem.mediaId
-                        
-                        if (!searchQuery.isNullOrBlank()) {
-                            // Voice search: "Play I Feel It Coming by The Weeknd"
-                            android.util.Log.d("MusicService", "Google Assistant search: '$searchQuery'")
-                            val matchedSongs = searchSongsFromMediaStore(searchQuery)
-                            
-                            if (matchedSongs.isNotEmpty()) {
-                                resolvedItems.addAll(matchedSongs)
-                            } else {
-                                // No exact match, play all music shuffled as fallback
-                                android.util.Log.d("MusicService", "No match for '$searchQuery', playing all songs")
-                                resolvedItems.addAll(getAllSongsFromMediaStore())
+                    "category_playlists" -> {
+                        val future = SettableFuture.create<LibraryResult<com.google.common.collect.ImmutableList<androidx.media3.common.MediaItem>>>()
+                        serviceScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                            try {
+                                val playlists = playlistRepository.getAllPlaylists()
+                                val items = playlists.map { pl ->
+                                    androidx.media3.common.MediaItem.Builder()
+                                        .setMediaId("playlist_${pl.id}")
+                                        .setMediaMetadata(
+                                            androidx.media3.common.MediaMetadata.Builder()
+                                                .setTitle(pl.name)
+                                                .setIsBrowsable(true)
+                                                .setIsPlayable(false)
+                                                .setMediaType(androidx.media3.common.MediaMetadata.MEDIA_TYPE_PLAYLIST)
+                                                .build()
+                                        )
+                                        .build()
+                                }
+                                future.set(LibraryResult.ofItemList(items, params))
+                            } catch (e: Exception) {
+                                android.util.Log.e("MusicService", "Error loading playlists for Auto", e)
+                                future.set(LibraryResult.ofError(LibraryResult.RESULT_ERROR_UNKNOWN))
                             }
-                        } else if (mediaUri != null || mediaId.isNotEmpty()) {
-                            // Direct URI or mediaId: pass through unchanged
-                            resolvedItems.add(requestItem)
+                        }
+                        return future
+                    }
+                    "category_favorites" -> {
+                        val future = SettableFuture.create<LibraryResult<com.google.common.collect.ImmutableList<androidx.media3.common.MediaItem>>>()
+                        serviceScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                            try {
+                                val favTracks = getSongsForPlaylistMediaItems(favoritesPlaylistId)
+                                future.set(LibraryResult.ofItemList(favTracks, params))
+                            } catch (e: Exception) {
+                                android.util.Log.e("MusicService", "Error loading favorites for Auto", e)
+                                future.set(LibraryResult.ofError(LibraryResult.RESULT_ERROR_UNKNOWN))
+                            }
+                        }
+                        return future
+                    }
+                    "category_recent" -> {
+                        val future = SettableFuture.create<LibraryResult<com.google.common.collect.ImmutableList<androidx.media3.common.MediaItem>>>()
+                        serviceScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                            try {
+                                val recentTracks = getRecentSongsMediaItems(50)
+                                future.set(LibraryResult.ofItemList(recentTracks, params))
+                            } catch (e: Exception) {
+                                android.util.Log.e("MusicService", "Error loading recent songs for Auto", e)
+                                future.set(LibraryResult.ofError(LibraryResult.RESULT_ERROR_UNKNOWN))
+                            }
+                        }
+                        return future
+                    }
+                    else -> {
+                        if (parentId.startsWith("playlist_")) {
+                            val playlistId = parentId.removePrefix("playlist_").toLongOrNull() ?: -1L
+                            val future = SettableFuture.create<LibraryResult<com.google.common.collect.ImmutableList<androidx.media3.common.MediaItem>>>()
+                            serviceScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                                try {
+                                    val plTracks = getSongsForPlaylistMediaItems(playlistId)
+                                    future.set(LibraryResult.ofItemList(plTracks, params))
+                                } catch (e: Exception) {
+                                    android.util.Log.e("MusicService", "Error loading playlist items for Auto", e)
+                                    future.set(LibraryResult.ofError(LibraryResult.RESULT_ERROR_UNKNOWN))
+                                }
+                            }
+                            return future
+                        }
+                        return com.google.common.util.concurrent.Futures.immediateFuture(
+                            LibraryResult.ofError(LibraryResult.RESULT_ERROR_BAD_VALUE)
+                        )
+                    }
+                }
+            }
+
+            override fun onGetItem(
+                session: MediaLibrarySession,
+                browser: MediaSession.ControllerInfo,
+                mediaId: String
+            ): ListenableFuture<LibraryResult<androidx.media3.common.MediaItem>> {
+                when (mediaId) {
+                    "root" -> {
+                        val item = buildCategoryItem("root", "MusicDeck", androidx.media3.common.MediaMetadata.MEDIA_TYPE_FOLDER_MIXED)
+                        return com.google.common.util.concurrent.Futures.immediateFuture(LibraryResult.ofItem(item, null))
+                    }
+                    "category_tracks" -> {
+                        val item = buildCategoryItem("category_tracks", "All Tracks", androidx.media3.common.MediaMetadata.MEDIA_TYPE_FOLDER_MIXED)
+                        return com.google.common.util.concurrent.Futures.immediateFuture(LibraryResult.ofItem(item, null))
+                    }
+                    "category_playlists" -> {
+                        val item = buildCategoryItem("category_playlists", "Playlists", androidx.media3.common.MediaMetadata.MEDIA_TYPE_FOLDER_PLAYLISTS)
+                        return com.google.common.util.concurrent.Futures.immediateFuture(LibraryResult.ofItem(item, null))
+                    }
+                    "category_favorites" -> {
+                        val item = buildCategoryItem("category_favorites", "Favorites", androidx.media3.common.MediaMetadata.MEDIA_TYPE_FOLDER_PLAYLISTS)
+                        return com.google.common.util.concurrent.Futures.immediateFuture(LibraryResult.ofItem(item, null))
+                    }
+                    "category_recent" -> {
+                        val item = buildCategoryItem("category_recent", "Recently Added", androidx.media3.common.MediaMetadata.MEDIA_TYPE_FOLDER_MIXED)
+                        return com.google.common.util.concurrent.Futures.immediateFuture(LibraryResult.ofItem(item, null))
+                    }
+                    else -> {
+                        if (mediaId.startsWith("playlist_")) {
+                            val playlistId = mediaId.removePrefix("playlist_").toLongOrNull() ?: -1L
+                            val future = SettableFuture.create<LibraryResult<androidx.media3.common.MediaItem>>()
+                            serviceScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                                val pl = playlistRepository.getAllPlaylists().find { it.id == playlistId }
+                                if (pl != null) {
+                                    val item = androidx.media3.common.MediaItem.Builder()
+                                        .setMediaId(mediaId)
+                                        .setMediaMetadata(
+                                            androidx.media3.common.MediaMetadata.Builder()
+                                                .setTitle(pl.name)
+                                                .setIsBrowsable(true)
+                                                .setIsPlayable(false)
+                                                .setMediaType(androidx.media3.common.MediaMetadata.MEDIA_TYPE_PLAYLIST)
+                                                .build()
+                                        )
+                                        .build()
+                                    future.set(LibraryResult.ofItem(item, null))
+                                } else {
+                                    future.set(LibraryResult.ofError(LibraryResult.RESULT_ERROR_BAD_VALUE))
+                                }
+                            }
+                            return future
                         } else {
-                            // Generic "play music" command: play all songs shuffled
-                            android.util.Log.d("MusicService", "Generic play command, playing all songs")
+                            val songItem = getSongByMediaId(mediaId)
+                            return if (songItem != null) {
+                                com.google.common.util.concurrent.Futures.immediateFuture(LibraryResult.ofItem(songItem, null))
+                            } else {
+                                com.google.common.util.concurrent.Futures.immediateFuture(LibraryResult.ofError(LibraryResult.RESULT_ERROR_BAD_VALUE))
+                            }
+                        }
+                    }
+                }
+            }
+
+            override fun onSearch(
+                session: MediaLibrarySession,
+                browser: MediaSession.ControllerInfo,
+                query: String,
+                params: LibraryParams?
+            ): ListenableFuture<LibraryResult<Void>> {
+                val matched = searchSongsFromMediaStore(query)
+                session.notifySearchResultChanged(browser, query, matched.size, params)
+                return com.google.common.util.concurrent.Futures.immediateFuture(LibraryResult.ofVoid(params))
+            }
+
+            override fun onGetSearchResult(
+                session: MediaLibrarySession,
+                browser: MediaSession.ControllerInfo,
+                query: String,
+                page: Int,
+                pageSize: Int,
+                params: LibraryParams?
+            ): ListenableFuture<LibraryResult<com.google.common.collect.ImmutableList<androidx.media3.common.MediaItem>>> {
+                val matched = searchSongsFromMediaStore(query)
+                return com.google.common.util.concurrent.Futures.immediateFuture(LibraryResult.ofItemList(matched, params))
+            }
+            
+            override fun onCustomCommand(
+                session: MediaSession,
+                controller: MediaSession.ControllerInfo,
+                customCommand: SessionCommand,
+                args: android.os.Bundle
+            ): com.google.common.util.concurrent.ListenableFuture<SessionResult> {
+                android.util.Log.d("MusicService", "onCustomCommand received: ${customCommand.customAction}")
+                when (customCommand.customAction) {
+                    "TOGGLE_FAVORITE" -> {
+                        val currentPath = player.currentMediaItem?.mediaId
+                        val currentId = player.currentMediaItem?.requestMetadata?.extras?.getLong("songId") ?: -1L
+                        if (currentPath != null && favoritesPlaylistId != -1L) {
+                            serviceScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                                val isFav = playlistRepository.isSongInPlaylist(favoritesPlaylistId, currentPath)
+                                if (isFav) {
+                                    playlistRepository.removeSongFromPlaylist(favoritesPlaylistId, currentPath)
+                                } else {
+                                    playlistRepository.addSongToPlaylist(favoritesPlaylistId, currentId, currentPath)
+                                }
+                                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                                    updateFavoriteState(!isFav)
+                                }
+                            }
+                        }
+                        return com.google.common.util.concurrent.Futures.immediateFuture(
+                            SessionResult(SessionResult.RESULT_SUCCESS)
+                        )
+                    }
+                    "SHUFFLE" -> {
+                        android.util.Log.d("MusicService", "Toggling shuffle")
+                        player.shuffleModeEnabled = !player.shuffleModeEnabled
+                        return com.google.common.util.concurrent.Futures.immediateFuture(
+                            SessionResult(SessionResult.RESULT_SUCCESS)
+                        )
+                    }
+                    "REPEAT" -> {
+                        android.util.Log.d("MusicService", "Cycling repeat mode")
+                        player.repeatMode = when (player.repeatMode) {
+                            Player.REPEAT_MODE_OFF -> Player.REPEAT_MODE_ALL
+                            Player.REPEAT_MODE_ALL -> Player.REPEAT_MODE_ONE
+                            else -> Player.REPEAT_MODE_OFF
+                        }
+                        return com.google.common.util.concurrent.Futures.immediateFuture(
+                            SessionResult(SessionResult.RESULT_SUCCESS)
+                        )
+                    }
+                }
+                return super.onCustomCommand(session, controller, customCommand, args)
+            }
+
+            private var mediaButtonPressCount = 0
+            private val mediaButtonPressTimeout = 400L
+            private var mediaButtonPressJob: kotlinx.coroutines.Job? = null
+            private var lastSkipKeyCode = 0
+            private var lastSkipTimestamp = 0L
+
+            override fun onMediaButtonEvent(
+                session: MediaSession,
+                controllerInfo: MediaSession.ControllerInfo,
+                intent: Intent
+            ): Boolean {
+                val ke = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                    intent.getParcelableExtra(Intent.EXTRA_KEY_EVENT, android.view.KeyEvent::class.java)
+                } else {
+                    @Suppress("DEPRECATION")
+                    intent.getParcelableExtra<android.view.KeyEvent>(Intent.EXTRA_KEY_EVENT)
+                }
+                if (ke != null && ke.action == android.view.KeyEvent.ACTION_DOWN) {
+                    when (ke.keyCode) {
+                        android.view.KeyEvent.KEYCODE_HEADSETHOOK,
+                        android.view.KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> {
+                            mediaButtonPressCount++
+                            mediaButtonPressJob?.cancel()
+                            mediaButtonPressJob = serviceScope.launch {
+                                kotlinx.coroutines.delay(mediaButtonPressTimeout)
+                                when (mediaButtonPressCount) {
+                                    1 -> {
+                                        if (player.isPlaying) player.pause() else player.play()
+                                    }
+                                    2 -> {
+                                        player.seekToNextMediaItem()
+                                    }
+                                    3 -> {
+                                        player.seekToPreviousMediaItem()
+                                    }
+                                    4 -> {
+                                        if (settingsManager.isEarbudComboShuffleEnabled) {
+                                            triggerShakeShuffle(player)
+                                        }
+                                    }
+                                }
+                                mediaButtonPressCount = 0
+                            }
+                            return true
+                        }
+                        android.view.KeyEvent.KEYCODE_MEDIA_NEXT -> {
+                            if (settingsManager.isEarbudComboShuffleEnabled) {
+                                val now = System.currentTimeMillis()
+                                if (lastSkipKeyCode == android.view.KeyEvent.KEYCODE_MEDIA_PREVIOUS && (now - lastSkipTimestamp) <= 1200L) {
+                                    lastSkipKeyCode = 0
+                                    triggerShakeShuffle(player)
+                                    return true
+                                }
+                                lastSkipKeyCode = android.view.KeyEvent.KEYCODE_MEDIA_NEXT
+                                lastSkipTimestamp = now
+                            }
+                        }
+                        android.view.KeyEvent.KEYCODE_MEDIA_PREVIOUS -> {
+                            if (settingsManager.isEarbudComboShuffleEnabled) {
+                                val now = System.currentTimeMillis()
+                                if (lastSkipKeyCode == android.view.KeyEvent.KEYCODE_MEDIA_NEXT && (now - lastSkipTimestamp) <= 1200L) {
+                                    lastSkipKeyCode = 0
+                                    triggerShakeShuffle(player)
+                                    return true
+                                }
+                                lastSkipKeyCode = android.view.KeyEvent.KEYCODE_MEDIA_PREVIOUS
+                                lastSkipTimestamp = now
+                            }
+                        }
+                    }
+                }
+                return super.onMediaButtonEvent(session, controllerInfo, intent)
+            }
+            
+            override fun onPostConnect(
+                session: MediaSession,
+                controller: MediaSession.ControllerInfo
+            ) {
+                // Send custom layout with shuffle/repeat buttons to all controllers
+                val shuffleButton = CommandButton.Builder()
+                    .setDisplayName("Shuffle")
+                    .setIconResId(R.drawable.ic_notif_shuffle_off)
+                    .setSessionCommand(SessionCommand("SHUFFLE", android.os.Bundle.EMPTY))
+                    .setEnabled(true)
+                    .build()
+                
+                val repeatButton = CommandButton.Builder()
+                    .setDisplayName("Repeat")
+                    .setIconResId(R.drawable.ic_notif_repeat_off)
+                    .setSessionCommand(SessionCommand("REPEAT", android.os.Bundle.EMPTY))
+                    .setEnabled(true)
+                    .build()
+                
+                session.setCustomLayout(listOf(shuffleButton, repeatButton))
+            }
+            
+            // === GOOGLE ASSISTANT & ANDROID AUTO VOICE SEARCH HANDLER ===
+            // "Hey Google, play I Feel It Coming by The Weeknd"
+            override fun onAddMediaItems(
+                mediaSession: MediaSession,
+                controller: MediaSession.ControllerInfo,
+                mediaItems: MutableList<androidx.media3.common.MediaItem>
+            ): ListenableFuture<MutableList<androidx.media3.common.MediaItem>> {
+                val resolvedItems = mutableListOf<androidx.media3.common.MediaItem>()
+                
+                for (requestItem in mediaItems) {
+                    val searchQuery = requestItem.requestMetadata.searchQuery
+                    val mediaUri = requestItem.requestMetadata.mediaUri
+                    val mediaId = requestItem.mediaId
+                    
+                    if (!searchQuery.isNullOrBlank()) {
+                        // Voice search: "Play I Feel It Coming by The Weeknd"
+                        android.util.Log.d("MusicService", "Google Assistant search: '$searchQuery'")
+                        val matchedSongs = searchSongsFromMediaStore(searchQuery)
+                        
+                        if (matchedSongs.isNotEmpty()) {
+                            resolvedItems.addAll(matchedSongs)
+                        } else {
+                            // No exact match, play all music shuffled as fallback
+                            android.util.Log.d("MusicService", "No match for '$searchQuery', playing all songs")
                             resolvedItems.addAll(getAllSongsFromMediaStore())
                         }
+                    } else if (mediaUri != null || requestItem.localConfiguration?.uri != null) {
+                        resolvedItems.add(requestItem)
+                    } else if (mediaId.isNotEmpty()) {
+                        val resolved = getSongByMediaId(mediaId)
+                        if (resolved != null) {
+                            resolvedItems.add(resolved)
+                        } else {
+                            resolvedItems.add(requestItem)
+                        }
+                    } else {
+                        // Generic "play music" command: play all songs shuffled
+                        android.util.Log.d("MusicService", "Generic play command, playing all songs")
+                        resolvedItems.addAll(getAllSongsFromMediaStore())
                     }
-                    
-                    return com.google.common.util.concurrent.Futures.immediateFuture(resolvedItems)
                 }
-            })
+                
+                return com.google.common.util.concurrent.Futures.immediateFuture(resolvedItems)
+            }
+        }
+
+        mediaSession = MediaLibrarySession.Builder(this, activeForwardingPlayer, libraryCallback)
+            .setSessionActivity(pendingIntent)
             .setExtras(android.os.Bundle().apply {
                 putInt("AUDIO_SESSION_ID", primaryExoPlayer.audioSessionId)
             })
@@ -1150,7 +1364,7 @@ class MusicService : MediaSessionService() {
         }
     }
 
-    override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? {
+    override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession? {
         return mediaSession
     }
 
@@ -1373,6 +1587,235 @@ class MusicService : MediaSessionService() {
     // GOOGLE ASSISTANT MEDIA SEARCH
     // ============================
 
+    private fun buildCategoryItem(id: String, title: String, mediaType: Int): androidx.media3.common.MediaItem {
+        return androidx.media3.common.MediaItem.Builder()
+            .setMediaId(id)
+            .setMediaMetadata(
+                androidx.media3.common.MediaMetadata.Builder()
+                    .setTitle(title)
+                    .setIsBrowsable(true)
+                    .setIsPlayable(false)
+                    .setMediaType(mediaType)
+                    .build()
+            )
+            .build()
+    }
+
+    private fun getAllSongsMediaItems(): List<androidx.media3.common.MediaItem> {
+        val results = mutableListOf<androidx.media3.common.MediaItem>()
+        val projection = arrayOf(
+            android.provider.MediaStore.Audio.Media._ID,
+            android.provider.MediaStore.Audio.Media.TITLE,
+            android.provider.MediaStore.Audio.Media.ARTIST,
+            android.provider.MediaStore.Audio.Media.ALBUM,
+            android.provider.MediaStore.Audio.Media.ALBUM_ID,
+            android.provider.MediaStore.Audio.Media.DATA
+        )
+        val selection = "${android.provider.MediaStore.Audio.Media.DURATION} > 10000"
+        contentResolver.query(
+            android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+            projection,
+            selection,
+            null,
+            "${android.provider.MediaStore.Audio.Media.TITLE} ASC"
+        )?.use { cursor ->
+            val idCol = cursor.getColumnIndexOrThrow(android.provider.MediaStore.Audio.Media._ID)
+            val titleCol = cursor.getColumnIndexOrThrow(android.provider.MediaStore.Audio.Media.TITLE)
+            val artistCol = cursor.getColumnIndexOrThrow(android.provider.MediaStore.Audio.Media.ARTIST)
+            val albumCol = cursor.getColumnIndexOrThrow(android.provider.MediaStore.Audio.Media.ALBUM)
+            val albumIdCol = cursor.getColumnIndexOrThrow(android.provider.MediaStore.Audio.Media.ALBUM_ID)
+            val dataCol = cursor.getColumnIndexOrThrow(android.provider.MediaStore.Audio.Media.DATA)
+
+            while (cursor.moveToNext()) {
+                val id = cursor.getLong(idCol)
+                val title = cursor.getString(titleCol) ?: ""
+                val artist = cursor.getString(artistCol) ?: ""
+                val album = cursor.getString(albumCol) ?: ""
+                val albumId = cursor.getLong(albumIdCol)
+                val data = cursor.getString(dataCol) ?: ""
+
+                val artUri = android.content.ContentUris.withAppendedId(
+                    android.net.Uri.parse("content://media/external/audio/albumart"),
+                    albumId
+                )
+                val contentUri = android.content.ContentUris.withAppendedId(
+                    android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                    id
+                )
+
+                val mediaItem = androidx.media3.common.MediaItem.Builder()
+                    .setMediaId(data)
+                    .setUri(contentUri)
+                    .setMediaMetadata(
+                        androidx.media3.common.MediaMetadata.Builder()
+                            .setTitle(title)
+                            .setArtist(artist)
+                            .setAlbumTitle(album)
+                            .setArtworkUri(artUri)
+                            .setIsBrowsable(false)
+                            .setIsPlayable(true)
+                            .setMediaType(androidx.media3.common.MediaMetadata.MEDIA_TYPE_MUSIC)
+                            .build()
+                    )
+                    .setRequestMetadata(
+                        androidx.media3.common.MediaItem.RequestMetadata.Builder()
+                            .setExtras(android.os.Bundle().apply { putLong("songId", id) })
+                            .build()
+                    )
+                    .build()
+
+                results.add(mediaItem)
+            }
+        }
+        return results
+    }
+
+    private fun getRecentSongsMediaItems(limit: Int = 50): List<androidx.media3.common.MediaItem> {
+        val results = mutableListOf<androidx.media3.common.MediaItem>()
+        val projection = arrayOf(
+            android.provider.MediaStore.Audio.Media._ID,
+            android.provider.MediaStore.Audio.Media.TITLE,
+            android.provider.MediaStore.Audio.Media.ARTIST,
+            android.provider.MediaStore.Audio.Media.ALBUM,
+            android.provider.MediaStore.Audio.Media.ALBUM_ID,
+            android.provider.MediaStore.Audio.Media.DATA
+        )
+        val selection = "${android.provider.MediaStore.Audio.Media.DURATION} > 10000"
+        contentResolver.query(
+            android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+            projection,
+            selection,
+            null,
+            "${android.provider.MediaStore.Audio.Media.DATE_ADDED} DESC LIMIT $limit"
+        )?.use { cursor ->
+            val idCol = cursor.getColumnIndexOrThrow(android.provider.MediaStore.Audio.Media._ID)
+            val titleCol = cursor.getColumnIndexOrThrow(android.provider.MediaStore.Audio.Media.TITLE)
+            val artistCol = cursor.getColumnIndexOrThrow(android.provider.MediaStore.Audio.Media.ARTIST)
+            val albumCol = cursor.getColumnIndexOrThrow(android.provider.MediaStore.Audio.Media.ALBUM)
+            val albumIdCol = cursor.getColumnIndexOrThrow(android.provider.MediaStore.Audio.Media.ALBUM_ID)
+            val dataCol = cursor.getColumnIndexOrThrow(android.provider.MediaStore.Audio.Media.DATA)
+
+            while (cursor.moveToNext()) {
+                val id = cursor.getLong(idCol)
+                val title = cursor.getString(titleCol) ?: ""
+                val artist = cursor.getString(artistCol) ?: ""
+                val album = cursor.getString(albumCol) ?: ""
+                val albumId = cursor.getLong(albumIdCol)
+                val data = cursor.getString(dataCol) ?: ""
+
+                val artUri = android.content.ContentUris.withAppendedId(
+                    android.net.Uri.parse("content://media/external/audio/albumart"),
+                    albumId
+                )
+                val contentUri = android.content.ContentUris.withAppendedId(
+                    android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                    id
+                )
+
+                val mediaItem = androidx.media3.common.MediaItem.Builder()
+                    .setMediaId(data)
+                    .setUri(contentUri)
+                    .setMediaMetadata(
+                        androidx.media3.common.MediaMetadata.Builder()
+                            .setTitle(title)
+                            .setArtist(artist)
+                            .setAlbumTitle(album)
+                            .setArtworkUri(artUri)
+                            .setIsBrowsable(false)
+                            .setIsPlayable(true)
+                            .setMediaType(androidx.media3.common.MediaMetadata.MEDIA_TYPE_MUSIC)
+                            .build()
+                    )
+                    .setRequestMetadata(
+                        androidx.media3.common.MediaItem.RequestMetadata.Builder()
+                            .setExtras(android.os.Bundle().apply { putLong("songId", id) })
+                            .build()
+                    )
+                    .build()
+
+                results.add(mediaItem)
+            }
+        }
+        return results
+    }
+
+    private suspend fun getSongsForPlaylistMediaItems(playlistId: Long): List<androidx.media3.common.MediaItem> {
+        if (playlistId <= 0) return emptyList()
+        val playlistSongs = playlistRepository.getSongsForPlaylist(playlistId)
+        if (playlistSongs.isEmpty()) return emptyList()
+
+        val allSongs = getAllSongsMediaItems()
+        return playlistSongs.mapNotNull { ps ->
+            allSongs.find { it.mediaId == ps.songPath }
+        }
+    }
+
+    private fun getSongByMediaId(mediaId: String): androidx.media3.common.MediaItem? {
+        val projection = arrayOf(
+            android.provider.MediaStore.Audio.Media._ID,
+            android.provider.MediaStore.Audio.Media.TITLE,
+            android.provider.MediaStore.Audio.Media.ARTIST,
+            android.provider.MediaStore.Audio.Media.ALBUM,
+            android.provider.MediaStore.Audio.Media.ALBUM_ID,
+            android.provider.MediaStore.Audio.Media.DATA
+        )
+        val selection = "${android.provider.MediaStore.Audio.Media.DATA} = ?"
+        contentResolver.query(
+            android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+            projection,
+            selection,
+            arrayOf(mediaId),
+            null
+        )?.use { cursor ->
+            if (cursor.moveToFirst()) {
+                val idCol = cursor.getColumnIndexOrThrow(android.provider.MediaStore.Audio.Media._ID)
+                val titleCol = cursor.getColumnIndexOrThrow(android.provider.MediaStore.Audio.Media.TITLE)
+                val artistCol = cursor.getColumnIndexOrThrow(android.provider.MediaStore.Audio.Media.ARTIST)
+                val albumCol = cursor.getColumnIndexOrThrow(android.provider.MediaStore.Audio.Media.ALBUM)
+                val albumIdCol = cursor.getColumnIndexOrThrow(android.provider.MediaStore.Audio.Media.ALBUM_ID)
+                val dataCol = cursor.getColumnIndexOrThrow(android.provider.MediaStore.Audio.Media.DATA)
+
+                val id = cursor.getLong(idCol)
+                val title = cursor.getString(titleCol) ?: ""
+                val artist = cursor.getString(artistCol) ?: ""
+                val album = cursor.getString(albumCol) ?: ""
+                val albumId = cursor.getLong(albumIdCol)
+                val data = cursor.getString(dataCol) ?: ""
+
+                val artUri = android.content.ContentUris.withAppendedId(
+                    android.net.Uri.parse("content://media/external/audio/albumart"),
+                    albumId
+                )
+                val contentUri = android.content.ContentUris.withAppendedId(
+                    android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                    id
+                )
+
+                return androidx.media3.common.MediaItem.Builder()
+                    .setMediaId(data)
+                    .setUri(contentUri)
+                    .setMediaMetadata(
+                        androidx.media3.common.MediaMetadata.Builder()
+                            .setTitle(title)
+                            .setArtist(artist)
+                            .setAlbumTitle(album)
+                            .setArtworkUri(artUri)
+                            .setIsBrowsable(false)
+                            .setIsPlayable(true)
+                            .setMediaType(androidx.media3.common.MediaMetadata.MEDIA_TYPE_MUSIC)
+                            .build()
+                    )
+                    .setRequestMetadata(
+                        androidx.media3.common.MediaItem.RequestMetadata.Builder()
+                            .setExtras(android.os.Bundle().apply { putLong("songId", id) })
+                            .build()
+                    )
+                    .build()
+            }
+        }
+        return null
+    }
+
     /**
      * Searches MediaStore for songs matching a search query.
      * Fuzzy matches against title and artist.
@@ -1422,6 +1865,7 @@ class MusicService : MediaSessionService() {
                 val combined = "$titleLower $artistLower"
                 
                 val score = when {
+                    queryLower.isBlank() -> 100
                     titleLower == queryLower -> 100          // Exact title match
                     combined.contains(queryLower) -> 80      // Title + artist contains full query
                     titleLower.contains(queryLower) -> 70    // Title contains query
@@ -1465,6 +1909,9 @@ class MusicService : MediaSessionService() {
                             .setArtist(song.artist)
                             .setAlbumTitle(song.album)
                             .setArtworkUri(artUri)
+                            .setIsBrowsable(false)
+                            .setIsPlayable(true)
+                            .setMediaType(androidx.media3.common.MediaMetadata.MEDIA_TYPE_MUSIC)
                             .build()
                     )
                     .setRequestMetadata(
@@ -1487,7 +1934,7 @@ class MusicService : MediaSessionService() {
      * Returns all songs from MediaStore as MediaItems (for generic "play music" commands).
      */
     private fun getAllSongsFromMediaStore(): MutableList<androidx.media3.common.MediaItem> {
-        return searchSongsFromMediaStore("") // Returns all songs with score 0, but still builds the full list
+        return searchSongsFromMediaStore("") // Returns all songs with score 100
     }
     
     private data class SongResult(

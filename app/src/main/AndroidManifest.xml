@@ -48,12 +48,27 @@
             android:exported="false"
             android:theme="@style/Theme.Musicdeck" />
 
+        <activity
+            android:name=".CarModeActivity"
+            android:exported="false"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize"
+            android:theme="@style/Theme.Musicdeck" />
+
+        <!-- Android Auto Vehicle Integration -->
+        <meta-data
+            android:name="com.google.android.gms.car.application"
+            android:resource="@xml/automotive_app_desc" />
+        <meta-data
+            android:name="androidx.car.app.minCarApiLevel"
+            android:value="1" />
+
         <service
             android:name=".MusicService"
             android:foregroundServiceType="mediaPlayback"
             android:exported="true"
             android:enabled="true">
             <intent-filter>
+                <action android:name="androidx.media3.session.MediaLibraryService" />
                 <action android:name="androidx.media3.session.MediaSessionService" />
                 <action android:name="android.intent.action.MEDIA_BUTTON" />
                 <action android:name="com.wayne.musicdeck.ACTION_PLAY_PAUSE" />
@@ -61,7 +76,7 @@
                 <action android:name="com.wayne.musicdeck.ACTION_PREVIOUS" />
                 <action android:name="com.wayne.musicdeck.ACTION_FAVORITE" />
                 
-                <!-- CRITICAL FOR ASSISTANT: Allow system to identify us as a Media Provider -->
+                <!-- CRITICAL FOR ANDROID AUTO & ASSISTANT: Allow system to identify us as a Media Provider -->
                 <action android:name="android.media.browse.MediaBrowserService" />
                 <action android:name="android.media.action.MEDIA_PLAY_FROM_SEARCH" />
             </intent-filter>

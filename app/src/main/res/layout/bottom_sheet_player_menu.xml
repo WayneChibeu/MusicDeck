@@ -252,6 +252,35 @@
             android:textColor="?attr/colorOnSurface" />
     </LinearLayout>
 
+    <!-- Car Mode -->
+    <LinearLayout
+        android:id="@+id/menuCarMode"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="56dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="12dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:background="?attr/selectableItemBackground">
+
+        <ImageView
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:src="@drawable/ic_directions_car"
+            app:tint="?attr/colorOnSurface"
+            android:layout_marginEnd="16dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Car Mode"
+            android:textSize="16sp"
+            android:textColor="?attr/colorOnSurface" />
+    </LinearLayout>
+
     <!-- Share -->
     <LinearLayout
         android:id="@+id/menuShare"
