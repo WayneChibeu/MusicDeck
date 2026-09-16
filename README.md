@@ -1,47 +1,72 @@
 # MusicDeck
 
-A modern, ad-free Android music player built with Kotlin and Jetpack Media3.
+A modern, ad-free Android music player powered by the proprietary **DeckAcoustix™ Native C++ DSP Audio Engine** and Jetpack Media3.
 
 ## Download
-[**Download Latest APK (v2.10.2)**](https://github.com/WayneChibeu/MusicDeck/releases/download/v2.10.2/MusicDeck-v2.10.2.apk)
+[**Download Latest APK (v3.0.13)**](https://github.com/WayneChibeu/MusicDeck/releases/download/v3.0.13/MusicDeck-v3.0.13.apk)
 
 *Alternatively, view all [Releases](https://github.com/WayneChibeu/MusicDeck/releases).*
 
-## Features
+---
 
-- **Audio Engine & Volume Booster**: Hardware-accelerated DSP featuring a clean digital volume booster up to +12 dB, 3D Spatial Virtualizer for wide stereo soundstage, and 5 curated acoustic presets (MusicDeck Signature, Cinema 3D, Vocal Clarity, Night Warmth, and Live Stage).
-- **Automated In-App Updates**: Native GitHub Releases update checker inspired by Seal, supporting background checks on launch, manual checks in About & Legal, and in-app download progress with seamless package installer handover via FileProvider.
-- **Cellular Data Awareness**: Automatic network metering detection before fetching lyrics, with real-time indicators and courteous confirmation prompts to protect your cellular data plan.
-- **Local Music Playback**: High-fidelity playback for local audio files (MP3, FLAC, WAV, AAC, and more).
-- **Floating Glass Alphabet Jumper**: Fast letter jumping with a glowing preview bubble and tactile mechanical haptics.
+## Flagship Features
+
+### 🎧 Audio & DeckAcoustix™ DSP Engine
+- **Headphone Crossfeed (Bauer Binaural DSP / BS2B)**: Native C++ acoustic head-shadow and delay compensation filter network. Recreates the natural acoustic soundstage of nearfield studio monitor speakers and eliminates extreme headphone listener fatigue on hard-panned stereo mixes (The Beatles, Queen, Pink Floyd, Jimi Hendrix). Includes 3 reference acoustic presets:
+  - **Subtle (Meier)**: 650 Hz cutoff, -9.5 dB feed (Jan Meier curve; wide, natural, transparent)
+  - **Standard (Bauer)**: 700 Hz cutoff, -6.0 dB feed (classic Bauer BS2B reference for rock and jazz)
+  - **Studio (Chu Moy)**: 700 Hz cutoff, -4.5 dB feed (nearfield monitor control room simulation)
+- **DeckAcoustix™ 64-Bit Native Audio Engine**: High-performance C++ DSP processing pipeline running at zero-allocation in-place execution with anti-pumping coupled peak limiter, dynamic headroom, and smooth parameter slewing.
+- **Parametric Equalizer with Interactive Frequency Response Graph**: 5-band cascaded biquad IIR filters with real-time smooth Bezier frequency curve visualization.
+- **Real-Time 60 FPS Spectrum Visualizer**: Radix-2 Fast Fourier Transform (FFT) 32-band ballistic decay analyzer rendered at silky 60 FPS.
+- **EQ Preset Community Sharing (`.deck` Files)**: Export, import, and trade custom sound profiles via the native Android Share sheet (WhatsApp, Telegram, Drive) with full crossfeed and EQ curve bundling.
+- **Bit-Perfect USB-DAC Passthrough**: High-resolution audio output with automatic sample-rate synchronization for external audiophile DACs and headphone amplifiers.
+- **Dual-Crossover Karaoke Cut**: Mid/side vocal cancellation preserving sub-bass punch and high-frequency acoustic air.
+- **Independent Tempo & Pitch Shifter**: High-quality WSOLA time-stretching (0.5x – 2.0x) and independent semitone pitch shifting (-12 to +12 semitones).
+- **Studio Algorithmic Reverb**: Schroeder-Freeverb algorithmic reverberator with adjustable room size, damping, and wet mix.
+- **Resonant Bass Boost & Volume Booster**: Analog-modeled resonant low-shelf boost and clean pre-amp volume booster.
+
+### 🚗 Vehicle & Driving
+- **Android Auto Integration**: Native in-dash browsing via `MediaLibraryService` across All Tracks, Playlists, Favorites, and Fresh Arrivals with steering wheel controls and Google Assistant voice search.
+- **Dedicated In-App Car Mode**: High-contrast, distraction-free driving dashboard with oversized touch targets (78dp Play/Pause, 60dp skip, 52dp seek) and 1-tap Favorite liking.
+- **Two-Pane Landscape Layout**: Purpose-built horizontal layout for vehicle dashboard mounts with a 1:1 album art display on the left and full driving controls on the right.
+
+### 🎨 Visuals, Library & Smart Management
+- **Universal Wallpaper Dynamic Theming (AndroidX Palette)**: Direct wallpaper sampling guaranteeing rich, vibrant dynamic theming on all Android ROMs (ColorOS, HyperOS/MIUI, HiOS/XOS, OriginOS).
+- **Smart Playlists**: Intelligent multi-attribute keyword scoring for **Energy Boost** (high-tempo, dance, rock, workout) and **Chill Mode** (acoustic, ambient, ballads, piano) with custom vector iconography.
+- **Shake to Shuffle (Pocket-Safe)**: Proximity-guarded motion detection that sleeps inside pockets or bags to prevent accidental walking/jogging shuffles.
 - **Intelligent Lyrics Engine**: Synchronized LRC lyrics fetching with confidence scoring and anti-hallucination verification.
 - **Floating Desktop Lyrics**: Picture-in-picture lyric overlay for multitasking across apps.
-- **Fluid 120fps Queue Drag Reordering**: Instant drag-to-reorder with elevation shadows and tactile haptic releases.
+- **Floating Glass Alphabet Jumper**: Fast letter jumping with a glowing preview bubble and tactile mechanical haptics.
 - **Glassmorphic Sleep Deck**: Quick preset timer pills (15m to 90m), custom minute slider, and "Stop After Current Song" mode.
 - **Listening Insights**: Total plays, weekly plays, artist counts, and listening streak tracking.
-- **Smart Playlists & Cover Collages**: Auto-generated mood mixes and dynamic 2x2 grid collage artwork.
-- **Studio-Grade AMOLED High Contrast**: Pure `#FFFFFF` typography over pitch-black glass surfaces.
-- **Personal Notes & Earbud Controls**: Personal song annotations and headset shortcuts.
+
+---
 
 ## Tech Stack
 
 | Component | Technology |
 |---|---|
-| Language | Kotlin |
-| Media & DSP | Jetpack Media3 (ExoPlayer + MediaSession), Android AudioFX |
-| UI | Material Design 3, View Binding |
-| Database | Room |
-| Storage & Prefs | MMKV |
+| Language | Kotlin, C++20 |
+| Native DSP Engine | Custom C++ DSP pipeline (Bauer Binaural BS2B, RBJ Biquads, Freeverb, WSOLA) via NDK & CMake |
+| Media & Playback | Jetpack Media3 (ExoPlayer + MediaSession + MediaLibraryService) |
+| Vehicle Integration | Android Auto Automotive Media App Descriptor |
+| Dynamic Theming | AndroidX Palette (WallpaperManager extraction), Material Design 3 |
+| UI Architecture | MVVM with ViewModel, LiveData, and View Binding |
+| Database | Room SQLite |
+| Local Storage & Prefs | MMKV, SharedPreferences |
 | Dependency Injection | Koin |
 | Image Loading | Coil |
-| Architecture | MVVM with ViewModel and LiveData |
-| Code Hardening | R8 / ProGuard bytecode obfuscation and resource shrinking |
+| Code Hardening | R8 / ProGuard bytecode optimization and resource shrinking |
+
+---
 
 ## Getting Started
 
 ### Prerequisites
-- Android Studio Hedgehog (2023.1.1) or later
+- Android Studio Ladybug / Hedgehog or later
 - Android SDK 34+
+- Android NDK (Side by side) & CMake 3.22+
 - JDK 17+
 
 ### Build Instructions
@@ -50,53 +75,49 @@ A modern, ad-free Android music player built with Kotlin and Jetpack Media3.
 # Clone the repository
 git clone https://github.com/WayneChibeu/MusicDeck.git
 
-# Open in Android Studio, sync Gradle, and run
+# Open in Android Studio, sync Gradle, and assemble release APK
+./gradlew assembleRelease
 ```
+
+---
 
 ## Technical Breakdown
 
 <details>
 <summary>Click to view Engineering Highlights & Architecture</summary>
 
-### 1. Hardware-Accelerated Sound Engine & DSP Architecture
-**Challenge:** Providing high-fidelity volume gain and spatial widening across various Android hardware configurations without digital clipping, audio dropouts, or native media server crashes when switching tracks.
+### 1. DeckAcoustix™ Native C++ Audio DSP Pipeline
+**Challenge:** Standard Android `AudioEffect` framework causes platform inconsistencies, latency spikes, and audio dropouts across OEM Android skins (Xiaomi HyperOS, Oppo ColorOS, Samsung OneUI).
 
-**Solution:** Integrated Android's hardware-accelerated `LoudnessEnhancer` and `Virtualizer` into `AudioEffectManager`. Dynamic gain is calculated with millivolt threshold precision up to +12 dB, synchronized directly with ExoPlayer's active `audioSessionId`, and guarded by lifecycle listeners to prevent stale audio effect attachments. Custom frequency curves and acoustic profiles are persisted in MMKV for instant restoration across app restarts.
+**Solution:** Engineered an in-process native C++ audio processing engine running directly inside Media3's audio pipeline. Audio buffers are processed zero-copy in-place using continuous bilinear transforms with sample-rate pre-warping, 5-band cascaded biquads, and an anti-pumping coupled peak limiter that prevents digital clipping transparently without audio distortion.
 
-### 2. In-App Automated Release Distribution
-**Challenge:** Keeping sideloaded and open-source installs up to date without relying on external browser redirections or third-party store dependencies.
+### 2. Bauer Binaural Crossfeed (BS2B) Implementation
+**Challenge:** Extreme stereo panning on headphones causes unnatural "in-head" localization and severe one-sided ear pressure fatigue.
 
-**Solution:** Engineered an in-app updater querying the GitHub Releases API. Releases are parsed and semantic versions are compared against the active `BuildConfig.VERSION_NAME`. When a newer version is confirmed, APKs stream directly to application storage with real-time download progress and launch the Android package installer using secure `FileProvider` authorities and install permissions.
+**Solution:** Implemented Benjamin Bauer's acoustic head-shadow model and Boris Mikhaylov's BS2B algorithm using continuous 1st-order IIR direct high-boost and cross-delay low-pass filters in Transposed Direct Form II. The DSP continuously simulates acoustic interaural time delay (ITD) and head-related transfer functions (HRTF) with zero runtime memory allocation.
 
-### 3. Intelligent Lyrics Matching & Anti-Hallucination Engine
-**Challenge:** Online lyric APIs often return inaccurate or hallucinated lyrics when querying common song titles (e.g., *King* or *You*), or fail when tracks include featuring artist tags (`feat.`, `ft.`).
+### 3. Universal Wallpaper Palette Dynamic Theming
+**Challenge:** Standard Material You / Monet theming engines frequently fail or produce muted, grayed-out accent colors on non-Google Android ROMs.
 
-**Solution:** Designed an intelligent preprocessing and candidate-scoring engine in `LyricsApiService`. The pipeline sanitizes featuring artists from track titles and evaluates candidate search results across multi-factor criteria (title similarity, artist match confidence, and duration delta). Low-confidence matches are rejected to cleanly report *"Lyrics not found online"* rather than serving mismatched lyrics.
+**Solution:** Bypassed OEM theme engines by directly accessing the active device wallpaper via `WallpaperManager`, downsampling the bitmap in-memory, and extracting dominant, vibrant, and muted swatches using `androidx.palette`. Palettes are applied dynamically across all glassmorphic surfaces with instant live preview.
 
-### 4. Background MediaSession & Audio Lifecycle
-**Challenge:** Managing the transition between foreground UI activity and background `MediaSessionService` while ensuring instant scrub/seek responsiveness without audio stutter or silence gaps.
+### 4. Vehicle MediaLibraryService & Distraction-Free Dashboard
+**Challenge:** Enabling safe vehicle media playback across both in-dash Android Auto head units and standalone mounted phone dashboards.
 
-**Solution:** Implemented a decoupled Jetpack Media3 `MediaSessionService` with a custom forwarding player (`AutoPlayForwardingPlayer`). Seek operations utilize exact synchronization (`CLOSEST_SYNC`) and instant full-volume resume, while Sunset Mode isolates fade-out transitions strictly to pause events.
+**Solution:** Implemented an automotive `MediaLibraryService` conforming to Android Auto's strict media browsing guidelines, paired with a dedicated `CarModeActivity` featuring oversized driver-safe touch targets (78dp center control, 60dp skips), automatic `FLAG_KEEP_SCREEN_ON` wake locks, and a horizontal two-pane landscape layout for dashboard docks.
 
-### 5. Studio-Grade High-Contrast UI & Dynamic Theming
-**Challenge:** Maintaining crisp text legibility and visual hierarchy over vibrant, constantly shifting album art ambient gradients.
+### 5. In-App Automated Release Distribution
+**Challenge:** Keeping sideloaded and open-source installs up to date without third-party store dependencies.
 
-**Solution:** Standardized core typography, synchronized lyric lines, and transport controls on pure `#FFFFFF` white contrast tokens against dynamic dark-gradient backdrops, ensuring WCAG-grade readability without sacrificing aesthetic vibrancy.
-
-### 6. UI State Synchronization (MVVM)
-**Challenge:** Synchronizing real-time playback state across independent components (Mini Player bar, Full Player Bottom Sheet, and notifications) without UI lag.
-
-**Solution:** Established a single reactive source of truth using `ViewModel` and `LiveData` observing Jetpack Media3 `Player.Listener` events. Mini Player interaction logic decouples session initialization (`autoPlay = false`) from playback trigger events to prevent abrupt startup jumps.
+**Solution:** Engineered an in-app updater querying the GitHub Releases API. Releases are parsed, semantic versions are compared against `BuildConfig.VERSION_NAME`, and APKs stream directly to application storage with real-time download progress before handing over to the Android package installer via `FileProvider`.
 
 </details>
+
+---
 
 ## License
 
 This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) and [NOTICE](NOTICE) files for details.
-
-## Contributing
-
-Contributions, issues, and feature requests are welcome! Feel free to check the [issues page](https://github.com/WayneChibeu/MusicDeck/issues) if you want to contribute.
 
 ## Author
 
