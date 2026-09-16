@@ -47,11 +47,50 @@ class PlaylistAdapter(
             binding.ivSingleArt.visibility = android.view.View.VISIBLE
             
             if (isSmart) {
-                binding.ivSingleArt.clearColorFilter()
-                binding.ivSingleArt.setImageResource(R.drawable.ic_auto_fix)
-                binding.ivSingleArt.setColorFilter(binding.root.context.getColor(R.color.colorNeon))
                 binding.btnMore.visibility = android.view.View.GONE
+                binding.ivSingleArt.clearColorFilter()
+                
+                // 13dp inside padding so the 24dp vector is centered and perfectly sized within 56dp CardView
+                val pad = (13 * binding.root.resources.displayMetrics.density).toInt()
+                binding.ivSingleArt.setPadding(pad, pad, pad, pad)
+                binding.ivSingleArt.scaleType = android.widget.ImageView.ScaleType.CENTER_INSIDE
+
+                when (playlist.id) {
+                    com.wayne.musicdeck.data.SmartPlaylistManager.ID_RECENTLY_ADDED -> {
+                        binding.ivSingleArt.setImageResource(R.drawable.ic_music_note)
+                        binding.ivSingleArt.setColorFilter(android.graphics.Color.parseColor("#4ADE80"))
+                        binding.ivSingleArt.setBackgroundColor(android.graphics.Color.parseColor("#264ADE80"))
+                    }
+                    com.wayne.musicdeck.data.SmartPlaylistManager.ID_HEAVY_ROTATION -> {
+                        binding.ivSingleArt.setImageResource(R.drawable.ic_fire)
+                        binding.ivSingleArt.setColorFilter(android.graphics.Color.parseColor("#FB923C"))
+                        binding.ivSingleArt.setBackgroundColor(android.graphics.Color.parseColor("#26FB923C"))
+                    }
+                    com.wayne.musicdeck.data.SmartPlaylistManager.ID_FORGOTTEN_GEMS -> {
+                        binding.ivSingleArt.setImageResource(R.drawable.ic_gem)
+                        binding.ivSingleArt.setColorFilter(android.graphics.Color.parseColor("#C084FC"))
+                        binding.ivSingleArt.setBackgroundColor(android.graphics.Color.parseColor("#26C084FC"))
+                    }
+                    com.wayne.musicdeck.data.SmartPlaylistManager.ID_CHILL_MODE -> {
+                        binding.ivSingleArt.setImageResource(R.drawable.ic_sunset)
+                        binding.ivSingleArt.setColorFilter(android.graphics.Color.parseColor("#38BDF8"))
+                        binding.ivSingleArt.setBackgroundColor(android.graphics.Color.parseColor("#2638BDF8"))
+                    }
+                    com.wayne.musicdeck.data.SmartPlaylistManager.ID_ENERGY_BOOST -> {
+                        binding.ivSingleArt.setImageResource(R.drawable.ic_bolt)
+                        binding.ivSingleArt.setColorFilter(android.graphics.Color.parseColor("#FACC15"))
+                        binding.ivSingleArt.setBackgroundColor(android.graphics.Color.parseColor("#26FACC15"))
+                    }
+                    else -> {
+                        binding.ivSingleArt.setImageResource(R.drawable.ic_music_note)
+                        binding.ivSingleArt.setColorFilter(binding.root.context.getColor(R.color.colorNeon))
+                        binding.ivSingleArt.setBackgroundColor(android.graphics.Color.parseColor("#22000000"))
+                    }
+                }
             } else if (playlist.imagePath != null) {
+                binding.ivSingleArt.setPadding(0, 0, 0, 0)
+                binding.ivSingleArt.scaleType = android.widget.ImageView.ScaleType.CENTER_CROP
+                binding.ivSingleArt.setBackgroundColor(android.graphics.Color.parseColor("#22000000"))
                 binding.ivSingleArt.clearColorFilter()
                 binding.btnMore.visibility = android.view.View.VISIBLE
                 binding.ivSingleArt.load(java.io.File(playlist.imagePath)) {
@@ -59,6 +98,10 @@ class PlaylistAdapter(
                      error(R.drawable.ic_launcher_background) // fallback
                 }
             } else {
+                val folderPad = (10 * binding.root.resources.displayMetrics.density).toInt()
+                binding.ivSingleArt.setPadding(folderPad, folderPad, folderPad, folderPad)
+                binding.ivSingleArt.scaleType = android.widget.ImageView.ScaleType.CENTER_INSIDE
+                binding.ivSingleArt.setBackgroundColor(android.graphics.Color.parseColor("#22000000"))
                 binding.btnMore.visibility = android.view.View.VISIBLE
                 binding.ivSingleArt.clearColorFilter()
                 binding.ivSingleArt.setImageResource(R.drawable.ic_folder)

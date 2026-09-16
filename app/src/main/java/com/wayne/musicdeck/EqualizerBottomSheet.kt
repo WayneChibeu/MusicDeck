@@ -2,6 +2,7 @@ package com.wayne.musicdeck
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.MotionEvent
@@ -18,6 +19,8 @@ import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.materialswitch.MaterialSwitch
+import com.wayne.musicdeck.data.EQPreset
+import com.wayne.musicdeck.utils.EQPresetManager
 import com.wayne.musicdeck.views.EqualizerGraphView
 
 class EqualizerBottomSheet : BottomSheetDialogFragment() {
@@ -28,8 +31,14 @@ class EqualizerBottomSheet : BottomSheetDialogFragment() {
     private val gainLabels = mutableListOf<TextView>()
     private val presetPillViews = mutableMapOf<String, TextView>()
     
-    // Presets: name -> array of band values (normalized 0-100)
-    private val customPresets = mapOf(
+    private val importPresetLauncher = registerForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.GetContent()
+    ) { uri ->
+        uri?.let { handleImportedUri(it) }
+    }
+
+    // Built-in presets: name -> array of band values (normalized 0-100)
+    private val builtInPresets = linkedMapOf(
         "MusicDeck Signature" to intArrayOf(62, 56, 52, 60, 68),
         "Cinema 3D" to intArrayOf(75, 50, 42, 65, 75),
         "Vocal Clarity" to intArrayOf(35, 45, 75, 70, 50),
@@ -46,6 +55,8 @@ class EqualizerBottomSheet : BottomSheetDialogFragment() {
         "Pop" to intArrayOf(55, 65, 70, 60, 55),
         "Rock" to intArrayOf(70, 60, 50, 60, 70)
     )
+
+    private val userPresets = mutableMapOf<String, EQPreset>()
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -84,9 +95,11 @@ class EqualizerBottomSheet : BottomSheetDialogFragment() {
             setupBassBoost(view)
             setupVolumeBoost(view)
             setupVirtualizer(view)
+            setupCrossfeed(view)
             setupKaraoke(view)
             setupExtremeBass(view)
             setupPresets(view)
+            setupImportExportButtons(view)
             setupSwitch(view)
             setupResetButton(view)
             setupPresetScrollProtection(view)
@@ -398,6 +411,123 @@ class EqualizerBottomSheet : BottomSheetDialogFragment() {
         })
     }
 
+    private fun setupCrossfeed(view: View) {
+        val seekCrossfeed = view.findViewById<SeekBar>(R.id.seekCrossfeed) ?: return
+        val tvCrossfeedLevel = view.findViewById<TextView>(R.id.tvCrossfeedLevel) ?: return
+        val chipSubtle = view.findViewById<TextView>(R.id.chipCrossfeedSubtle) ?: return
+        val chipStandard = view.findViewById<TextView>(R.id.chipCrossfeedStandard) ?: return
+        val chipStudio = view.findViewById<TextView>(R.id.chipCrossfeedStudio) ?: return
+
+        attachTouchDisallow(seekCrossfeed)
+
+        val context = requireContext()
+        val currentStrength = AudioEffectManager.getSavedCrossfeedStrength(context)
+        var currentMode = AudioEffectManager.getSavedCrossfeedMode(context)
+
+        seekCrossfeed.progress = currentStrength
+        updateCrossfeedLevelText(tvCrossfeedLevel, currentStrength, currentMode)
+        updateCrossfeedChips(currentMode, chipSubtle, chipStandard, chipStudio)
+
+        chipSubtle.setOnClickListener {
+            currentMode = 1
+            AudioEffectManager.setCrossfeedMode(1, requireContext())
+            if (seekCrossfeed.progress == 0) {
+                seekCrossfeed.progress = 350
+                AudioEffectManager.setCrossfeedStrength(350, requireContext())
+            }
+            updateCrossfeedChips(1, chipSubtle, chipStandard, chipStudio)
+            updateCrossfeedLevelText(tvCrossfeedLevel, seekCrossfeed.progress, 1)
+        }
+
+        chipStandard.setOnClickListener {
+            currentMode = 2
+            AudioEffectManager.setCrossfeedMode(2, requireContext())
+            if (seekCrossfeed.progress == 0) {
+                seekCrossfeed.progress = 650
+                AudioEffectManager.setCrossfeedStrength(650, requireContext())
+            }
+            updateCrossfeedChips(2, chipSubtle, chipStandard, chipStudio)
+            updateCrossfeedLevelText(tvCrossfeedLevel, seekCrossfeed.progress, 2)
+        }
+
+        chipStudio.setOnClickListener {
+            currentMode = 3
+            AudioEffectManager.setCrossfeedMode(3, requireContext())
+            if (seekCrossfeed.progress == 0) {
+                seekCrossfeed.progress = 1000
+                AudioEffectManager.setCrossfeedStrength(1000, requireContext())
+            }
+            updateCrossfeedChips(3, chipSubtle, chipStandard, chipStudio)
+            updateCrossfeedLevelText(tvCrossfeedLevel, seekCrossfeed.progress, 3)
+        }
+
+        var lastAppliedStrength = currentStrength
+        val throttleHandler = android.os.Handler(android.os.Looper.getMainLooper())
+        var pendingRunnable: Runnable? = null
+
+        seekCrossfeed.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                if (fromUser) {
+                    updateCrossfeedLevelText(tvCrossfeedLevel, progress, currentMode)
+
+                    if (Math.abs(progress - lastAppliedStrength) >= 20) {
+                        pendingRunnable?.let { throttleHandler.removeCallbacks(it) }
+                        lastAppliedStrength = progress
+                        AudioEffectManager.setCrossfeedStrength(progress, requireContext(), saveToPrefs = false)
+                    } else {
+                        pendingRunnable?.let { throttleHandler.removeCallbacks(it) }
+                        val runnable = Runnable {
+                            lastAppliedStrength = progress
+                            AudioEffectManager.setCrossfeedStrength(progress, requireContext(), saveToPrefs = false)
+                        }
+                        pendingRunnable = runnable
+                        throttleHandler.postDelayed(runnable, 30)
+                    }
+                }
+            }
+
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {
+                seekBar?.parent?.requestDisallowInterceptTouchEvent(true)
+            }
+
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {
+                seekBar?.parent?.requestDisallowInterceptTouchEvent(false)
+                pendingRunnable?.let { throttleHandler.removeCallbacks(it) }
+                val finalProgress = seekBar?.progress ?: return
+                AudioEffectManager.setCrossfeedStrength(finalProgress, requireContext(), saveToPrefs = true)
+            }
+        })
+    }
+
+    private fun updateCrossfeedLevelText(tv: TextView, progress: Int, mode: Int) {
+        if (progress == 0) {
+            tv.text = "Off"
+        } else {
+            val modeName = when (mode) {
+                1 -> "Meier"
+                3 -> "Chu Moy"
+                else -> "Bauer"
+            }
+            tv.text = "$modeName ${progress / 10}%"
+        }
+    }
+
+    private fun updateCrossfeedChips(activeMode: Int, chipSubtle: TextView, chipStandard: TextView, chipStudio: TextView) {
+        val activeRes = R.drawable.bg_preset_pill_active
+        val inactiveRes = R.drawable.bg_preset_pill_inactive
+        val activeColor = ContextCompat.getColor(requireContext(), R.color.white)
+        val inactiveColor = ContextCompat.getColor(requireContext(), R.color.textSecondary)
+
+        chipSubtle.setBackgroundResource(if (activeMode == 1) activeRes else inactiveRes)
+        chipSubtle.setTextColor(if (activeMode == 1) activeColor else inactiveColor)
+
+        chipStandard.setBackgroundResource(if (activeMode == 2) activeRes else inactiveRes)
+        chipStandard.setTextColor(if (activeMode == 2) activeColor else inactiveColor)
+
+        chipStudio.setBackgroundResource(if (activeMode == 3) activeRes else inactiveRes)
+        chipStudio.setTextColor(if (activeMode == 3) activeColor else inactiveColor)
+    }
+
     private fun setupSwitch(view: View) {
         val switch = view.findViewById<MaterialSwitch>(R.id.switchEq) ?: return
         val tvEqStatus = view.findViewById<TextView>(R.id.tvEqStatus) ?: return
@@ -447,36 +577,58 @@ class EqualizerBottomSheet : BottomSheetDialogFragment() {
         val container = view.findViewById<LinearLayout>(R.id.presetChipsContainer) ?: return
         container.removeAllViews()
         presetPillViews.clear()
+        userPresets.clear()
 
-        val rawPreset = AudioEffectManager.getSavedPreset(requireContext())
-        val savedPreset = if (rawPreset.equals("Normal", ignoreCase = true)) "Flat" else rawPreset
         val context = requireContext()
+        val rawPreset = AudioEffectManager.getSavedPreset(context)
+        val savedPreset = if (rawPreset.equals("Normal", ignoreCase = true)) "Flat" else rawPreset
 
-        customPresets.keys.forEach { presetName ->
-            val pill = TextView(context).apply {
-                text = presetName
-                textSize = 13f
-                setPadding(dpToPx(16), dpToPx(8), dpToPx(16), dpToPx(8))
-                val params = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.WRAP_CONTENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT
-                ).apply {
-                    marginEnd = dpToPx(8)
-                }
-                layoutParams = params
-                isClickable = true
-                isFocusable = true
-                
-                setOnClickListener {
-                    selectPresetPill(presetName)
-                    applyPreset(presetName)
-                }
-            }
+        // 1. User custom presets (.deck imports / saved profiles)
+        val savedCustom = EQPresetManager.getSavedCustomPresets(context)
+        savedCustom.forEach { preset ->
+            userPresets[preset.name] = preset
+            val pill = createPresetPill(context, preset.name, isCustom = true)
+            container.addView(pill)
+            presetPillViews[preset.name] = pill
+        }
+
+        // 2. Built-in presets
+        builtInPresets.keys.forEach { presetName ->
+            val pill = createPresetPill(context, presetName, isCustom = false)
             container.addView(pill)
             presetPillViews[presetName] = pill
         }
 
         selectPresetPill(savedPreset)
+    }
+
+    private fun createPresetPill(context: Context, presetName: String, isCustom: Boolean): TextView {
+        return TextView(context).apply {
+            text = if (isCustom) "$presetName (Custom)" else presetName
+            textSize = 13f
+            setPadding(dpToPx(16), dpToPx(8), dpToPx(16), dpToPx(8))
+            val params = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                marginEnd = dpToPx(8)
+            }
+            layoutParams = params
+            isClickable = true
+            isFocusable = true
+
+            setOnClickListener {
+                selectPresetPill(presetName)
+                applyPreset(presetName)
+            }
+
+            if (isCustom) {
+                setOnLongClickListener {
+                    showCustomPresetOptionsDialog(presetName)
+                    true
+                }
+            }
+        }
     }
 
     private fun selectPresetPill(selectedPreset: String) {
@@ -493,7 +645,10 @@ class EqualizerBottomSheet : BottomSheetDialogFragment() {
     
     private fun applyPreset(presetName: String) {
         val targetPreset = if (presetName.equals("Normal", ignoreCase = true)) "Flat" else presetName
-        val values = customPresets[targetPreset] ?: return
+
+        val customPreset = userPresets[targetPreset]
+        val values = customPreset?.bands ?: builtInPresets[targetPreset] ?: return
+
         val eq = AudioEffectManager.getEqualizer()
         val minLevel = eq?.bandLevelRange?.get(0) ?: -1500
         val maxLevel = eq?.bandLevelRange?.get(1) ?: 1500
@@ -510,6 +665,85 @@ class EqualizerBottomSheet : BottomSheetDialogFragment() {
             val level = (minLevel + (values[i] * range / 100)).toShort()
             updateGainLabel(i, level)
         }
+
+        if (customPreset != null) {
+            // Apply parameters from imported / saved .deck profile
+            if (customPreset.bassBoost > 0) {
+                AudioEffectManager.setBassBoostStrength(customPreset.bassBoost, requireContext())
+                view?.findViewById<SeekBar>(R.id.seekBassBoost)?.progress = customPreset.bassBoost
+                view?.findViewById<TextView>(R.id.tvBassBoostLevel)?.text = "${customPreset.bassBoost / 10}%"
+            }
+            if (customPreset.virtualizer > 0) {
+                AudioEffectManager.setVirtualizerStrength(customPreset.virtualizer, requireContext())
+                view?.findViewById<SeekBar>(R.id.seekVirtualizer)?.progress = customPreset.virtualizer
+                view?.findViewById<TextView>(R.id.tvVirtualizerLevel)?.text = "${customPreset.virtualizer / 10}%"
+            }
+            if (customPreset.extremeBass != AudioEffectManager.isExtremeBassEnabled(requireContext())) {
+                AudioEffectManager.setExtremeBassEnabled(customPreset.extremeBass, requireContext())
+                view?.findViewById<MaterialSwitch>(R.id.switchExtremeBass)?.isChecked = customPreset.extremeBass
+            }
+            if (customPreset.crossfeed > 0) {
+                AudioEffectManager.setCrossfeedMode(customPreset.crossfeedMode, requireContext())
+                AudioEffectManager.setCrossfeedStrength(customPreset.crossfeed, requireContext())
+                view?.findViewById<SeekBar>(R.id.seekCrossfeed)?.progress = customPreset.crossfeed
+                view?.findViewById<TextView>(R.id.tvCrossfeedLevel)?.let {
+                    updateCrossfeedLevelText(it, customPreset.crossfeed, customPreset.crossfeedMode)
+                }
+                val chipSubtle = view?.findViewById<TextView>(R.id.chipCrossfeedSubtle)
+                val chipStandard = view?.findViewById<TextView>(R.id.chipCrossfeedStandard)
+                val chipStudio = view?.findViewById<TextView>(R.id.chipCrossfeedStudio)
+                if (chipSubtle != null && chipStandard != null && chipStudio != null) {
+                    updateCrossfeedChips(customPreset.crossfeedMode, chipSubtle, chipStandard, chipStudio)
+                }
+            } else {
+                AudioEffectManager.setCrossfeedStrength(0, requireContext())
+                view?.findViewById<SeekBar>(R.id.seekCrossfeed)?.progress = 0
+                view?.findViewById<TextView>(R.id.tvCrossfeedLevel)?.text = "Off"
+            }
+        } else {
+            // Built-in preset spatial profiles
+            when (presetName) {
+                "Cinema 3D" -> {
+                    AudioEffectManager.setVirtualizerStrength(600, requireContext())
+                    view?.findViewById<SeekBar>(R.id.seekVirtualizer)?.progress = 600
+                    view?.findViewById<TextView>(R.id.tvVirtualizerLevel)?.text = "60%"
+                    AudioEffectManager.setCrossfeedMode(1, requireContext())
+                    AudioEffectManager.setCrossfeedStrength(300, requireContext())
+                    view?.findViewById<SeekBar>(R.id.seekCrossfeed)?.progress = 300
+                    view?.findViewById<TextView>(R.id.tvCrossfeedLevel)?.let { updateCrossfeedLevelText(it, 300, 1) }
+                }
+                "MusicDeck Signature" -> {
+                    AudioEffectManager.setVirtualizerStrength(200, requireContext())
+                    view?.findViewById<SeekBar>(R.id.seekVirtualizer)?.progress = 200
+                    view?.findViewById<TextView>(R.id.tvVirtualizerLevel)?.text = "20%"
+                    AudioEffectManager.setCrossfeedMode(2, requireContext())
+                    AudioEffectManager.setCrossfeedStrength(450, requireContext())
+                    view?.findViewById<SeekBar>(R.id.seekCrossfeed)?.progress = 450
+                    view?.findViewById<TextView>(R.id.tvCrossfeedLevel)?.let { updateCrossfeedLevelText(it, 450, 2) }
+                }
+                "Live Stage" -> {
+                    AudioEffectManager.setVirtualizerStrength(450, requireContext())
+                    view?.findViewById<SeekBar>(R.id.seekVirtualizer)?.progress = 450
+                    view?.findViewById<TextView>(R.id.tvVirtualizerLevel)?.text = "45%"
+                    AudioEffectManager.setCrossfeedMode(2, requireContext())
+                    AudioEffectManager.setCrossfeedStrength(500, requireContext())
+                    view?.findViewById<SeekBar>(R.id.seekCrossfeed)?.progress = 500
+                    view?.findViewById<TextView>(R.id.tvCrossfeedLevel)?.let { updateCrossfeedLevelText(it, 500, 2) }
+                }
+                "Flat" -> {
+                    AudioEffectManager.setCrossfeedStrength(0, requireContext())
+                    view?.findViewById<SeekBar>(R.id.seekCrossfeed)?.progress = 0
+                    view?.findViewById<TextView>(R.id.tvCrossfeedLevel)?.text = "Off"
+                }
+            }
+
+            val chipSubtle = view?.findViewById<TextView>(R.id.chipCrossfeedSubtle)
+            val chipStandard = view?.findViewById<TextView>(R.id.chipCrossfeedStandard)
+            val chipStudio = view?.findViewById<TextView>(R.id.chipCrossfeedStudio)
+            if (chipSubtle != null && chipStandard != null && chipStudio != null) {
+                updateCrossfeedChips(AudioEffectManager.getSavedCrossfeedMode(requireContext()), chipSubtle, chipStandard, chipStudio)
+            }
+        }
         
         if (AudioEffectManager.isExtremeBassEnabled(requireContext())) {
             AudioEffectManager.applyExtremeBass()
@@ -519,26 +753,143 @@ class EqualizerBottomSheet : BottomSheetDialogFragment() {
             }
         }
 
-        // Custom branded preset spatial profiles
-        when (presetName) {
-            "Cinema 3D" -> {
-                AudioEffectManager.setVirtualizerStrength(600, requireContext())
-                view?.findViewById<SeekBar>(R.id.seekVirtualizer)?.progress = 600
-                view?.findViewById<TextView>(R.id.tvVirtualizerLevel)?.text = "60%"
-            }
-            "MusicDeck Signature" -> {
-                AudioEffectManager.setVirtualizerStrength(200, requireContext())
-                view?.findViewById<SeekBar>(R.id.seekVirtualizer)?.progress = 200
-                view?.findViewById<TextView>(R.id.tvVirtualizerLevel)?.text = "20%"
-            }
-            "Live Stage" -> {
-                AudioEffectManager.setVirtualizerStrength(450, requireContext())
-                view?.findViewById<SeekBar>(R.id.seekVirtualizer)?.progress = 450
-                view?.findViewById<TextView>(R.id.tvVirtualizerLevel)?.text = "45%"
+        AudioEffectManager.savePreset(presetName, requireContext())
+    }
+
+    private fun setupImportExportButtons(view: View) {
+        view.findViewById<View>(R.id.btnImportDeckPreset)?.setOnClickListener {
+            try {
+                importPresetLauncher.launch("*/*")
+            } catch (e: Exception) {
+                Toast.makeText(context, "Cannot open file picker: ${e.message}", Toast.LENGTH_SHORT).show()
             }
         }
-        
-        AudioEffectManager.savePreset(presetName, requireContext())
+
+        view.findViewById<View>(R.id.btnExportDeckPreset)?.setOnClickListener {
+            showExportPresetDialog()
+        }
+    }
+
+    private fun handleImportedUri(uri: Uri) {
+        val ctx = context ?: return
+        val preset = EQPresetManager.importPresetFromUri(ctx, uri)
+        if (preset != null) {
+            val v = view ?: return
+            setupPresets(v)
+            selectPresetPill(preset.name)
+            applyPreset(preset.name)
+            Toast.makeText(ctx, "Imported '${preset.name}' (.deck)!", Toast.LENGTH_SHORT).show()
+        } else {
+            Toast.makeText(ctx, "Failed to import: Not a valid .deck file", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun showExportPresetDialog() {
+        val ctx = context ?: return
+        val input = android.widget.EditText(ctx).apply {
+            hint = "e.g. Sony XM5 Punch, Vocal Boost"
+            setTextColor(android.graphics.Color.WHITE)
+            setHintTextColor(android.graphics.Color.GRAY)
+            val pad = dpToPx(14)
+            setPadding(pad, pad, pad, pad)
+            background = ContextCompat.getDrawable(ctx, R.drawable.bg_preset_pill_inactive)
+            isSingleLine = true
+        }
+
+        val container = FrameLayout(ctx).apply {
+            val padH = dpToPx(24)
+            val padV = dpToPx(12)
+            setPadding(padH, padV, padH, padV)
+            addView(input)
+        }
+
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(ctx)
+            .setTitle("Export EQ Preset (.deck)")
+            .setMessage("Save your current 5-band EQ curve and DSP settings to export and share with friends.")
+            .setView(container)
+            .setPositiveButton("Save & Share") { _, _ ->
+                val name = input.text.toString().trim().ifEmpty { "Custom EQ" }
+                val currentBands = IntArray(seekBars.size) { i -> seekBars[i].progress }
+                val bassBoost = AudioEffectManager.getBassBoostStrength(ctx)
+                val virtualizer = AudioEffectManager.getSavedVirtualizerStrength(ctx)
+                val crossfeed = AudioEffectManager.getSavedCrossfeedStrength(ctx)
+                val crossfeedMode = AudioEffectManager.getSavedCrossfeedMode(ctx)
+                val extremeBass = AudioEffectManager.isExtremeBassEnabled(ctx)
+                val volumeBoost = AudioEffectManager.getSavedVolumeBoostGain(ctx)
+
+                val preset = EQPreset(
+                    name = name,
+                    bands = currentBands,
+                    bassBoost = bassBoost,
+                    virtualizer = virtualizer,
+                    crossfeed = crossfeed,
+                    crossfeedMode = crossfeedMode,
+                    extremeBass = extremeBass,
+                    volumeBoost = volumeBoost
+                )
+
+                EQPresetManager.saveCustomPreset(ctx, preset)
+                view?.let {
+                    setupPresets(it)
+                    selectPresetPill(name)
+                    applyPreset(name)
+                }
+
+                EQPresetManager.sharePreset(ctx, preset)
+            }
+            .setNeutralButton("Save Only") { _, _ ->
+                val name = input.text.toString().trim().ifEmpty { "Custom EQ" }
+                val currentBands = IntArray(seekBars.size) { i -> seekBars[i].progress }
+                val bassBoost = AudioEffectManager.getBassBoostStrength(ctx)
+                val virtualizer = AudioEffectManager.getSavedVirtualizerStrength(ctx)
+                val crossfeed = AudioEffectManager.getSavedCrossfeedStrength(ctx)
+                val crossfeedMode = AudioEffectManager.getSavedCrossfeedMode(ctx)
+                val extremeBass = AudioEffectManager.isExtremeBassEnabled(ctx)
+                val volumeBoost = AudioEffectManager.getSavedVolumeBoostGain(ctx)
+
+                val preset = EQPreset(
+                    name = name,
+                    bands = currentBands,
+                    bassBoost = bassBoost,
+                    virtualizer = virtualizer,
+                    crossfeed = crossfeed,
+                    crossfeedMode = crossfeedMode,
+                    extremeBass = extremeBass,
+                    volumeBoost = volumeBoost
+                )
+
+                EQPresetManager.saveCustomPreset(ctx, preset)
+                view?.let {
+                    setupPresets(it)
+                    selectPresetPill(name)
+                    applyPreset(name)
+                }
+                Toast.makeText(ctx, "Saved preset '$name'!", Toast.LENGTH_SHORT).show()
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun showCustomPresetOptionsDialog(presetName: String) {
+        val ctx = context ?: return
+        val preset = userPresets[presetName] ?: return
+        val options = arrayOf("Share Preset (.deck)", "Delete Preset")
+
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(ctx)
+            .setTitle(presetName)
+            .setItems(options) { _, which ->
+                when (which) {
+                    0 -> EQPresetManager.sharePreset(ctx, preset)
+                    1 -> {
+                        EQPresetManager.deleteCustomPreset(ctx, presetName)
+                        view?.let { setupPresets(it) }
+                        selectPresetPill("Flat")
+                        applyPreset("Flat")
+                        Toast.makeText(ctx, "Deleted '$presetName'", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+            .show()
     }
 
     private fun setupResetButton(view: View) {
@@ -567,6 +918,20 @@ class EqualizerBottomSheet : BottomSheetDialogFragment() {
             seekVirtualizer?.progress = 0
             tvVirtualizerLevel?.text = "0%"
             AudioEffectManager.setVirtualizerStrength(0, requireContext())
+
+            // Reset crossfeed
+            val seekCrossfeed = view.findViewById<SeekBar>(R.id.seekCrossfeed)
+            val tvCrossfeedLevel = view.findViewById<TextView>(R.id.tvCrossfeedLevel)
+            seekCrossfeed?.progress = 0
+            tvCrossfeedLevel?.text = "Off"
+            AudioEffectManager.setCrossfeedStrength(0, requireContext())
+            AudioEffectManager.setCrossfeedMode(2, requireContext())
+            val chipSubtle = view.findViewById<TextView>(R.id.chipCrossfeedSubtle)
+            val chipStandard = view.findViewById<TextView>(R.id.chipCrossfeedStandard)
+            val chipStudio = view.findViewById<TextView>(R.id.chipCrossfeedStudio)
+            if (chipSubtle != null && chipStandard != null && chipStudio != null) {
+                updateCrossfeedChips(2, chipSubtle, chipStandard, chipStudio)
+            }
             
             // Turn off extreme bass
             val switchExtreme = view.findViewById<MaterialSwitch>(R.id.switchExtremeBass)

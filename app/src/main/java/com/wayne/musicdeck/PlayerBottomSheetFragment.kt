@@ -633,35 +633,15 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         var startX = 0f
         var startY = 0f
         var isHorizontalDrag = false
+        var isVerticalSwipeDown = false
 
-        val gestureDetector = GestureDetector(requireContext(), object : GestureDetector.SimpleOnGestureListener() {
-            override fun onDoubleTap(e: MotionEvent): Boolean {
-                val isRightHalf = e.x > (artView.width / 2f)
-                val player = viewModel.mediaController.value ?: return false
-                val current = player.currentPosition
-                val duration = player.duration
-                if (isRightHalf) {
-                    val target = if (duration > 0) (current + 5000).coerceAtMost(duration) else current + 5000
-                    player.seekTo(target)
-                    com.wayne.musicdeck.utils.HapticManager.performSpringClick(requireContext())
-                    showSeekFeedback(isForward = true)
-                } else {
-                    val target = (current - 5000).coerceAtLeast(0L)
-                    player.seekTo(target)
-                    com.wayne.musicdeck.utils.HapticManager.performSpringClick(requireContext())
-                    showSeekFeedback(isForward = false)
-                }
-                return true
-            }
-
-            override fun onSingleTapConfirmed(e: MotionEvent): Boolean {
-                artView.performClick()
-                return true
-            }
-        })
+        var lastTapTime = 0L
+        var lastTapX = 0f
+        var lastTapY = 0f
+        var consecutiveTapCount = 0
+        var currentSeekSideIsForward: Boolean? = null
 
         artView.setOnTouchListener { v, event ->
-            gestureDetector.onTouchEvent(event)
             if (velocityTracker == null) {
                 velocityTracker = android.view.VelocityTracker.obtain()
             }
@@ -669,29 +649,58 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
 
             when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
+                    if (isTrackChangeAnimating) {
+                        completeTrackChangeImmediately()
+                    }
                     startX = event.rawX
                     startY = event.rawY
                     isHorizontalDrag = false
-                    // Immediately claim touch so BottomSheet doesn't steal it
-                    v.parent.requestDisallowInterceptTouchEvent(true)
+                    isVerticalSwipeDown = false
                     breathingAnimator?.cancel()
+
+                    val now = System.currentTimeMillis()
+                    val isRightHalf = event.x > (artView.width / 2f)
+                    val isSameSide = (currentSeekSideIsForward == isRightHalf)
+
+                    if (now - lastTapTime < 450 && isSameSide && Math.abs(event.x - lastTapX) < 120 * density && Math.abs(event.y - lastTapY) < 120 * density) {
+                        consecutiveTapCount++
+                        if (consecutiveTapCount >= 2) {
+                            handleCumulativeSeek(isForward = isRightHalf)
+                        }
+                    } else {
+                        consecutiveTapCount = 1
+                        currentSeekSideIsForward = isRightHalf
+                    }
+                    lastTapTime = now
+                    lastTapX = event.x
+                    lastTapY = event.y
+
+                    v.parent.requestDisallowInterceptTouchEvent(true)
                     true
                 }
                 MotionEvent.ACTION_MOVE -> {
                     val dx = event.rawX - startX
+                    val dy = event.rawY - startY
                     val absDx = Math.abs(dx)
-                    val absDy = Math.abs(event.rawY - startY)
+                    val absDy = Math.abs(dy)
 
-                    if (!isHorizontalDrag) {
+                    if (absDx > touchSlop || absDy > touchSlop) {
+                        consecutiveTapCount = 0
+                    }
+
+                    if (!isHorizontalDrag && !isVerticalSwipeDown) {
                         if (absDx > touchSlop && absDx > absDy * 1.1f) {
                             isHorizontalDrag = true
+                            v.parent.requestDisallowInterceptTouchEvent(true)
+                        } else if (dy > touchSlop && absDy > absDx * 1.1f) {
+                            isVerticalSwipeDown = true
+                            // User is dragging down on album cover: allow BottomSheetBehavior to collapse naturally
+                            v.parent.requestDisallowInterceptTouchEvent(false)
                         }
                     }
 
-                    // Always keep parent from stealing while on the art
-                    v.parent.requestDisallowInterceptTouchEvent(true)
-
                     if (isHorizontalDrag) {
+                        v.parent.requestDisallowInterceptTouchEvent(true)
                         val viewWidth = if (artView.width > 0) artView.width.toFloat() else 600f
                         artView.translationX = dx * 0.9f
                         artView.rotation = (dx / viewWidth * 12f).coerceIn(-6f, 6f)
@@ -731,6 +740,20 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
                                 }
                                 .start()
                         }
+                    } else if (isVerticalSwipeDown) {
+                        val dy = event.rawY - startY
+                        velocityTracker?.computeCurrentVelocity(1000)
+                        val velY = velocityTracker?.yVelocity ?: 0f
+                        val absDx = Math.abs(event.rawX - startX)
+
+                        if (dy > swipeThreshold || (velY > 600 && dy > touchSlop && dy > absDx)) {
+                            com.wayne.musicdeck.utils.HapticManager.performSpringClick(requireContext())
+                            dismiss()
+                            v.parent.requestDisallowInterceptTouchEvent(false)
+                            velocityTracker?.recycle()
+                            velocityTracker = null
+                            return@setOnTouchListener true
+                        }
                     } else {
                         if (viewModel.mediaController.value?.isPlaying == true) {
                             startBreathingAnimation()
@@ -741,6 +764,7 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
                     velocityTracker?.recycle()
                     velocityTracker = null
                     isHorizontalDrag = false
+                    isVerticalSwipeDown = false
                     true
                 }
                 else -> false
@@ -851,52 +875,92 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         volumeReceiver = null
     }
 
-    private fun showSeekFeedback(isForward: Boolean) {
+    private var accumulatedSeekSeconds = 0
+    private var seekFeedbackResetRunnable: Runnable? = null
+    private var lastSeekIsForward: Boolean? = null
+
+    private fun handleCumulativeSeek(isForward: Boolean) {
+        val binding = _binding ?: return
+        val player = viewModel.mediaController.value ?: return
+
+        // If switching direction (e.g. forward vs rewind), reset counter
+        if (lastSeekIsForward != isForward) {
+            accumulatedSeekSeconds = 0
+            lastSeekIsForward = isForward
+        }
+
+        accumulatedSeekSeconds += 5
+
+        val current = player.currentPosition
+        val duration = player.duration
+        val target = if (isForward) {
+            if (duration > 0) (current + 5000).coerceAtMost(duration) else current + 5000
+        } else {
+            (current - 5000).coerceAtLeast(0L)
+        }
+        player.seekTo(target)
+        com.wayne.musicdeck.utils.HapticManager.performSpringClick(requireContext())
+
+        showSeekFeedback(isForward, accumulatedSeekSeconds)
+    }
+
+    private fun showSeekFeedback(isForward: Boolean, totalSeconds: Int) {
         val binding = _binding ?: return
         val overlay = if (isForward) binding.layoutSeekForward else binding.layoutSeekRewind
         val icon = if (isForward) binding.ivSeekForwardIcon else binding.ivSeekRewindIcon
+        val tvNumber = if (isForward) binding.tvSeekForwardNumber else binding.tvSeekRewindNumber
 
-        // Cancel any existing animations
+        // Hide opposite overlay if visible
+        val otherOverlay = if (isForward) binding.layoutSeekRewind else binding.layoutSeekForward
+        otherOverlay.animate().cancel()
+        otherOverlay.visibility = View.GONE
+
+        // Update the accumulated seconds text (e.g. "5", "10", "15", "20")
+        tvNumber.text = "$totalSeconds"
+
+        // Cancel previous pending dismissal runnable
+        seekFeedbackResetRunnable?.let { overlay.removeCallbacks(it) }
+
+        // Animate overlay entrance / punch bounce
         overlay.animate().cancel()
-        icon.animate().cancel()
-
         overlay.visibility = View.VISIBLE
-        overlay.alpha = 0f
-        overlay.scaleX = 0.7f
-        overlay.scaleY = 0.7f
-
-        // Curved arrow spins into view then smoothly fades
-        val spinDirection = if (isForward) -360f else 360f
-        icon.rotation = spinDirection * 0.6f
+        overlay.alpha = 1f
+        overlay.scaleX = 1.25f
+        overlay.scaleY = 1.25f
 
         overlay.animate()
-            .alpha(1f)
             .scaleX(1f)
             .scaleY(1f)
-            .setDuration(220)
-            .setInterpolator(android.view.animation.OvershootInterpolator(1.6f))
-            .withEndAction {
-                overlay.animate()
-                    .alpha(0f)
-                    .scaleX(1.12f)
-                    .scaleY(1.12f)
-                    .setDuration(350)
-                    .setStartDelay(250)
-                    .withEndAction {
-                        overlay.visibility = View.GONE
-                        overlay.scaleX = 1f
-                        overlay.scaleY = 1f
-                    }
-                    .start()
-            }
+            .setDuration(160)
+            .setInterpolator(android.view.animation.OvershootInterpolator(1.8f))
             .start()
 
-        // The curved arrow icon spins to its resting position
+        // Icon subtle spin pulse
+        icon.animate().cancel()
+        icon.rotation = if (isForward) 20f else -20f
         icon.animate()
             .rotation(0f)
-            .setDuration(350)
+            .setDuration(220)
             .setInterpolator(android.view.animation.DecelerateInterpolator(2f))
             .start()
+
+        // Set auto-hide timer after 650ms of inactivity
+        seekFeedbackResetRunnable = Runnable {
+            overlay.animate()
+                .alpha(0f)
+                .scaleX(0.85f)
+                .scaleY(0.85f)
+                .setDuration(200)
+                .withEndAction {
+                    overlay.visibility = View.GONE
+                    overlay.scaleX = 1f
+                    overlay.scaleY = 1f
+                    accumulatedSeekSeconds = 0
+                    lastSeekIsForward = null
+                }
+                .start()
+        }
+        overlay.postDelayed(seekFeedbackResetRunnable, 650)
     }
 
     private var isTrackChangeAnimating = false
@@ -939,8 +1003,35 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         coil.Coil.imageLoader(ctx).enqueue(request)
     }
 
+    private fun completeTrackChangeImmediately() {
+        if (!isTrackChangeAnimating) return
+        val binding = _binding ?: return
+        val artView = binding.ivFullArt
+        val incomingView = binding.ivFullArtIncoming
+
+        artView.animate().cancel()
+        incomingView.animate().cancel()
+
+        if (incomingView.drawable != null) {
+            artView.setImageDrawable(incomingView.drawable)
+        }
+        artView.translationX = 0f
+        artView.rotation = 0f
+        artView.scaleX = 1f
+        artView.scaleY = 1f
+        artView.alpha = 1f
+
+        incomingView.visibility = View.INVISIBLE
+        incomingView.translationX = 0f
+        incomingView.alpha = 1f
+
+        isTrackChangeAnimating = false
+    }
+
     private fun animateTrackChange(isNext: Boolean) {
-        if (isTrackChangeAnimating) return
+        if (isTrackChangeAnimating) {
+            completeTrackChangeImmediately()
+        }
         val binding = _binding ?: return
         val artView = binding.ivFullArt
         val incomingView = binding.ivFullArtIncoming
@@ -955,7 +1046,7 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
                 .scaleX(1f)
                 .scaleY(1f)
                 .alpha(1f)
-                .setDuration(260)
+                .setDuration(220)
                 .setInterpolator(android.view.animation.OvershootInterpolator(1.2f))
                 .withEndAction {
                     if (player.isPlaying) startBreathingAnimation()
@@ -970,6 +1061,14 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         val targetMediaItem = player.getMediaItemAt(targetIndex)
         loadIncomingArt(targetMediaItem)
 
+        // Pre-emptively seek player so audio decoding and buffering start with zero latency!
+        if (isNext) {
+            player.seekToNext()
+        } else {
+            player.seekToPrevious()
+        }
+        player.play()
+
         val viewWidth = if (artView.width > 0) artView.width.toFloat() else 600f
         val exitX = if (isNext) -viewWidth * 1.05f else viewWidth * 1.05f
         val enterStartX = if (isNext) viewWidth * 1.05f else -viewWidth * 1.05f
@@ -982,36 +1081,31 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         incomingView.alpha = 0.7f
         incomingView.visibility = View.VISIBLE
 
-        // Simultaneously animate current art out of view
+        // Simultaneously animate current art out of view with snappy 200ms timing
         artView.animate()
             .translationX(exitX)
             .rotation(if (isNext) -6f else 6f)
             .scaleX(0.92f)
             .scaleY(0.92f)
             .alpha(0.3f)
-            .setDuration(260)
+            .setDuration(200)
             .setInterpolator(android.view.animation.DecelerateInterpolator(1.8f))
             .start()
 
-        // And animate incoming art onto center stage
+        // And animate incoming art onto center stage with snappy 210ms timing
         incomingView.animate()
             .translationX(0f)
             .rotation(0f)
             .scaleX(1f)
             .scaleY(1f)
             .alpha(1f)
-            .setDuration(280)
+            .setDuration(210)
             .setInterpolator(android.view.animation.DecelerateInterpolator(1.8f))
             .withEndAction {
-                if (isNext) {
-                    player.seekToNext()
-                } else {
-                    player.seekToPrevious()
-                }
-                player.play()
-
                 // Transfer loaded drawable to primary view seamlessly
-                artView.setImageDrawable(incomingView.drawable)
+                if (incomingView.drawable != null) {
+                    artView.setImageDrawable(incomingView.drawable)
+                }
                 artView.translationX = 0f
                 artView.rotation = 0f
                 artView.scaleX = 1f
@@ -1353,6 +1447,39 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         // CRITICAL: We must use the global Coil ImageLoader which has our custom MP3 Audio Fetcher attached!
         // Instantiating a new ImageLoader() bypasses our initialization in MusicApp.kt.
         coil.Coil.imageLoader(ctx).enqueue(request)
+
+        // Pre-cache adjacent album artwork for ultra-fast, stutter-free track swiping
+        prefetchAdjacentArtwork()
+    }
+
+    private fun prefetchAdjacentArtwork() {
+        val player = viewModel.mediaController.value ?: return
+        val ctx = context ?: return
+        val nextIdx = player.nextMediaItemIndex
+        val prevIdx = player.previousMediaItemIndex
+        listOf(nextIdx, prevIdx).forEach { idx ->
+            if (idx != androidx.media3.common.C.INDEX_UNSET && idx >= 0 && idx < player.mediaItemCount) {
+                val item = player.getMediaItemAt(idx)
+                val path = item.mediaId
+                val song = if (path != null) viewModel.songs.value?.find { it.data == path } else null
+                val customCoverPath = song?.data?.let { songPath ->
+                    val prefs = ctx.getSharedPreferences("custom_covers", android.content.Context.MODE_PRIVATE)
+                    prefs.getString(songPath, null)
+                }
+                val data: Any = if (customCoverPath != null) {
+                    java.io.File(customCoverPath)
+                } else if (song != null) {
+                    java.io.File(song.data)
+                } else {
+                    item.mediaMetadata.artworkUri ?: return@forEach
+                }
+                val req = coil.request.ImageRequest.Builder(ctx)
+                    .data(data)
+                    .transformations(RoundedCornersTransformation(32f))
+                    .build()
+                coil.Coil.imageLoader(ctx).enqueue(req)
+            }
+        }
     }
     
     private fun isColorDark(color: Int): Boolean {

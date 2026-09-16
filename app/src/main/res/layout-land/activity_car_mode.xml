@@ -8,78 +8,21 @@
     android:background="#0A0A0C"
     android:fitsSystemWindows="true"
     android:keepScreenOn="true"
-    android:paddingHorizontal="14dp"
-    android:paddingVertical="16dp">
+    android:padding="16dp">
 
-    <!-- Top Header: Exit, Badge, Voice Search -->
-    <ImageButton
-        android:id="@+id/btnExitCarMode"
-        android:layout_width="52dp"
-        android:layout_height="52dp"
-        android:background="?attr/selectableItemBackgroundBorderless"
-        android:contentDescription="Exit Car Mode"
-        android:padding="12dp"
-        android:src="@drawable/ic_close"
-        app:tint="#FFFFFFFF"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
-    <LinearLayout
-        android:id="@+id/headerCarMode"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:gravity="center"
-        android:orientation="vertical"
-        app:layout_constraintBottom_toBottomOf="@+id/btnExitCarMode"
-        app:layout_constraintEnd_toStartOf="@+id/btnCarVoiceSearch"
-        app:layout_constraintStart_toEndOf="@+id/btnExitCarMode"
-        app:layout_constraintTop_toTopOf="@+id/btnExitCarMode">
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:letterSpacing="0.15"
-            android:text="CAR MODE"
-            android:textColor="?attr/colorPrimary"
-            android:textSize="14sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/tvCarStatus"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Screen Awake"
-            android:textColor="#80FFFFFF"
-            android:textSize="11sp" />
-    </LinearLayout>
-
-    <ImageButton
-        android:id="@+id/btnCarVoiceSearch"
-        android:layout_width="52dp"
-        android:layout_height="52dp"
-        android:background="?attr/selectableItemBackgroundBorderless"
-        android:contentDescription="Voice Search"
-        android:padding="12dp"
-        android:src="@drawable/ic_search"
-        app:tint="#FFFFFFFF"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
-    <!-- Center Album Artwork (Auto-scales in Landscape & Portrait) -->
+    <!-- LEFT PANE: Large 1:1 Album Artwork Display -->
     <androidx.cardview.widget.CardView
         android:id="@+id/cardCarAlbumArt"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layout_marginHorizontal="32dp"
-        android:layout_marginVertical="16dp"
+        android:layout_marginEnd="20dp"
         app:cardBackgroundColor="#1A1A1E"
         app:cardCornerRadius="20dp"
         app:cardElevation="12dp"
-        app:layout_constraintBottom_toTopOf="@+id/tvCarTrackTitle"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintDimensionRatio="1:1"
-        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/btnExitCarMode">
+        app:layout_constraintTop_toTopOf="parent">
 
         <ImageView
             android:id="@+id/ivCarAlbumArt"
@@ -90,57 +33,116 @@
             android:src="@drawable/default_album_art" />
     </androidx.cardview.widget.CardView>
 
+    <!-- RIGHT PANE: Controls, Track Info, Progress, Quick Access -->
+
+    <!-- Top Header Bar: Exit Button, Title/Badge, Voice Search -->
+    <ImageButton
+        android:id="@+id/btnExitCarMode"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="Exit Car Mode"
+        android:padding="12dp"
+        android:src="@drawable/ic_close"
+        app:tint="#FFFFFFFF"
+        app:layout_constraintStart_toEndOf="@+id/cardCarAlbumArt"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <LinearLayout
+        android:id="@+id/headerCarMode"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        app:layout_constraintBottom_toBottomOf="@+id/btnExitCarMode"
+        app:layout_constraintStart_toEndOf="@+id/btnExitCarMode"
+        app:layout_constraintTop_toTopOf="@+id/btnExitCarMode">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:letterSpacing="0.15"
+            android:text="CAR MODE"
+            android:textColor="?attr/colorPrimary"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tvCarStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:text="• Screen Awake"
+            android:textColor="#80FFFFFF"
+            android:textSize="11sp" />
+    </LinearLayout>
+
+    <ImageButton
+        android:id="@+id/btnCarVoiceSearch"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="Voice Search"
+        android:padding="12dp"
+        android:src="@drawable/ic_search"
+        app:tint="#FFFFFFFF"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
     <!-- Track Title (Oversized, High-Contrast) -->
     <TextView
         android:id="@+id/tvCarTrackTitle"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
         android:ellipsize="marquee"
-        android:gravity="center"
+        android:gravity="start"
         android:marqueeRepeatLimit="marquee_forever"
         android:singleLine="true"
         android:text="Select a song to play"
         android:textColor="#FFFFFFFF"
-        android:textSize="24sp"
+        android:textSize="22sp"
         android:textStyle="bold"
-        app:layout_constraintBottom_toTopOf="@+id/tvCarTrackArtist"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
+        app:layout_constraintStart_toEndOf="@+id/cardCarAlbumArt"
+        app:layout_constraintTop_toBottomOf="@+id/btnExitCarMode" />
 
-    <!-- Artist & Album (Large Legible Subtitle) -->
+    <!-- Artist & Album Subtitle -->
     <TextView
         android:id="@+id/tvCarTrackArtist"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="12dp"
+        android:layout_marginTop="2dp"
         android:ellipsize="end"
-        android:gravity="center"
+        android:gravity="start"
         android:maxLines="1"
         android:text="MusicDeck Audio Engine"
         android:textColor="#B3FFFFFF"
-        android:textSize="17sp"
-        app:layout_constraintBottom_toTopOf="@+id/carProgressContainer"
+        android:textSize="15sp"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
+        app:layout_constraintStart_toEndOf="@+id/cardCarAlbumArt"
+        app:layout_constraintTop_toBottomOf="@+id/tvCarTrackTitle" />
 
     <!-- Progress Bar & Timers -->
     <LinearLayout
         android:id="@+id/carProgressContainer"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp"
+        android:layout_marginTop="6dp"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        app:layout_constraintBottom_toTopOf="@+id/controlsContainer">
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/cardCarAlbumArt"
+        app:layout_constraintTop_toBottomOf="@+id/tvCarTrackArtist">
 
         <TextView
             android:id="@+id/tvCarCurrentTime"
-            android:layout_width="56dp"
+            android:layout_width="48dp"
             android:layout_height="wrap_content"
             android:gravity="start"
             android:text="0:00"
             android:textColor="#99FFFFFF"
-            android:textSize="15sp"
+            android:textSize="13sp"
             android:textStyle="bold" />
 
         <SeekBar
@@ -156,53 +158,56 @@
 
         <TextView
             android:id="@+id/tvCarTotalTime"
-            android:layout_width="56dp"
+            android:layout_width="48dp"
             android:layout_height="wrap_content"
             android:gravity="end"
             android:text="0:00"
             android:textColor="#99FFFFFF"
-            android:textSize="15sp"
+            android:textSize="13sp"
             android:textStyle="bold" />
     </LinearLayout>
 
-    <!-- Main Driving Touch Controls (Oversized, Driver Safe) -->
+    <!-- Main Driving Controls: Prev, Rewind 10s, Play/Pause, Forward 10s, Next -->
     <LinearLayout
         android:id="@+id/controlsContainer"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp"
+        android:layout_marginVertical="6dp"
         android:gravity="center"
         android:orientation="horizontal"
-        app:layout_constraintBottom_toTopOf="@+id/bottomUtilityContainer">
+        app:layout_constraintBottom_toTopOf="@+id/bottomUtilityContainer"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/cardCarAlbumArt"
+        app:layout_constraintTop_toBottomOf="@+id/carProgressContainer">
 
-        <!-- Previous Track Button (60dp) -->
+        <!-- Previous Track Button (56dp) -->
         <ImageButton
             android:id="@+id/btnCarPrevious"
-            android:layout_width="60dp"
-            android:layout_height="60dp"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="Previous Track"
-            android:padding="14dp"
+            android:padding="12dp"
             android:src="@drawable/ic_prev_rounded"
             app:tint="#FFFFFFFF" />
 
-        <!-- Rewind 10s Button (52dp) -->
+        <!-- Rewind 10s Button (48dp) -->
         <ImageButton
             android:id="@+id/btnCarRewind10"
-            android:layout_width="52dp"
-            android:layout_height="52dp"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
             android:layout_marginStart="8dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="Rewind 10 Seconds"
-            android:padding="12dp"
+            android:padding="11dp"
             android:src="@drawable/ic_seek_rewind_10"
             app:tint="#FFFFFFFF" />
 
-        <!-- Massive Play / Pause Touch Target (78dp) -->
+        <!-- Center Play / Pause Touch Target (70dp) -->
         <FrameLayout
             android:id="@+id/btnCarPlayPause"
-            android:layout_width="78dp"
-            android:layout_height="78dp"
+            android:layout_width="70dp"
+            android:layout_height="70dp"
             android:layout_marginHorizontal="16dp"
             android:background="@drawable/bg_btn_circle_primary"
             android:clickable="true"
@@ -211,34 +216,34 @@
 
             <ImageView
                 android:id="@+id/ivCarPlayPause"
-                android:layout_width="38dp"
-                android:layout_height="38dp"
+                android:layout_width="34dp"
+                android:layout_height="34dp"
                 android:layout_gravity="center"
                 android:contentDescription="Play/Pause"
                 android:src="@drawable/ic_play_rounded"
                 app:tint="#FF000000" />
         </FrameLayout>
 
-        <!-- Forward 10s Button (52dp) -->
+        <!-- Forward 10s Button (48dp) -->
         <ImageButton
             android:id="@+id/btnCarForward10"
-            android:layout_width="52dp"
-            android:layout_height="52dp"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
             android:layout_marginEnd="8dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="Forward 10 Seconds"
-            android:padding="12dp"
+            android:padding="11dp"
             android:src="@drawable/ic_seek_forward_10"
             app:tint="#FFFFFFFF" />
 
-        <!-- Next Track Button (60dp) -->
+        <!-- Next Track Button (56dp) -->
         <ImageButton
             android:id="@+id/btnCarNext"
-            android:layout_width="60dp"
-            android:layout_height="60dp"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="Next Track"
-            android:padding="14dp"
+            android:padding="12dp"
             android:src="@drawable/ic_next_rounded"
             app:tint="#FFFFFFFF" />
     </LinearLayout>
@@ -246,13 +251,15 @@
     <!-- Bottom Secondary Controls: Shuffle, Favorite (Like), Repeat, Favorites Playlist (Centered, Zero Scroll) -->
     <LinearLayout
         android:id="@+id/bottomUtilityContainer"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:gravity="center"
         android:orientation="horizontal"
         android:paddingHorizontal="4dp"
-        android:paddingVertical="4dp"
-        app:layout_constraintBottom_toBottomOf="parent">
+        android:paddingVertical="2dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/cardCarAlbumArt">
 
         <!-- Shuffle Button (Solid Fill Style, 48dp) -->
         <ImageButton
@@ -270,7 +277,7 @@
             android:id="@+id/btnCarFavorite"
             android:layout_width="48dp"
             android:layout_height="48dp"
-            android:layout_marginStart="8dp"
+            android:layout_marginStart="10dp"
             android:background="@drawable/bg_btn_circle_surface"
             android:contentDescription="Favorite Track"
             android:padding="12dp"
@@ -282,29 +289,29 @@
             android:id="@+id/btnCarRepeat"
             android:layout_width="48dp"
             android:layout_height="48dp"
-            android:layout_marginStart="8dp"
+            android:layout_marginStart="10dp"
             android:background="@drawable/bg_btn_circle_surface"
             android:contentDescription="Repeat"
             android:padding="12dp"
             android:src="@drawable/ic_repeat_off"
             app:tint="#FFFFFFFF" />
 
-        <!-- Subtle Sleek Divider -->
+        <!-- Sleek Divider -->
         <View
             android:layout_width="1dp"
-            android:layout_height="24dp"
-            android:layout_marginHorizontal="8dp"
+            android:layout_height="22dp"
+            android:layout_marginHorizontal="12dp"
             android:background="#2E2E3C" />
 
-        <!-- Favorites Playlist Chip (Solid Container, Crisp Rose Icon, Guaranteed Single Line) -->
+        <!-- Favorites Playlist Chip -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnCarFavorites"
             android:layout_width="wrap_content"
-            android:layout_height="46dp"
+            android:layout_height="44dp"
             android:backgroundTint="#1A1A22"
             android:text="Favorites"
             android:textColor="#FFFFFFFF"
-            android:textSize="13sp"
+            android:textSize="12sp"
             android:textStyle="bold"
             android:singleLine="true"
             android:maxLines="1"
@@ -316,7 +323,7 @@
             android:paddingHorizontal="14dp"
             app:strokeColor="#2E2E3C"
             app:strokeWidth="1dp"
-            app:cornerRadius="23dp"
+            app:cornerRadius="22dp"
             app:icon="@drawable/ic_favorite"
             app:iconTint="@color/colorRose"
             app:iconSize="16dp"

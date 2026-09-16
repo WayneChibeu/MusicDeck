@@ -28,15 +28,21 @@ class MusicApp : Application() {
         val imageLoader = coil.ImageLoader.Builder(this)
             .components {
                 add(com.wayne.musicdeck.utils.CoilAudioFetcher.Factory())
+                add(com.wayne.musicdeck.utils.CoilAudioUriFetcher.Factory())
             }
             .build()
         coil.Coil.setImageLoader(imageLoader)
 
-        // 4. Apply Material 3 Dynamic Colors conditionally based on user theme selection
+        // 4. Apply Material 3 Dynamic Colors conditionally with direct wallpaper content seeding
         val dynamicColorsOptions = com.google.android.material.color.DynamicColorsOptions.Builder()
             .setPrecondition { activity, _ ->
                 com.wayne.musicdeck.utils.ThemeHelper.isDynamicTheme(activity)
             }
+            .setContentBasedSource(
+                android.graphics.Bitmap.createBitmap(4, 4, android.graphics.Bitmap.Config.ARGB_8888).apply {
+                    eraseColor(com.wayne.musicdeck.utils.ThemeHelper.getWallpaperSeedColor(this@MusicApp))
+                }
+            )
             .build()
         DynamicColors.applyToActivitiesIfAvailable(this, dynamicColorsOptions)
         

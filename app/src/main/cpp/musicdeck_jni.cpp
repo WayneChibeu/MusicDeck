@@ -63,6 +63,20 @@ Java_com_wayne_musicdeck_audio_NativeAudioEngine_nativeSetVirtualizer(JNIEnv* en
 }
 
 JNIEXPORT void JNICALL
+Java_com_wayne_musicdeck_audio_NativeAudioEngine_nativeSetCrossfeedStrength(JNIEnv* env, jobject thiz, jfloat strength) {
+    for (int i = 0; i < MAX_ENGINES; ++i) {
+        if (sEngines[i]) sEngines[i]->setCrossfeedStrength(strength);
+    }
+}
+
+JNIEXPORT void JNICALL
+Java_com_wayne_musicdeck_audio_NativeAudioEngine_nativeSetCrossfeedMode(JNIEnv* env, jobject thiz, jint mode) {
+    for (int i = 0; i < MAX_ENGINES; ++i) {
+        if (sEngines[i]) sEngines[i]->setCrossfeedMode(mode);
+    }
+}
+
+JNIEXPORT void JNICALL
 Java_com_wayne_musicdeck_audio_NativeAudioEngine_nativeSetKaraokeEnabled(JNIEnv* env, jobject thiz, jboolean enabled) {
     for (int i = 0; i < MAX_ENGINES; ++i) {
         if (sEngines[i]) sEngines[i]->setKaraokeEnabled(enabled);

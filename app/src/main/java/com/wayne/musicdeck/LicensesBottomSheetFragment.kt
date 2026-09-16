@@ -82,8 +82,21 @@ class LicensesBottomSheetFragment : BottomSheetDialogFragment() {
             <br><br>
             ----------------------------------------
             <br><br>
+            <b><h2>AndroidX Palette (androidx.palette)</h2></b>
+            Copyright The Android Open Source Project<br>
+            Apache License, Version 2.0<br><br>
+            Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at <a href="http://www.apache.org/licenses/LICENSE-2.0">http://www.apache.org/licenses/LICENSE-2.0</a>
+            <br><br>
+            ----------------------------------------
+            <br><br>
             <b><h2>Audio DSP and Mathematical Foundations</h2></b>
             The proprietary DeckAcoustix DSP Engine acknowledges the following public domain research and foundational algorithms:
+            <br><br>
+            <b>Bauer Binaural Crossfeed (BS2B)</b><br>
+            Acoustic head-shadow and interaural time delay (ITD) research originally formulated by Benjamin Bauer (CBS Laboratories, 1965) and Boris Mikhaylov (Bauer stereophonic-to-binaural DSP project). Adapted and optimized into real-time biquad IIR filters with sample-rate pre-warping for natural headphone soundstage reproduction and ear fatigue elimination.
+            <br><br>
+            <b>Meier &amp; Chu Moy Crossfeed Reference Networks</b><br>
+            Acoustic passive crossfeed resistor-capacitor transfer functions developed by Dr. Jan Meier (Meier Audio) and Chu Moy, adapted into digital direct-form high-boost and cross-delay filter topologies.
             <br><br>
             <b>Freeverb Algorithmic Reverberator</b><br>
             Originally formulated by Jezar at Dreampoint and dedicated to the Public Domain. Schroeder-Freeverb parallel comb and all-pass filter topologies adapted and optimized for DeckAcoustix DSP.

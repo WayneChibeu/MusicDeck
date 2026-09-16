@@ -1,9 +1,9 @@
 {
-  "versionName": "3.0.12",
-  "versionCode": 74,
-  "releaseTitle": "MusicDeck v3.0.12 - Android Auto & Dedicated Car Mode",
-  "releaseNotes": "Milestone 3 Item 7: Android Auto vehicle integration & high-contrast in-app Car Mode. Exposes music library directly to automotive head units (All Tracks, Playlists, Favorites, Recently Added) via MediaLibraryService and automotive_app_desc.xml. Features dedicated distraction-free CarModeActivity with 78dp touch targets, keep-screen-on wake lock, tactile haptic feedback, and in-dash voice search.",
-  "downloadUrl": "https://github.com/WayneChibeu/MusicDeck/releases/download/v3.0.12/MusicDeck-v3.0.12.apk",
-  "apkSize": 7144889,
-  "htmlUrl": "https://github.com/WayneChibeu/MusicDeck/releases/tag/v3.0.12"
+  "versionName": "3.0.13",
+  "versionCode": 75,
+  "releaseTitle": "MusicDeck v3.0.13 - Headphone Crossfeed (Bauer DSP), Wallpaper Palette & EQ Preset Sharing",
+  "releaseNotes": "Introduces audiophile-grade Bauer Binaural Crossfeed (BS2B) native C++ DSP for natural studio soundstage on headphones, universal Wallpaper Match dynamic theming via AndroidX Palette, EQ Preset export & community sharing (.deck files), intelligent Smart Playlist scoring with custom vector icons, Car Mode dashboard refinements with 1-tap Favorites, and Pocket-safe shake protection.",
+  "downloadUrl": "https://github.com/WayneChibeu/MusicDeck/releases/download/v3.0.13/MusicDeck-v3.0.13.apk",
+  "apkSize": 7197592,
+  "htmlUrl": "https://github.com/WayneChibeu/MusicDeck/releases/tag/v3.0.13"
 }

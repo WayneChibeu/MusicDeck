@@ -111,7 +111,7 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Your privacy is our utmost priority. MusicDeck operates with a strict 'local-first' architecture.\n\n• Zero Tracking: We do not collect, monitor, track, sell, or monetize your personal data, device identifiers, or playback history.\n• Local Device Storage: All user-generated content (listening history, custom covers, playlists, preferences) remains strictly stored on your local device.\n• Network Usage: Network connectivity is used exclusively for fetching public song metadata and synchronized lyrics (via LRCLIB) and checking for application releases via GitHub."
+                android:text="Your privacy is our utmost priority. MusicDeck operates with a strict 'local-first' architecture.\n\n• Zero Tracking: We do not collect, monitor, track, sell, or monetize your personal data, device identifiers, or playback history.\n• Local Device Storage: All user-generated content (listening history, custom covers, playlists, preferences) remains strictly stored on your local device.\n• Wallpaper Dynamic Theming: When Wallpaper Match is selected, dominant color accents are sampled purely in-memory from your active device wallpaper. No pictures, wallpapers, or photos are ever stored, uploaded, or transmitted off-device.\n• EQ Preset Sharing: Exporting or importing custom .deck sound profiles operates strictly on local storage. Preset sharing is initiated exclusively by the user via the Android Share sheet, with zero cloud analytics or telemetry.\n• Network Usage: Network connectivity is used exclusively for fetching public song metadata and synchronized lyrics (via LRCLIB) and checking for application releases via GitHub."
                 android:textSize="14sp"
                 android:lineSpacingExtra="4dp"
                 android:textColor="?attr/colorOnSurfaceVariant"
@@ -149,7 +149,7 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="All audio enhancements (including the 64-bit Parametric Equalizer, Resonant Bass Boost, Loudness Gain Booster, 3D Spatial Virtualizer, Freeverb Algorithmic Reverb, and WSOLA Tempo/Pitch Shifter) are processed entirely on-device in real-time by the proprietary DeckAcoustix DSP Engine in native C++. No audio streams or audio data are ever recorded, intercepted, or transmitted over any network."
+                android:text="All audio enhancements (including the 64-bit Parametric Equalizer, Resonant Bass Boost, Bauer Binaural Crossfeed (BS2B), Real-Time Dual-Crossover Karaoke Cut, Loudness Gain Booster, 3D Spatial Virtualizer, Freeverb Algorithmic Reverb, and WSOLA Tempo/Pitch Shifter) are processed entirely on-device in real-time by the proprietary DeckAcoustix DSP Engine. No audio streams or audio data are ever recorded, intercepted, or transmitted over any network."
                 android:textSize="14sp"
                 android:lineSpacingExtra="4dp"
                 android:textColor="?attr/colorOnSurfaceVariant"

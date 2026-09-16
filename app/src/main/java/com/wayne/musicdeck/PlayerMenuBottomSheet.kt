@@ -207,6 +207,7 @@ class PlayerMenuBottomSheet : BottomSheetDialogFragment() {
         val currentTempo = settingsManager.playbackTempo
         val currentPitch = settingsManager.playbackPitchSemitones
         val isReverb = settingsManager.isReverbEnabled
+        val currentPreset = settingsManager.tempoPitchPreset
 
         val speedText = String.format(java.util.Locale.US, "%.2fx", currentTempo)
         val pitchText = when {
@@ -215,7 +216,15 @@ class PlayerMenuBottomSheet : BottomSheetDialogFragment() {
             else -> " • ${String.format(java.util.Locale.US, "%.1f", currentPitch)}st"
         }
         val reverbText = if (isReverb) " • Reverb" else ""
-        tvCurrentSpeed.text = "$speedText$pitchText$reverbText"
+
+        val badgeText = when {
+            currentPreset.isNotEmpty() && !currentPreset.equals("Normal", ignoreCase = true) && !currentPreset.equals("Custom", ignoreCase = true) -> {
+                "$currentPreset ($speedText)"
+            }
+            kotlin.math.abs(currentTempo - 1.0f) < 0.01f && kotlin.math.abs(currentPitch) < 0.05f && !isReverb -> "1.00x"
+            else -> "$speedText$pitchText$reverbText"
+        }
+        tvCurrentSpeed.text = badgeText
 
         view.findViewById<View>(R.id.menuPlaybackSpeed).setOnClickListener {
             dismiss()

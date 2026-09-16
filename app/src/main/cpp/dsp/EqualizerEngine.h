@@ -12,6 +12,7 @@
 #include "Limiter.h"
 #include "FftProcessor.h"
 #include "Freeverb.h"
+#include "BauerCrossfeed.h"
 
 namespace musicdeck {
 
@@ -61,6 +62,17 @@ public:
      * @param strength Normalized value from 0.0f to 1.0f.
      */
     void setVirtualizerStrength(float strength);
+
+    /**
+     * Sets Headphone Crossfeed (Bauer Binaural) strength.
+     * @param strength Normalized value from 0.0f to 1.0f.
+     */
+    void setCrossfeedStrength(float strength);
+
+    /**
+     * Sets Headphone Crossfeed preset mode (1: Meier, 2: Bauer, 3: Chu Moy).
+     */
+    void setCrossfeedMode(int mode);
 
     /**
      * Configures atmospheric reverb parameters for Slowed + Reverb.
@@ -142,6 +154,9 @@ private:
 
     // Atmospheric Algorithmic Reverb (Freeverb)
     Freeverb mReverb;
+
+    // Headphone Crossfeed (Bauer Binaural DSP / BS2B)
+    BauerCrossfeed mCrossfeed;
 
     // Real-Time 60 FPS FFT Spectrum Analyzer
     FftProcessor mFftProcessor;

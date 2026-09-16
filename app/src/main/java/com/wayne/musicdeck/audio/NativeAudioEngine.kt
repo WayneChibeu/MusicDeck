@@ -89,6 +89,26 @@ object NativeAudioEngine {
         }
     }
 
+    fun setCrossfeedStrength(strength: Float) {
+        if (isLibraryLoaded) {
+            try {
+                nativeSetCrossfeedStrength(strength)
+            } catch (e: Exception) {
+                Log.e(TAG, "Error setting native crossfeed strength", e)
+            }
+        }
+    }
+
+    fun setCrossfeedMode(mode: Int) {
+        if (isLibraryLoaded) {
+            try {
+                nativeSetCrossfeedMode(mode)
+            } catch (e: Exception) {
+                Log.e(TAG, "Error setting native crossfeed mode", e)
+            }
+        }
+    }
+
     fun setKaraokeEnabled(enabled: Boolean) {
         if (isLibraryLoaded) {
             try {
@@ -166,6 +186,8 @@ object NativeAudioEngine {
     private external fun nativeSetBassBoost(strength: Float)
     private external fun nativeSetVolumeBoost(gainDb: Float)
     private external fun nativeSetVirtualizer(strength: Float)
+    private external fun nativeSetCrossfeedStrength(strength: Float)
+    private external fun nativeSetCrossfeedMode(mode: Int)
     private external fun nativeSetKaraokeEnabled(enabled: Boolean)
     private external fun nativeSetReverbParams(enabled: Boolean, roomSize: Float, damping: Float, wetLevel: Float, engineId: Int)
     private external fun nativeSetEnabled(enabled: Boolean)

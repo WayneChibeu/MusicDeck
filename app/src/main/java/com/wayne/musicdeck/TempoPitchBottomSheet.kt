@@ -35,6 +35,8 @@ class TempoPitchBottomSheet : BottomSheetDialogFragment() {
 
     private val presetPills = mutableMapOf<String, TextView>()
 
+    private var isApplyingPreset: Boolean = false
+
     data class TempoPitchPreset(
         val name: String,
         val tempo: Float,
@@ -73,16 +75,73 @@ class TempoPitchBottomSheet : BottomSheetDialogFragment() {
         reverbWetLevel = settingsManager.reverbWetLevel
 
         setupHeader(view)
-        setupPresets(view)
         setupTempoControls(view)
         setupPitchControls(view)
         setupReverbControls(view)
+        setupPresets(view)
+        setupPresetScrollProtection(view)
     }
 
     private fun setupHeader(view: View) {
         view.findViewById<ImageView>(R.id.btnResetTempoPitch).setOnClickListener {
             HapticManager.performHeavyClick(requireContext())
             applyPreset("Normal", view)
+        }
+    }
+
+    private fun findMatchingPreset(): String? {
+        return presets.firstOrNull { preset ->
+            kotlin.math.abs(currentTempo - preset.tempo) < 0.015f &&
+            kotlin.math.abs(currentPitchSemitones - preset.pitchSemitones) < 0.05f &&
+            isReverbEnabled == preset.reverbEnabled
+        }?.name
+    }
+
+    private fun onControlsChanged(view: View) {
+        if (isApplyingPreset) return
+        val matchingPreset = findMatchingPreset()
+        if (matchingPreset != null) {
+            settingsManager.tempoPitchPreset = matchingPreset
+            updatePresetPillSelection(matchingPreset, view)
+        } else {
+            settingsManager.tempoPitchPreset = "Custom"
+            updatePresetPillSelection("Custom", view)
+        }
+    }
+
+    @android.annotation.SuppressLint("ClickableViewAccessibility")
+    private fun setupPresetScrollProtection(view: View) {
+        val scrollView = view.findViewById<android.widget.HorizontalScrollView>(R.id.scrollPresets) ?: return
+        val touchSlop = android.view.ViewConfiguration.get(requireContext()).scaledTouchSlop
+        var downX = 0f
+        var downY = 0f
+        var isHorizontalScroll = false
+
+        scrollView.setOnTouchListener { v, event ->
+            when (event.actionMasked) {
+                android.view.MotionEvent.ACTION_DOWN -> {
+                    downX = event.x
+                    downY = event.y
+                    isHorizontalScroll = false
+                }
+                android.view.MotionEvent.ACTION_MOVE -> {
+                    val dx = Math.abs(event.x - downX)
+                    val dy = Math.abs(event.y - downY)
+                    if (!isHorizontalScroll && dx > touchSlop && dx > dy) {
+                        isHorizontalScroll = true
+                    }
+                    if (isHorizontalScroll) {
+                        v.parent?.requestDisallowInterceptTouchEvent(true)
+                    }
+                }
+                android.view.MotionEvent.ACTION_UP, android.view.MotionEvent.ACTION_CANCEL -> {
+                    if (isHorizontalScroll) {
+                        v.parent?.requestDisallowInterceptTouchEvent(false)
+                    }
+                    isHorizontalScroll = false
+                }
+            }
+            false
         }
     }
 
@@ -118,71 +177,103 @@ class TempoPitchBottomSheet : BottomSheetDialogFragment() {
             presetPills[preset.name] = pill
         }
 
-        updatePresetPillSelection(savedPreset)
+        // Determine active preset: savedPreset if valid, else match current parameters, else "Custom"
+        val activePreset = when {
+            presets.any { it.name.equals(savedPreset, ignoreCase = true) } -> savedPreset
+            else -> findMatchingPreset() ?: "Custom"
+        }
+        settingsManager.tempoPitchPreset = activePreset
+        updatePresetPillSelection(activePreset, view)
     }
 
     private fun applyPreset(presetName: String, view: View) {
         val preset = presets.firstOrNull { it.name.equals(presetName, ignoreCase = true) } ?: return
 
-        currentTempo = preset.tempo
-        currentPitchSemitones = preset.pitchSemitones
-        isReverbEnabled = preset.reverbEnabled
-        reverbRoomSize = preset.roomSize
-        reverbDamping = preset.damping
-        reverbWetLevel = preset.wetLevel
+        isApplyingPreset = true
+        try {
+            currentTempo = preset.tempo
+            currentPitchSemitones = preset.pitchSemitones
+            isReverbEnabled = preset.reverbEnabled
+            reverbRoomSize = preset.roomSize
+            reverbDamping = preset.damping
+            reverbWetLevel = preset.wetLevel
 
-        settingsManager.tempoPitchPreset = preset.name
+            settingsManager.tempoPitchPreset = preset.name
 
-        // Update UI controls
-        val seekTempo = view.findViewById<SeekBar>(R.id.seekTempo)
-        val tvTempoValue = view.findViewById<TextView>(R.id.tvTempoValue)
-        val tempoProgress = ((currentTempo * 100f).toInt() - 50).coerceIn(0, 150)
-        seekTempo.progress = tempoProgress
-        tvTempoValue.text = String.format(Locale.US, "%.2fx", currentTempo)
+            // Update UI controls
+            val seekTempo = view.findViewById<SeekBar>(R.id.seekTempo)
+            val tvTempoValue = view.findViewById<TextView>(R.id.tvTempoValue)
+            val tempoProgress = ((currentTempo * 100f).toInt() - 50).coerceIn(0, 150)
+            seekTempo.progress = tempoProgress
+            tvTempoValue.text = String.format(Locale.US, "%.2fx", currentTempo)
 
-        val seekPitch = view.findViewById<SeekBar>(R.id.seekPitch)
-        val tvPitchValue = view.findViewById<TextView>(R.id.tvPitchValue)
-        val pitchProgress = ((currentPitchSemitones / 0.5f) + 12f).toInt().coerceIn(0, 24)
-        seekPitch.progress = pitchProgress
-        tvPitchValue.text = formatPitch(currentPitchSemitones)
+            val seekPitch = view.findViewById<SeekBar>(R.id.seekPitch)
+            val tvPitchValue = view.findViewById<TextView>(R.id.tvPitchValue)
+            val pitchProgress = ((currentPitchSemitones / 0.5f) + 12f).toInt().coerceIn(0, 24)
+            seekPitch.progress = pitchProgress
+            tvPitchValue.text = formatPitch(currentPitchSemitones)
 
-        val switchReverb = view.findViewById<MaterialSwitch>(R.id.switchReverb)
-        val layoutReverbControls = view.findViewById<View>(R.id.layoutReverbControls)
-        switchReverb.isChecked = isReverbEnabled
-        layoutReverbControls.visibility = if (isReverbEnabled) View.VISIBLE else View.GONE
+            val switchReverb = view.findViewById<MaterialSwitch>(R.id.switchReverb)
+            val layoutReverbControls = view.findViewById<View>(R.id.layoutReverbControls)
+            switchReverb.isChecked = isReverbEnabled
+            layoutReverbControls.visibility = if (isReverbEnabled) View.VISIBLE else View.GONE
 
-        val seekReverbWet = view.findViewById<SeekBar>(R.id.seekReverbWet)
-        val tvReverbWet = view.findViewById<TextView>(R.id.tvReverbWetLevel)
-        val wetProg = (reverbWetLevel * 100f).toInt().coerceIn(0, 100)
-        seekReverbWet.progress = wetProg
-        tvReverbWet.text = "${wetProg}%"
+            val seekReverbWet = view.findViewById<SeekBar>(R.id.seekReverbWet)
+            val tvReverbWet = view.findViewById<TextView>(R.id.tvReverbWetLevel)
+            val wetProg = (reverbWetLevel * 100f).toInt().coerceIn(0, 100)
+            seekReverbWet.progress = wetProg
+            tvReverbWet.text = "${wetProg}%"
 
-        val seekReverbRoom = view.findViewById<SeekBar>(R.id.seekReverbRoom)
-        val tvReverbRoom = view.findViewById<TextView>(R.id.tvReverbRoomSize)
-        val roomProg = (reverbRoomSize * 100f).toInt().coerceIn(0, 100)
-        seekReverbRoom.progress = roomProg
-        tvReverbRoom.text = "${roomProg}%"
+            val seekReverbRoom = view.findViewById<SeekBar>(R.id.seekReverbRoom)
+            val tvReverbRoom = view.findViewById<TextView>(R.id.tvReverbRoomSize)
+            val roomProg = (reverbRoomSize * 100f).toInt().coerceIn(0, 100)
+            seekReverbRoom.progress = roomProg
+            tvReverbRoom.text = "${roomProg}%"
 
-        val seekReverbDamp = view.findViewById<SeekBar>(R.id.seekReverbDamping)
-        val tvReverbDamp = view.findViewById<TextView>(R.id.tvReverbDamping)
-        val dampProg = (reverbDamping * 100f).toInt().coerceIn(0, 100)
-        seekReverbDamp.progress = dampProg
-        tvReverbDamp.text = "${dampProg}%"
+            val seekReverbDamp = view.findViewById<SeekBar>(R.id.seekReverbDamping)
+            val tvReverbDamp = view.findViewById<TextView>(R.id.tvReverbDamping)
+            val dampProg = (reverbDamping * 100f).toInt().coerceIn(0, 100)
+            seekReverbDamp.progress = dampProg
+            tvReverbDamp.text = "${dampProg}%"
 
-        updatePresetPillSelection(preset.name)
-        dispatchTempoPitchUpdate()
-        dispatchReverbUpdate()
+            updatePresetPillSelection(preset.name, view)
+            dispatchTempoPitchUpdate()
+            dispatchReverbUpdate()
+        } finally {
+            isApplyingPreset = false
+        }
     }
 
-    private fun updatePresetPillSelection(selectedName: String) {
+    private fun updatePresetPillSelection(selectedName: String, view: View? = null) {
+        val targetView = view ?: this.view
         presetPills.forEach { (name, pill) ->
-            if (name.equals(selectedName, ignoreCase = true)) {
+            val isSelected = name.equals(selectedName, ignoreCase = true)
+            if (isSelected) {
                 pill.setBackgroundResource(R.drawable.bg_preset_pill_active)
                 pill.setTextColor(ContextCompat.getColor(requireContext(), R.color.white))
+                pill.typeface = android.graphics.Typeface.DEFAULT_BOLD
+                targetView?.findViewById<android.widget.HorizontalScrollView>(R.id.scrollPresets)?.let { scroll ->
+                    pill.post {
+                        val scrollX = pill.left - dpToPx(16)
+                        scroll.smoothScrollTo(scrollX.coerceAtLeast(0), 0)
+                    }
+                }
             } else {
                 pill.setBackgroundResource(R.drawable.bg_preset_pill_inactive)
                 pill.setTextColor(ContextCompat.getColor(requireContext(), R.color.textSecondary))
+                pill.typeface = android.graphics.Typeface.DEFAULT
             }
+        }
+
+        val tvSubtitle = targetView?.findViewById<TextView>(R.id.tvTempoPitchSubtitle)
+        if (tvSubtitle != null) {
+            val matching = presets.firstOrNull { it.name.equals(selectedName, ignoreCase = true) }
+            val modeLabel = when {
+                matching != null -> matching.name
+                selectedName.equals("Custom", ignoreCase = true) -> "Custom Tuning"
+                else -> selectedName
+            }
+            tvSubtitle.text = "DeckAcoustix DSP • $modeLabel"
         }
     }
 
@@ -197,7 +288,7 @@ class TempoPitchBottomSheet : BottomSheetDialogFragment() {
         var lastHapticProgress = -1
         seekTempo.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                if (!fromUser) return
+                if (!fromUser || isApplyingPreset) return
                 val tempo = (progress + 50) / 100f
                 currentTempo = tempo
                 tvTempoValue.text = String.format(Locale.US, "%.2fx", tempo)
@@ -208,7 +299,7 @@ class TempoPitchBottomSheet : BottomSheetDialogFragment() {
                 }
                 lastHapticProgress = progress
 
-                markCustomPreset()
+                onControlsChanged(view)
                 dispatchTempoPitchUpdate()
             }
 
@@ -223,7 +314,7 @@ class TempoPitchBottomSheet : BottomSheetDialogFragment() {
             val prog = ((target * 100f).toInt() - 50).coerceIn(0, 150)
             seekTempo.progress = prog
             tvTempoValue.text = String.format(Locale.US, "%.2fx", target)
-            markCustomPreset()
+            onControlsChanged(view)
             dispatchTempoPitchUpdate()
         }
 
@@ -245,7 +336,7 @@ class TempoPitchBottomSheet : BottomSheetDialogFragment() {
         var lastHapticProgress = -1
         seekPitch.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                if (!fromUser) return
+                if (!fromUser || isApplyingPreset) return
                 val semitones = (progress - 12) * 0.5f
                 currentPitchSemitones = semitones
                 tvPitchValue.text = formatPitch(semitones)
@@ -256,7 +347,7 @@ class TempoPitchBottomSheet : BottomSheetDialogFragment() {
                 }
                 lastHapticProgress = progress
 
-                markCustomPreset()
+                onControlsChanged(view)
                 dispatchTempoPitchUpdate()
             }
 
@@ -271,7 +362,7 @@ class TempoPitchBottomSheet : BottomSheetDialogFragment() {
             val prog = ((target / 0.5f) + 12f).toInt().coerceIn(0, 24)
             seekPitch.progress = prog
             tvPitchValue.text = formatPitch(target)
-            markCustomPreset()
+            onControlsChanged(view)
             dispatchTempoPitchUpdate()
         }
 
@@ -290,10 +381,11 @@ class TempoPitchBottomSheet : BottomSheetDialogFragment() {
         layoutReverbControls.visibility = if (isReverbEnabled) View.VISIBLE else View.GONE
 
         switchReverb.setOnCheckedChangeListener { _, isChecked ->
+            if (isApplyingPreset) return@setOnCheckedChangeListener
             isReverbEnabled = isChecked
             layoutReverbControls.visibility = if (isChecked) View.VISIBLE else View.GONE
             HapticManager.performSpringClick(requireContext())
-            markCustomPreset()
+            onControlsChanged(view)
             dispatchReverbUpdate()
         }
 
@@ -305,10 +397,10 @@ class TempoPitchBottomSheet : BottomSheetDialogFragment() {
 
         seekReverbWet.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                if (!fromUser) return
+                if (!fromUser || isApplyingPreset) return
                 reverbWetLevel = progress / 100f
                 tvReverbWet.text = "${progress}%"
-                markCustomPreset()
+                onControlsChanged(view)
                 dispatchReverbUpdate()
             }
             override fun onStartTrackingTouch(seekBar: SeekBar?) {}
@@ -323,10 +415,10 @@ class TempoPitchBottomSheet : BottomSheetDialogFragment() {
 
         seekReverbRoom.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                if (!fromUser) return
+                if (!fromUser || isApplyingPreset) return
                 reverbRoomSize = progress / 100f
                 tvReverbRoom.text = "${progress}%"
-                markCustomPreset()
+                onControlsChanged(view)
                 dispatchReverbUpdate()
             }
             override fun onStartTrackingTouch(seekBar: SeekBar?) {}
@@ -341,20 +433,15 @@ class TempoPitchBottomSheet : BottomSheetDialogFragment() {
 
         seekReverbDamp.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                if (!fromUser) return
+                if (!fromUser || isApplyingPreset) return
                 reverbDamping = progress / 100f
                 tvReverbDamp.text = "${progress}%"
-                markCustomPreset()
+                onControlsChanged(view)
                 dispatchReverbUpdate()
             }
             override fun onStartTrackingTouch(seekBar: SeekBar?) {}
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
         })
-    }
-
-    private fun markCustomPreset() {
-        settingsManager.tempoPitchPreset = "Custom"
-        updatePresetPillSelection("Custom")
     }
 
     private fun dispatchTempoPitchUpdate() {

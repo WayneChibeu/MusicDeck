@@ -163,6 +163,8 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        handleDeckFileIntent(intent)
+
         // Initialize Shake to Shuffle
         shakeDetector = com.wayne.musicdeck.utils.ShakeDetector(this) {
             if (settingsManager.isShakeToShuffleEnabled) {
@@ -1669,5 +1671,27 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         shakeDetector?.start()
+    }
+
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleDeckFileIntent(intent)
+    }
+
+    private fun handleDeckFileIntent(intent: android.content.Intent?) {
+        val uri = intent?.data ?: return
+        val scheme = uri.scheme
+        if (scheme == "content" || scheme == "file") {
+            val path = uri.path?.lowercase() ?: ""
+            if (path.endsWith(".deck") || uri.toString().lowercase().contains(".deck")) {
+                val preset = com.wayne.musicdeck.utils.EQPresetManager.importPresetFromUri(this, uri)
+                if (preset != null) {
+                    android.widget.Toast.makeText(this, "Imported '${preset.name}' (.deck) preset!", android.widget.Toast.LENGTH_LONG).show()
+                    val eqSheet = EqualizerBottomSheet()
+                    eqSheet.show(supportFragmentManager, "EqualizerBottomSheet")
+                }
+            }
+        }
     }
 }

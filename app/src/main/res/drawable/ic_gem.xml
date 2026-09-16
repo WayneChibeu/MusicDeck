@@ -1,0 +1,10 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Clean Solid Faceted Gemstone -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M16.5,3h-9L2,9.5l10,12 10,-12L16.5,3z M12,19.23L4.8,9.5h14.4L12,19.23z M8.64,4.5h6.72l3.41,3.5H5.23L8.64,4.5z"/>
+</vector>

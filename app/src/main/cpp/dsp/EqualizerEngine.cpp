@@ -20,6 +20,7 @@ void EqualizerEngine::setSampleRate(int sampleRate) {
         mSampleRate = sampleRate;
         mLimiter.setSampleRate(sampleRate);
         mReverb.setSampleRate(sampleRate);
+        mCrossfeed.setSampleRate(sampleRate);
         updateFilters_locked();
         reset();
     }
@@ -64,6 +65,16 @@ void EqualizerEngine::setVirtualizerStrength(float strength) {
     mVirtualizerStrength = std::max(0.0f, std::min(1.0f, strength));
 }
 
+void EqualizerEngine::setCrossfeedStrength(float strength) {
+    std::lock_guard<std::mutex> lock(mMutex);
+    mCrossfeed.setStrength(strength);
+}
+
+void EqualizerEngine::setCrossfeedMode(int mode) {
+    std::lock_guard<std::mutex> lock(mMutex);
+    mCrossfeed.setPreset(mode);
+}
+
 void EqualizerEngine::setReverbParams(bool enabled, float roomSize, float damping, float wetLevel) {
     std::lock_guard<std::mutex> lock(mMutex);
     mReverb.setEnabled(enabled);
@@ -86,6 +97,7 @@ void EqualizerEngine::reset() {
     mKaraokeFilterMidHP.reset();
     mReverb.reset();
     mLimiter.reset();
+    mCrossfeed.reset();
     mCurrentHeadroomLinear = mTargetHeadroomLinear;
     mPrevLeft = 0.0f;
     mPrevRight = 0.0f;
@@ -150,6 +162,9 @@ void EqualizerEngine::process(float* buffer, int numFrames) {
             right = keptMid - side;
         }
 
+        // 0.5. Headphone Crossfeed (Bauer Binaural DSP / BS2B: acoustic head shadow & crossfeed)
+        mCrossfeed.processSample(left, right);
+
         // 1. Spatializer / Virtualizer (Interaural crossfeed & subtle phase widening)
         if (mVirtualizerStrength > 0.001f) {
             float diff = (left - right) * (mVirtualizerStrength * 0.35f);
@@ -211,6 +226,9 @@ void EqualizerEngine::process(int16_t* buffer, int numFrames) {
             left = keptMid + side;
             right = keptMid - side;
         }
+
+        // 0.5. Headphone Crossfeed (Bauer Binaural DSP / BS2B: acoustic head shadow & crossfeed)
+        mCrossfeed.processSample(left, right);
 
         // 1. Spatializer / Virtualizer
         if (mVirtualizerStrength > 0.001f) {

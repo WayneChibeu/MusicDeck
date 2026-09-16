@@ -55,3 +55,48 @@ class CoilAudioFetcher(
         }
     }
 }
+
+class CoilAudioUriFetcher(
+    private val data: android.net.Uri,
+    private val options: Options
+) : Fetcher {
+
+    override suspend fun fetch(): FetchResult? = withContext(Dispatchers.IO) {
+        try {
+            val retriever = MediaMetadataRetriever()
+            retriever.setDataSource(options.context, data)
+            val picture = retriever.embeddedPicture
+            retriever.release()
+
+            if (picture != null) {
+                val bitmap = BitmapFactory.decodeByteArray(picture, 0, picture.size)
+                if (bitmap != null) {
+                    return@withContext DrawableResult(
+                        drawable = BitmapDrawable(options.context.resources, bitmap),
+                        isSampled = false,
+                        dataSource = DataSource.DISK
+                    )
+                }
+            }
+        } catch (e: Exception) {
+            // Silently fail if file is locked or corrupt. Coil will use placeholder.
+        }
+        return@withContext null
+    }
+
+    class Factory : Fetcher.Factory<android.net.Uri> {
+        override fun create(data: android.net.Uri, options: Options, imageLoader: ImageLoader): Fetcher? {
+            val str = data.toString().lowercase()
+            if (data.scheme == "content" || data.scheme == "file") {
+                if (str.contains("audio") || str.contains("media") ||
+                    str.endsWith(".mp3") || str.endsWith(".flac") || str.endsWith(".m4a") ||
+                    str.endsWith(".ogg") || str.endsWith(".wav") || str.endsWith(".opus") ||
+                    str.endsWith(".aac") || str.endsWith(".mkv") || str.endsWith(".mp4")) {
+                    return CoilAudioUriFetcher(data, options)
+                }
+            }
+            return null
+        }
+    }
+}
+

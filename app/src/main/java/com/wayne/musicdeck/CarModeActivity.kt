@@ -61,17 +61,37 @@ class CarModeActivity : AppCompatActivity() {
             val spokenText = result.data
                 ?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
                 ?.firstOrNull()
+                ?.trim()
             if (!spokenText.isNullOrBlank()) {
-                val songs = viewModel.songs.value ?: emptyList()
-                val match = songs.find { 
-                    it.title.contains(spokenText, ignoreCase = true) ||
-                    it.artist.contains(spokenText, ignoreCase = true)
+                val allSongs = viewModel.songs.value ?: emptyList()
+                if (allSongs.isEmpty()) {
+                    android.widget.Toast.makeText(this, "Music library is still loading...", android.widget.Toast.LENGTH_SHORT).show()
+                    return@registerForActivityResult
                 }
-                if (match != null) {
-                    viewModel.playSong(match)
-                } else if (songs.isNotEmpty()) {
-                    val shuffled = songs.shuffled()
-                    viewModel.playPlaylist(shuffled, 0)
+
+                // 1. Priority: Match Artist (e.g. "Kygo" -> queues and plays all Kygo songs)
+                val artistMatches = allSongs.filter { it.artist.contains(spokenText, ignoreCase = true) }
+                // 2. Title Match (e.g. "Paradise" or "Stole the Show")
+                val titleMatches = allSongs.filter { it.title.contains(spokenText, ignoreCase = true) }
+                // 3. Album Match
+                val albumMatches = allSongs.filter { it.album.contains(spokenText, ignoreCase = true) }
+
+                val targetList = when {
+                    artistMatches.isNotEmpty() -> artistMatches
+                    titleMatches.isNotEmpty() -> titleMatches
+                    albumMatches.isNotEmpty() -> albumMatches
+                    else -> emptyList()
+                }
+
+                if (targetList.isNotEmpty()) {
+                    playTracks(targetList, 0)
+                    val label = when {
+                        artistMatches.isNotEmpty() -> "Playing $spokenText (${targetList.size} songs)"
+                        else -> "Playing ${targetList.first().title}"
+                    }
+                    android.widget.Toast.makeText(this, label, android.widget.Toast.LENGTH_SHORT).show()
+                } else {
+                    android.widget.Toast.makeText(this, "No tracks found for \"$spokenText\"", android.widget.Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -90,6 +110,30 @@ class CarModeActivity : AppCompatActivity() {
         setupButtons()
         setupSeekBar()
         initializeMediaController()
+
+        viewModel.songs.observe(this) {
+            updateTrackInfo(mediaController?.currentMediaItem)
+        }
+        viewModel.favorites.observe(this) {
+            updateFavoriteButton()
+        }
+    }
+
+    override fun onConfigurationChanged(newConfig: android.content.res.Configuration) {
+        super.onConfigurationChanged(newConfig)
+        binding = ActivityCarModeBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+
+        setupButtons()
+        setupSeekBar()
+
+        mediaController?.let { controller ->
+            updateTrackInfo(controller.currentMediaItem)
+            updatePlayPauseState(controller.isPlaying)
+            updateShuffleButton(controller.shuffleModeEnabled)
+            updateRepeatButton(controller.repeatMode)
+            updateFavoriteButton()
+        }
     }
 
     private fun setupButtons() {
@@ -155,6 +199,15 @@ class CarModeActivity : AppCompatActivity() {
             updateShuffleButton(controller.shuffleModeEnabled)
         }
 
+        binding.btnCarFavorite.setupBouncyPress()
+        binding.btnCarFavorite.setOnClickListener {
+            HapticManager.performSpringClick(this)
+            val controller = mediaController ?: return@setOnClickListener
+            val currentPath = controller.currentMediaItem?.mediaId ?: return@setOnClickListener
+            val song = viewModel.songs.value?.find { it.data == currentPath } ?: return@setOnClickListener
+            viewModel.toggleFavorite(song)
+        }
+
         binding.btnCarRepeat.setupBouncyPress()
         binding.btnCarRepeat.setOnClickListener {
             HapticManager.performTick(this)
@@ -173,20 +226,57 @@ class CarModeActivity : AppCompatActivity() {
             HapticManager.performSpringClick(this)
             val favs = viewModel.favorites.value
             if (!favs.isNullOrEmpty()) {
-                viewModel.playPlaylist(favs, 0)
+                playTracks(favs, 0)
+                android.widget.Toast.makeText(this, "Playing Favorites (${favs.size} songs)", android.widget.Toast.LENGTH_SHORT).show()
+            } else {
+                android.widget.Toast.makeText(this, "No favorite songs yet", android.widget.Toast.LENGTH_SHORT).show()
             }
         }
+    }
 
-        binding.btnCarFreshArrivals.setupBouncyPress()
-        binding.btnCarFreshArrivals.setOnClickListener {
-            HapticManager.performSpringClick(this)
-            viewModel.getPlaylistSongs(com.wayne.musicdeck.data.SmartPlaylistManager.ID_RECENTLY_ADDED)
-                .observe(this) { songs ->
-                    if (!songs.isNullOrEmpty()) {
-                        viewModel.playPlaylist(songs, 0)
-                    }
-                }
+    private fun playTracks(songs: List<Song>, startIndex: Int = 0) {
+        val controller = mediaController ?: return
+        if (songs.isEmpty() || startIndex < 0 || startIndex >= songs.size) return
+
+        val mediaItems = songs.map { song ->
+            val customCoverPath = song.data.let { path ->
+                val prefs = getSharedPreferences("custom_covers", android.content.Context.MODE_PRIVATE)
+                prefs.getString(path, null)
+            }
+            val artUri = if (customCoverPath != null) {
+                android.net.Uri.fromFile(java.io.File(customCoverPath))
+            } else if (song.albumId > 0 && song.album != "Unknown Album") {
+                android.content.ContentUris.withAppendedId(
+                    android.net.Uri.parse("content://media/external/audio/album_art"),
+                    song.albumId
+                )
+            } else {
+                song.uri
+            }
+
+            MediaItem.Builder()
+                .setMediaId(song.data)
+                .setUri(song.uri)
+                .setMediaMetadata(
+                    androidx.media3.common.MediaMetadata.Builder()
+                        .setTitle(song.title)
+                        .setArtist(song.artist)
+                        .setAlbumTitle(song.album)
+                        .setArtworkUri(artUri)
+                        .build()
+                )
+                .setRequestMetadata(
+                    androidx.media3.common.MediaItem.RequestMetadata.Builder()
+                        .setExtras(android.os.Bundle().apply { putLong("songId", song.id) })
+                        .build()
+                )
+                .build()
         }
+
+        controller.setMediaItems(mediaItems)
+        controller.seekTo(startIndex, 0)
+        controller.prepare()
+        controller.play()
     }
 
     private fun setupSeekBar() {
@@ -226,11 +316,13 @@ class CarModeActivity : AppCompatActivity() {
                 val controller = controllerFuture?.get() ?: return@addListener
                 mediaController = controller
                 controller.addListener(playerListener)
+                viewModel.initializeController()
 
                 updateTrackInfo(controller.currentMediaItem)
                 updatePlayPauseState(controller.isPlaying)
                 updateShuffleButton(controller.shuffleModeEnabled)
                 updateRepeatButton(controller.repeatMode)
+                updateFavoriteButton()
 
                 handler.post(progressRunnable)
             } catch (e: Exception) {
@@ -242,6 +334,7 @@ class CarModeActivity : AppCompatActivity() {
     private val playerListener = object : Player.Listener {
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
             updateTrackInfo(mediaItem)
+            updateFavoriteButton()
         }
 
         override fun onIsPlayingChanged(isPlaying: Boolean) {
@@ -261,22 +354,68 @@ class CarModeActivity : AppCompatActivity() {
         val title = mediaItem?.mediaMetadata?.title?.toString() ?: "No Track Playing"
         val artist = mediaItem?.mediaMetadata?.artist?.toString() ?: "MusicDeck"
         val album = mediaItem?.mediaMetadata?.albumTitle?.toString()
-        val artworkUri = mediaItem?.mediaMetadata?.artworkUri
 
         binding.tvCarTrackTitle.text = title
         binding.tvCarTrackArtist.text = if (!album.isNullOrBlank()) "$artist • $album" else artist
 
-        binding.ivCarAlbumArt.load(artworkUri) {
-            crossfade(true)
-            placeholder(R.drawable.ic_launcher_foreground)
-            error(R.drawable.ic_launcher_foreground)
-            transformations(RoundedCornersTransformation(32f))
-        }
+        loadArtwork(mediaItem)
+        updateFavoriteButton()
 
         val controller = mediaController
         if (controller != null && controller.duration > 0) {
             binding.tvCarTotalTime.text = formatTime(controller.duration)
         }
+    }
+
+    private fun loadArtwork(mediaItem: MediaItem?) {
+        val currentPath = mediaItem?.mediaId
+        val song = if (!currentPath.isNullOrBlank()) viewModel.songs.value?.find { it.data == currentPath } else null
+
+        val customCoverPath = song?.data?.let { path ->
+            val prefs = getSharedPreferences("custom_covers", android.content.Context.MODE_PRIVATE)
+            prefs.getString(path, null)
+        }
+
+        val imageData: Any = if (customCoverPath != null && java.io.File(customCoverPath).exists()) {
+            java.io.File(customCoverPath)
+        } else if (!currentPath.isNullOrBlank() && java.io.File(currentPath).exists()) {
+            java.io.File(currentPath)
+        } else if (song != null && java.io.File(song.data).exists()) {
+            java.io.File(song.data)
+        } else if (song != null && song.albumId > 0 && song.album != "Unknown Album") {
+            android.content.ContentUris.withAppendedId(
+                android.net.Uri.parse("content://media/external/audio/album_art"),
+                song.albumId
+            )
+        } else {
+            mediaItem?.mediaMetadata?.artworkUri ?: R.drawable.default_album_art
+        }
+
+        binding.ivCarAlbumArt.load(imageData) {
+            crossfade(true)
+            placeholder(R.drawable.default_album_art)
+            error(R.drawable.default_album_art)
+            transformations(RoundedCornersTransformation(24f))
+        }
+    }
+
+    private fun updateFavoriteButton() {
+        val currentPath = mediaController?.currentMediaItem?.mediaId
+        val isFav = if (!currentPath.isNullOrBlank()) {
+            viewModel.favorites.value?.any { it.data == currentPath } == true
+        } else {
+            false
+        }
+
+        binding.btnCarFavorite.setImageResource(
+            if (isFav) R.drawable.ic_favorite else R.drawable.ic_favorite_border
+        )
+        val tintColor = if (isFav) {
+            ContextCompat.getColor(this, R.color.colorRose)
+        } else {
+            0xFFFFFFFF.toInt() // 100% Solid White
+        }
+        binding.btnCarFavorite.imageTintList = android.content.res.ColorStateList.valueOf(tintColor)
     }
 
     private fun updatePlayPauseState(isPlaying: Boolean) {
@@ -293,11 +432,11 @@ class CarModeActivity : AppCompatActivity() {
                 ContextCompat.getColor(this, android.R.color.white)
             )
         } else {
-            0x80FFFFFF.toInt()
+            0xFFFFFFFF.toInt() // 100% Solid White
         }
         binding.btnCarShuffle.imageTintList = android.content.res.ColorStateList.valueOf(color)
         binding.btnCarShuffle.setImageResource(
-            if (enabled) R.drawable.ic_notif_shuffle_on else R.drawable.ic_notif_shuffle_off
+            if (enabled) R.drawable.ic_shuffle_on else R.drawable.ic_shuffle_off
         )
     }
 
@@ -310,13 +449,13 @@ class CarModeActivity : AppCompatActivity() {
                 ContextCompat.getColor(this, android.R.color.white)
             )
         } else {
-            0x80FFFFFF.toInt()
+            0xFFFFFFFF.toInt() // 100% Solid White
         }
         binding.btnCarRepeat.imageTintList = android.content.res.ColorStateList.valueOf(color)
         val iconRes = when (repeatMode) {
-            Player.REPEAT_MODE_ONE -> R.drawable.ic_notif_repeat_one
-            Player.REPEAT_MODE_ALL -> R.drawable.ic_notif_repeat_all
-            else -> R.drawable.ic_notif_repeat_off
+            Player.REPEAT_MODE_ONE -> R.drawable.ic_repeat_one
+            Player.REPEAT_MODE_ALL -> R.drawable.ic_repeat_all
+            else -> R.drawable.ic_repeat_off
         }
         binding.btnCarRepeat.setImageResource(iconRes)
     }

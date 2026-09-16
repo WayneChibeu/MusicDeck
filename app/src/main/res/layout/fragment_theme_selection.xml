@@ -60,16 +60,18 @@
             android:layout_height="40dp">
 
             <View
+                android:id="@+id/viewDynamicColorCircle"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:background="@drawable/bg_color_circle"
                 android:backgroundTint="#26FFFFFF" />
 
             <ImageView
+                android:id="@+id/ivDynamicIcon"
                 android:layout_width="22dp"
                 android:layout_height="22dp"
                 android:layout_gravity="center"
-                android:src="@drawable/ic_auto_fix"
+                android:src="@drawable/ic_palette"
                 app:tint="?attr/colorPrimary" />
         </FrameLayout>
 
@@ -78,20 +80,22 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:orientation="vertical"
-            android:layout_marginStart="14dp">
+            android:layout_marginStart="14dp"
+            android:layout_marginEnd="8dp">
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Dynamic System Color"
+                android:text="Wallpaper Match"
                 android:textSize="15sp"
                 android:textColor="@android:color/white"
                 android:textStyle="bold" />
 
             <TextView
+                android:id="@+id/tvDynamicSubtitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Match colors with your device wallpaper"
+                android:text="Colors matched to your wallpaper"
                 android:textSize="12sp"
                 android:textColor="#80FFFFFF" />
         </LinearLayout>

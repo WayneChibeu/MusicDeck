@@ -33,7 +33,9 @@ fun ImageView.loadSongCover(song: Song) {
     // PRIORITY: Embedded Art from File
     // We use the file path directly (song.data) as Coil is extremely stable at extracting embedded art.
     // We avoid the system URI (MediaStore album_art) entirely because it can trigger IllegalStateException on some devices.
-    this.load(song.data) {
+    val audioFile = File(song.data)
+    val loadTarget: Any = if (audioFile.exists()) audioFile else song.uri
+    this.load(loadTarget) {
         crossfade(150)
         placeholder(R.drawable.default_album_art)
         error(R.drawable.default_album_art) // Non-crashing default fallback

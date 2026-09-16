@@ -27,11 +27,31 @@ class ThemeSelectionBottomSheet : BottomSheetDialogFragment() {
 
         val currentTheme = ThemeHelper.getTheme(requireContext())
 
-        // 1. Dynamic Wallpaper Option (Android 12+ / Material You)
+        // 1. Dynamic Wallpaper Option (Universal: Android 8.1+ / Palette Extraction)
         if (ThemeHelper.isDynamicSupported()) {
             binding.cardDynamicTheme.visibility = View.VISIBLE
             val isDynamicSelected = currentTheme == ThemeHelper.THEME_DYNAMIC
             binding.ivDynamicCheck.visibility = if (isDynamicSelected) View.VISIBLE else View.GONE
+
+            // Display cached wallpaper color immediately
+            val initialColor = ThemeHelper.getWallpaperSeedColor(requireContext())
+            val colorStateList = android.content.res.ColorStateList.valueOf(initialColor)
+            val bgAlpha = androidx.core.graphics.ColorUtils.setAlphaComponent(initialColor, 45)
+            binding.viewDynamicColorCircle.backgroundTintList = android.content.res.ColorStateList.valueOf(bgAlpha)
+            binding.ivDynamicIcon.imageTintList = colorStateList
+            binding.ivDynamicCheck.imageTintList = colorStateList
+
+            // Asynchronously refresh in case user changed wallpaper recently
+            ThemeHelper.refreshWallpaperColorAsync(requireContext()) { freshColor ->
+                _binding?.let { b ->
+                    val freshStateList = android.content.res.ColorStateList.valueOf(freshColor)
+                    val freshBg = androidx.core.graphics.ColorUtils.setAlphaComponent(freshColor, 45)
+                    b.viewDynamicColorCircle.backgroundTintList = android.content.res.ColorStateList.valueOf(freshBg)
+                    b.ivDynamicIcon.imageTintList = freshStateList
+                    b.ivDynamicCheck.imageTintList = freshStateList
+                }
+            }
+
             binding.cardDynamicTheme.setOnClickListener {
                 applyTheme(ThemeHelper.THEME_DYNAMIC)
             }

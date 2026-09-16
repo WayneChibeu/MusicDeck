@@ -147,6 +147,12 @@ object AudioEffectManager {
         val virtStrength = prefs.getInt("virtualizer_strength", 0)
         NativeAudioEngine.setVirtualizer(virtStrength / 1000f)
 
+        // Restore Headphone Crossfeed (Bauer Binaural DSP) into Native C++ Engine
+        val crossStrength = prefs.getInt("crossfeed_strength", 0)
+        val crossMode = prefs.getInt("crossfeed_mode", 2)
+        NativeAudioEngine.setCrossfeedMode(crossMode)
+        NativeAudioEngine.setCrossfeedStrength(crossStrength / 1000f)
+
         // Restore Karaoke Mode into Native C++ DSP Engine
         val isKaraoke = prefs.getBoolean("karaoke_enabled", false)
         NativeAudioEngine.setKaraokeEnabled(isKaraoke)
@@ -246,6 +252,11 @@ object AudioEffectManager {
             .apply()
     }
 
+    fun getBassBoostStrength(context: Context): Int {
+        return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .getInt("bass_boost_strength", 0)
+    }
+
     fun setVolumeBoostGain(gainmB: Int, context: Context, saveToPrefs: Boolean = true) {
         // Translate millibels to decibels: 100 mB = 1.0 dB
         val gainDb = gainmB / 100f
@@ -279,6 +290,36 @@ object AudioEffectManager {
     fun getSavedVirtualizerStrength(context: Context): Int {
         return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             .getInt("virtualizer_strength", 0)
+    }
+
+    fun setCrossfeedStrength(strength: Int, context: Context, saveToPrefs: Boolean = true) {
+        NativeAudioEngine.setCrossfeedStrength(strength / 1000f)
+        if (saveToPrefs) {
+            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .edit()
+                .putInt("crossfeed_strength", strength)
+                .apply()
+        }
+    }
+
+    fun getSavedCrossfeedStrength(context: Context): Int {
+        return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .getInt("crossfeed_strength", 0)
+    }
+
+    fun setCrossfeedMode(mode: Int, context: Context, saveToPrefs: Boolean = true) {
+        NativeAudioEngine.setCrossfeedMode(mode)
+        if (saveToPrefs) {
+            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .edit()
+                .putInt("crossfeed_mode", mode)
+                .apply()
+        }
+    }
+
+    fun getSavedCrossfeedMode(context: Context): Int {
+        return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .getInt("crossfeed_mode", 2)
     }
     
     fun savePreset(presetName: String, context: Context) {

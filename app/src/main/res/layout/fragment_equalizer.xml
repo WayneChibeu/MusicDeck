@@ -78,16 +78,81 @@
                 android:checked="true" />
         </LinearLayout>
 
-        <!-- Presets Horizontal Carousel -->
-        <TextView
-            android:layout_width="wrap_content"
+        <!-- Presets Horizontal Carousel Header -->
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="PRESETS"
-            android:textSize="11sp"
-            android:textStyle="bold"
-            android:letterSpacing="0.08"
-            android:textColor="?attr/colorOnSurfaceVariant"
-            android:layout_marginBottom="10dp" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="10dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="PRESETS"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.08"
+                android:textColor="?attr/colorOnSurfaceVariant" />
+
+            <!-- Import .deck file -->
+            <LinearLayout
+                android:id="@+id/btnImportDeckPreset"
+                android:layout_width="wrap_content"
+                android:layout_height="28dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:background="@drawable/bg_pill_glassmorphic"
+                android:paddingHorizontal="10dp"
+                android:layout_marginEnd="8dp"
+                android:clickable="true"
+                android:focusable="true">
+
+                <ImageView
+                    android:layout_width="14dp"
+                    android:layout_height="14dp"
+                    android:src="@drawable/ic_restore"
+                    app:tint="?attr/colorPrimary"
+                    android:layout_marginEnd="5dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Import"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:textColor="@android:color/white" />
+            </LinearLayout>
+
+            <!-- Export .deck file -->
+            <LinearLayout
+                android:id="@+id/btnExportDeckPreset"
+                android:layout_width="wrap_content"
+                android:layout_height="28dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:background="@drawable/bg_pill_glassmorphic"
+                android:paddingHorizontal="10dp"
+                android:clickable="true"
+                android:focusable="true">
+
+                <ImageView
+                    android:layout_width="14dp"
+                    android:layout_height="14dp"
+                    android:src="@drawable/ic_share"
+                    app:tint="?attr/colorPrimary"
+                    android:layout_marginEnd="5dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Export"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:textColor="@android:color/white" />
+            </LinearLayout>
+        </LinearLayout>
 
         <HorizontalScrollView
             android:id="@+id/scrollPresets"
@@ -581,6 +646,129 @@
 
             <SeekBar
                 android:id="@+id/seekVirtualizer"
+                android:layout_width="match_parent"
+                android:layout_height="32dp"
+                android:max="1000"
+                android:progress="0"
+                android:progressTint="?attr/colorPrimary"
+                android:thumbTint="?attr/colorPrimary" />
+        </LinearLayout>
+
+        <!-- Headphone Crossfeed (Bauer Binaural DSP) Card -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/bg_eq_card"
+            android:padding="16dp"
+            android:layout_marginBottom="16dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="10dp">
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:src="@drawable/ic_headset"
+                    app:tint="?attr/colorPrimary"
+                    android:layout_marginEnd="8dp"
+                    android:importantForAccessibility="no" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Headphone Crossfeed"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        android:textColor="?attr/colorOnSurface" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Natural speaker soundstage"
+                        android:textSize="11sp"
+                        android:textColor="?attr/colorOnSurfaceVariant"
+                        android:alpha="0.7" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/tvCrossfeedLevel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Off"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:textColor="?attr/colorPrimary"
+                    android:background="@drawable/bg_glassmorphic_item"
+                    android:paddingHorizontal="10dp"
+                    android:paddingVertical="4dp" />
+            </LinearLayout>
+
+            <!-- Mode Selector Chips: Subtle (Meier), Standard (Bauer), Studio (Chu Moy) -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="10dp">
+
+                <TextView
+                    android:id="@+id/chipCrossfeedSubtle"
+                    android:layout_width="0dp"
+                    android:layout_height="28dp"
+                    android:layout_weight="1"
+                    android:text="Subtle"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:gravity="center"
+                    android:background="@drawable/bg_preset_pill_inactive"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:layout_marginEnd="6dp"
+                    android:clickable="true"
+                    android:focusable="true" />
+
+                <TextView
+                    android:id="@+id/chipCrossfeedStandard"
+                    android:layout_width="0dp"
+                    android:layout_height="28dp"
+                    android:layout_weight="1"
+                    android:text="Standard"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:gravity="center"
+                    android:background="@drawable/bg_preset_pill_active"
+                    android:textColor="@android:color/white"
+                    android:layout_marginEnd="6dp"
+                    android:clickable="true"
+                    android:focusable="true" />
+
+                <TextView
+                    android:id="@+id/chipCrossfeedStudio"
+                    android:layout_width="0dp"
+                    android:layout_height="28dp"
+                    android:layout_weight="1"
+                    android:text="Studio"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:gravity="center"
+                    android:background="@drawable/bg_preset_pill_inactive"
+                    android:textColor="?attr/colorOnSurfaceVariant"
+                    android:clickable="true"
+                    android:focusable="true" />
+            </LinearLayout>
+
+            <SeekBar
+                android:id="@+id/seekCrossfeed"
                 android:layout_width="match_parent"
                 android:layout_height="32dp"
                 android:max="1000"
