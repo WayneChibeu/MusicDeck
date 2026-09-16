@@ -11,7 +11,7 @@ A modern, ad-free Android music player powered by the proprietary **DeckAcoustix
 
 ## Flagship Features
 
-### 🎧 Audio & DeckAcoustix™ DSP Engine
+### Audio & DeckAcoustix™ DSP Engine
 - **Headphone Crossfeed (Bauer Binaural DSP / BS2B)**: Native C++ acoustic head-shadow and delay compensation filter network. Recreates the natural acoustic soundstage of nearfield studio monitor speakers and eliminates extreme headphone listener fatigue on hard-panned stereo mixes (The Beatles, Queen, Pink Floyd, Jimi Hendrix). Includes 3 reference acoustic presets:
   - **Subtle (Meier)**: 650 Hz cutoff, -9.5 dB feed (Jan Meier curve; wide, natural, transparent)
   - **Standard (Bauer)**: 700 Hz cutoff, -6.0 dB feed (classic Bauer BS2B reference for rock and jazz)
@@ -26,12 +26,12 @@ A modern, ad-free Android music player powered by the proprietary **DeckAcoustix
 - **Studio Algorithmic Reverb**: Schroeder-Freeverb algorithmic reverberator with adjustable room size, damping, and wet mix.
 - **Resonant Bass Boost & Volume Booster**: Analog-modeled resonant low-shelf boost and clean pre-amp volume booster.
 
-### 🚗 Vehicle & Driving
+### Vehicle & Driving
 - **Android Auto Integration**: Native in-dash browsing via `MediaLibraryService` across All Tracks, Playlists, Favorites, and Fresh Arrivals with steering wheel controls and Google Assistant voice search.
 - **Dedicated In-App Car Mode**: High-contrast, distraction-free driving dashboard with oversized touch targets (78dp Play/Pause, 60dp skip, 52dp seek) and 1-tap Favorite liking.
 - **Two-Pane Landscape Layout**: Purpose-built horizontal layout for vehicle dashboard mounts with a 1:1 album art display on the left and full driving controls on the right.
 
-### 🎨 Visuals, Library & Smart Management
+### Visuals, Library & Smart Management
 - **Universal Wallpaper Dynamic Theming (AndroidX Palette)**: Direct wallpaper sampling guaranteeing rich, vibrant dynamic theming on all Android ROMs (ColorOS, HyperOS/MIUI, HiOS/XOS, OriginOS).
 - **Smart Playlists**: Intelligent multi-attribute keyword scoring for **Energy Boost** (high-tempo, dance, rock, workout) and **Chill Mode** (acoustic, ambient, ballads, piano) with custom vector iconography.
 - **Shake to Shuffle (Pocket-Safe)**: Proximity-guarded motion detection that sleeps inside pockets or bags to prevent accidental walking/jogging shuffles.
