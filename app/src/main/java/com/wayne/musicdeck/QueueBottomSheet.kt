@@ -102,6 +102,12 @@ class QueueBottomSheet : BottomSheetDialogFragment() {
                         updateQueue(player)
                     }
                 }
+
+                override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) {
+                    if (!isDragging) {
+                        updateQueue(player)
+                    }
+                }
                 
                 override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
                     adapter.currentPlayingIndex = player.currentMediaItemIndex
@@ -115,7 +121,8 @@ class QueueBottomSheet : BottomSheetDialogFragment() {
     
     private fun updateQueue(player: androidx.media3.common.Player) {
         val itemCount = player.mediaItemCount
-        tvQueueCount.text = "$itemCount songs"
+        val isShuffle = player.shuffleModeEnabled
+        tvQueueCount.text = if (isShuffle) "$itemCount songs • Shuffle Active" else "$itemCount songs"
         
         val items = mutableListOf<MediaItem>()
         for (i in 0 until itemCount) {

@@ -109,6 +109,8 @@ class MusicService : MediaLibraryService() {
             .setSeekForwardIncrementMs(10000)
             .build().apply {
                 setSeekParameters(androidx.media3.exoplayer.SeekParameters.CLOSEST_SYNC)
+                shuffleModeEnabled = settingsManager.isShuffleEnabled
+                repeatMode = settingsManager.repeatMode
             }
 
         // Secondary player for true overlapping DJ crossfades (Deck B)
@@ -135,6 +137,8 @@ class MusicService : MediaLibraryService() {
             .setWakeMode(C.WAKE_MODE_LOCAL)
             .build().apply {
                 setSeekParameters(androidx.media3.exoplayer.SeekParameters.CLOSEST_SYNC)
+                shuffleModeEnabled = settingsManager.isShuffleEnabled
+                repeatMode = settingsManager.repeatMode
             }
 
         activeDeck = primaryExoPlayer
@@ -616,9 +620,11 @@ class MusicService : MediaLibraryService() {
             }
 
             override fun onShuffleModeEnabledChanged(shuffleModeEnabled: Boolean) {
+                settingsManager.isShuffleEnabled = shuffleModeEnabled
                 updateMediaSessionLayout(activeForwardingPlayer)
             }
             override fun onRepeatModeChanged(repeatMode: Int) {
+                settingsManager.repeatMode = repeatMode
                 updateMediaSessionLayout(activeForwardingPlayer)
             }
             override fun onAudioSessionIdChanged(audioSessionId: Int) {
@@ -1345,6 +1351,10 @@ class MusicService : MediaLibraryService() {
                         activeDeck.seekTo(0, 0L)
                     }
                     
+                    primaryExoPlayer.shuffleModeEnabled = settingsManager.isShuffleEnabled
+                    secondaryExoPlayer.shuffleModeEnabled = settingsManager.isShuffleEnabled
+                    primaryExoPlayer.repeatMode = settingsManager.repeatMode
+                    secondaryExoPlayer.repeatMode = settingsManager.repeatMode
                     primaryExoPlayer.prepare()
                     secondaryExoPlayer.prepare()
                     if (startPlaying) {
@@ -1376,6 +1386,7 @@ class MusicService : MediaLibraryService() {
             if (!player.shuffleModeEnabled) {
                 player.shuffleModeEnabled = true
             }
+            settingsManager.isShuffleEnabled = true
             player.seekToNextMediaItem()
             com.wayne.musicdeck.utils.HapticManager.performShuffleHaptic(this@MusicService)
             android.widget.Toast.makeText(this@MusicService, "Queue Shuffled", android.widget.Toast.LENGTH_SHORT).show()

@@ -112,6 +112,14 @@ class SettingsManager(context: Context) {
         get() = kv.decodeBool("album_pulsing_enabled", true)
         set(value) { kv.encode("album_pulsing_enabled", value) }
 
+    var isShuffleEnabled: Boolean
+        get() = kv.decodeBool("shuffle_enabled", false)
+        set(value) { kv.encode("shuffle_enabled", value) }
+
+    var repeatMode: Int
+        get() = kv.decodeInt("repeat_mode", 2) // Default 2 = REPEAT_MODE_ALL
+        set(value) { kv.encode("repeat_mode", value) }
+
     var skipMobileDataLyricsWarning: Boolean
         get() = kv.decodeBool("skip_mobile_data_lyrics_warning", false)
         set(value) { kv.encode("skip_mobile_data_lyrics_warning", value) }

@@ -168,12 +168,25 @@ class MainActivity : AppCompatActivity() {
         // Initialize Shake to Shuffle
         shakeDetector = com.wayne.musicdeck.utils.ShakeDetector(this) {
             if (settingsManager.isShakeToShuffleEnabled) {
-                val currentSongs = viewModel.songs.value
-                if (!currentSongs.isNullOrEmpty()) {
-                    val shuffled = currentSongs.shuffled()
-                    viewModel.playPlaylist(shuffled, 0)
-                    com.wayne.musicdeck.utils.HapticManager.performSpringClick(this)
+                val player = viewModel.mediaController.value
+                if (player != null && player.mediaItemCount > 0) {
+                    if (!player.shuffleModeEnabled) {
+                        player.shuffleModeEnabled = true
+                    }
+                    settingsManager.isShuffleEnabled = true
+                    player.seekToNextMediaItem()
+                    com.wayne.musicdeck.utils.HapticManager.performShuffleHaptic(this)
                     android.widget.Toast.makeText(this, "Queue Shuffled", android.widget.Toast.LENGTH_SHORT).show()
+                } else {
+                    val currentSongs = viewModel.songs.value
+                    if (!currentSongs.isNullOrEmpty()) {
+                        val shuffled = currentSongs.shuffled()
+                        viewModel.playPlaylist(shuffled, 0)
+                        viewModel.mediaController.value?.shuffleModeEnabled = true
+                        settingsManager.isShuffleEnabled = true
+                        com.wayne.musicdeck.utils.HapticManager.performShuffleHaptic(this)
+                        android.widget.Toast.makeText(this, "Queue Shuffled", android.widget.Toast.LENGTH_SHORT).show()
+                    }
                 }
             }
         }
