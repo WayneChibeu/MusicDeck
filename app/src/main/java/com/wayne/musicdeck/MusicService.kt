@@ -449,7 +449,7 @@ class MusicService : MediaLibraryService() {
             }
 
             private var mediaButtonPressCount = 0
-            private val mediaButtonPressTimeout = 400L
+            private val mediaButtonPressTimeout = 500L
             private var mediaButtonPressJob: kotlinx.coroutines.Job? = null
             private var lastSkipKeyCode = 0
             private var lastSkipTimestamp = 0L
@@ -473,17 +473,17 @@ class MusicService : MediaLibraryService() {
                             mediaButtonPressJob?.cancel()
                             mediaButtonPressJob = serviceScope.launch {
                                 kotlinx.coroutines.delay(mediaButtonPressTimeout)
-                                when (mediaButtonPressCount) {
-                                    1 -> {
+                                when {
+                                    mediaButtonPressCount == 1 -> {
                                         if (player.isPlaying) player.pause() else player.play()
                                     }
-                                    2 -> {
+                                    mediaButtonPressCount == 2 -> {
                                         player.seekToNextMediaItem()
                                     }
-                                    3 -> {
+                                    mediaButtonPressCount == 3 -> {
                                         player.seekToPreviousMediaItem()
                                     }
-                                    4 -> {
+                                    mediaButtonPressCount >= 4 -> {
                                         if (settingsManager.isEarbudComboShuffleEnabled) {
                                             triggerShakeShuffle(player)
                                         }
@@ -496,7 +496,9 @@ class MusicService : MediaLibraryService() {
                         android.view.KeyEvent.KEYCODE_MEDIA_NEXT -> {
                             if (settingsManager.isEarbudComboShuffleEnabled) {
                                 val now = System.currentTimeMillis()
-                                if (lastSkipKeyCode == android.view.KeyEvent.KEYCODE_MEDIA_PREVIOUS && (now - lastSkipTimestamp) <= 1200L) {
+                                val timeDiff = now - lastSkipTimestamp
+                                if ((lastSkipKeyCode == android.view.KeyEvent.KEYCODE_MEDIA_NEXT && timeDiff <= 1000L) ||
+                                    (lastSkipKeyCode == android.view.KeyEvent.KEYCODE_MEDIA_PREVIOUS && timeDiff <= 1200L)) {
                                     lastSkipKeyCode = 0
                                     triggerShakeShuffle(player)
                                     return true
@@ -508,7 +510,8 @@ class MusicService : MediaLibraryService() {
                         android.view.KeyEvent.KEYCODE_MEDIA_PREVIOUS -> {
                             if (settingsManager.isEarbudComboShuffleEnabled) {
                                 val now = System.currentTimeMillis()
-                                if (lastSkipKeyCode == android.view.KeyEvent.KEYCODE_MEDIA_NEXT && (now - lastSkipTimestamp) <= 1200L) {
+                                val timeDiff = now - lastSkipTimestamp
+                                if (lastSkipKeyCode == android.view.KeyEvent.KEYCODE_MEDIA_NEXT && timeDiff <= 1200L) {
                                     lastSkipKeyCode = 0
                                     triggerShakeShuffle(player)
                                     return true
@@ -1375,6 +1378,7 @@ class MusicService : MediaLibraryService() {
             }
             player.seekToNextMediaItem()
             com.wayne.musicdeck.utils.HapticManager.performShuffleHaptic(this@MusicService)
+            android.widget.Toast.makeText(this@MusicService, "Queue Shuffled", android.widget.Toast.LENGTH_SHORT).show()
         }
     }
 
