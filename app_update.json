@@ -1,9 +1,9 @@
 {
-  "versionName": "3.0.13",
-  "versionCode": 75,
-  "releaseTitle": "MusicDeck v3.0.13 - Headphone Crossfeed (Bauer DSP), Wallpaper Palette & EQ Preset Sharing",
-  "releaseNotes": "Introduces audiophile-grade Bauer Binaural Crossfeed (BS2B) native C++ DSP for natural studio soundstage on headphones, universal Wallpaper Match dynamic theming via AndroidX Palette, EQ Preset export & community sharing (.deck files), intelligent Smart Playlist scoring with custom vector icons, Car Mode dashboard refinements with 1-tap Favorites, and Pocket-safe shake protection.",
-  "downloadUrl": "https://github.com/WayneChibeu/MusicDeck/releases/download/v3.0.13/MusicDeck-v3.0.13.apk",
-  "apkSize": 7197592,
-  "htmlUrl": "https://github.com/WayneChibeu/MusicDeck/releases/tag/v3.0.13"
+  "versionName": "3.1.0",
+  "versionCode": 77,
+  "releaseTitle": "MusicDeck v3.1.0 - Decoded Audio Waveforms, Shareable Lyric Cards, Multi-Select Library & Hi-Res Telemetry",
+  "releaseNotes": "Introduces real-time decoded audio PCM waveform scrub bars with peak amplitude extraction and dynamic album palette tinting, 1080px shareable lyric card generator with 4 curated card themes, full HeyTap-style multi-select library management with batch Delete, Add to Playlist, Add to Queue, and Share actions, persistent Hi-Res audio stream telemetry badge, and precision A-B repeat practice looper.",
+  "downloadUrl": "https://github.com/WayneChibeu/MusicDeck/releases/download/v3.1.0/MusicDeck-v3.1.0.apk",
+  "apkSize": 14633996,
+  "htmlUrl": "https://github.com/WayneChibeu/MusicDeck/releases/tag/v3.1.0"
 }
