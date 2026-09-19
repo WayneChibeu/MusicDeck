@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="196dp"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/bg_list_menu_popup"
+    android:paddingVertical="4dp"
+    android:paddingHorizontal="2dp"
+    android:elevation="12dp">
+
+    <!-- Multi-select Row -->
+    <LinearLayout
+        android:id="@+id/menuMultiSelect"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="14dp"
+        android:background="?attr/selectableItemBackground"
+        android:clickable="true"
+        android:focusable="true">
+
+        <ImageView
+            android:layout_width="22dp"
+            android:layout_height="22dp"
+            android:src="@drawable/ic_multi_select"
+            app:tint="#EEEEEE"
+            android:contentDescription="Multi-select icon" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="14dp"
+            android:text="Multi-select"
+            android:textColor="#FFFFFF"
+            android:textSize="15sp"
+            android:textStyle="normal" />
+    </LinearLayout>
+
+    <!-- Divider Line -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginStart="50dp"
+        android:layout_marginEnd="12dp"
+        android:background="#3A3A40" />
+
+    <!-- Sort Order Row -->
+    <LinearLayout
+        android:id="@+id/menuSortOrder"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingHorizontal="14dp"
+        android:background="?attr/selectableItemBackground"
+        android:clickable="true"
+        android:focusable="true">
+
+        <ImageView
+            android:layout_width="22dp"
+            android:layout_height="22dp"
+            android:src="@drawable/ic_sort_order"
+            app:tint="#EEEEEE"
+            android:contentDescription="Sort Order icon" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="14dp"
+            android:text="Sort Order"
+            android:textColor="#FFFFFF"
+            android:textSize="15sp"
+            android:textStyle="normal" />
+
+        <ImageView
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:src="@drawable/ic_unfold_more"
+            app:tint="#8E8E93"
+            android:contentDescription="Expand sort options" />
+    </LinearLayout>
+
+</LinearLayout>

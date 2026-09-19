@@ -234,31 +234,113 @@
             android:ellipsize="end"
             app:layout_constraintTop_toBottomOf="@+id/tvFullTitle"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toStartOf="@+id/tvUsbDacPill"
-            app:layout_constraintBottom_toTopOf="@+id/tvCurrentTime" />
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintBottom_toTopOf="@+id/layoutAudioBadgeRow" />
 
-        <!-- Bit-Perfect USB-DAC Telemetry Pill -->
-        <TextView
-            android:id="@+id/tvUsbDacPill"
-            android:layout_width="wrap_content"
+        <!-- Audio Quality Telemetry & Practice Looper Row -->
+        <LinearLayout
+            android:id="@+id/layoutAudioBadgeRow"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="BIT-PERFECT"
-            android:textSize="9sp"
-            android:textStyle="bold"
-            android:textColor="?attr/colorPrimary"
-            android:background="@drawable/bg_glassmorphic_item"
-            android:paddingHorizontal="6dp"
-            android:paddingVertical="2dp"
-            android:layout_marginStart="8dp"
-            android:clickable="true"
-            android:focusable="true"
-            android:visibility="gone"
-            app:layout_constraintTop_toTopOf="@+id/tvFullArtist"
-            app:layout_constraintBottom_toBottomOf="@+id/tvFullArtist"
-            app:layout_constraintEnd_toEndOf="parent" />
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            app:layout_constraintTop_toBottomOf="@+id/tvFullArtist"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintBottom_toTopOf="@+id/seekBar">
 
-        <!-- INLINE SEEK BAR LAYOUT -->
-        
+            <!-- Persistent Audio Quality Pill (Clickable -> Signal Path Diagnostics) -->
+            <LinearLayout
+                android:id="@+id/layoutAudioBadge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:background="@drawable/bg_pill_glassmorphic"
+                android:paddingHorizontal="8dp"
+                android:paddingVertical="3dp"
+                android:clickable="true"
+                android:focusable="true">
+
+                <TextView
+                    android:id="@+id/tvAudioQualityTier"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="HI-RES LOSSLESS"
+                    android:textSize="9sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/colorAmber"
+                    android:letterSpacing="0.04" />
+
+                <View
+                    android:id="@+id/dividerAudioBadge"
+                    android:layout_width="3dp"
+                    android:layout_height="3dp"
+                    android:layout_marginHorizontal="5dp"
+                    android:background="@drawable/bg_color_circle"
+                    android:backgroundTint="#66FFFFFF" />
+
+                <TextView
+                    android:id="@+id/tvAudioTechnicalDetails"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="24-bit / 96.0 kHz FLAC"
+                    android:textSize="9sp"
+                    android:textStyle="normal"
+                    android:textColor="#CCFFFFFF" />
+            </LinearLayout>
+
+            <!-- Flexible Space -->
+            <View
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1" />
+
+            <!-- A-B Repeat Looper Pill -->
+            <LinearLayout
+                android:id="@+id/btnAbLoop"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:background="@drawable/bg_pill_glassmorphic"
+                android:paddingHorizontal="8dp"
+                android:paddingVertical="3dp"
+                android:clickable="true"
+                android:focusable="true">
+
+                <ImageView
+                    android:id="@+id/ivAbLoopIcon"
+                    android:layout_width="12dp"
+                    android:layout_height="12dp"
+                    android:src="@drawable/ic_repeat_ab"
+                    app:tint="#B3FFFFFF"
+                    android:layout_marginEnd="4dp" />
+
+                <TextView
+                    android:id="@+id/tvAbLoopLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="A-B Loop"
+                    android:textSize="9sp"
+                    android:textStyle="bold"
+                    android:textColor="#B3FFFFFF"
+                    android:letterSpacing="0.04" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- INLINE SEEK BAR LAYOUT WITH REAL PCM WAVEFORM -->
+        <com.wayne.musicdeck.ui.WaveformSeekBar
+            android:id="@+id/waveformSeekBar"
+            android:layout_width="0dp"
+            android:layout_height="30dp"
+            android:layout_marginHorizontal="8dp"
+            android:layout_marginTop="6dp"
+            app:layout_constraintTop_toBottomOf="@+id/layoutAudioBadgeRow"
+            app:layout_constraintStart_toEndOf="@+id/tvCurrentTime"
+            app:layout_constraintEnd_toStartOf="@+id/tvTotalTime" />
+
         <TextView
             android:id="@+id/tvCurrentTime"
             android:layout_width="40dp"
@@ -275,7 +357,7 @@
             android:id="@+id/seekBar"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="32dp"
+            android:layout_marginTop="2dp"
             android:layout_marginBottom="8dp"
             android:layout_marginHorizontal="8dp"
             android:max="1000"
@@ -287,8 +369,8 @@
             android:progressDrawable="@drawable/seek_progress"
             android:minHeight="4dp"
             android:maxHeight="4dp"
-            android:paddingVertical="16dp"
-            app:layout_constraintTop_toBottomOf="@+id/tvFullArtist"
+            android:paddingVertical="10dp"
+            app:layout_constraintTop_toBottomOf="@+id/waveformSeekBar"
             app:layout_constraintStart_toEndOf="@+id/tvCurrentTime"
             app:layout_constraintEnd_toStartOf="@+id/tvTotalTime" />
 

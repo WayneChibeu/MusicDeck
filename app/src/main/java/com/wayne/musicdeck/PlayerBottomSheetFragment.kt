@@ -39,6 +39,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.media.AudioManager
 import android.os.Build
+import androidx.core.content.ContextCompat
 import kotlinx.coroutines.launch
 
 class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
@@ -48,6 +49,24 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
     private val viewModel: MainViewModel by activityViewModel()
     private val settingsManager: SettingsManager by inject()
     private var isTracking = false
+    private var isWaveformSeeking = false
+    private var currentWaveformTrackPath: String? = null
+
+    private fun loadWaveformForTrack(trackPath: String?) {
+        if (trackPath.isNullOrEmpty()) {
+            _binding?.waveformSeekBar?.setAmplitudes(IntArray(80) { (20..80).random() })
+            return
+        }
+        if (currentWaveformTrackPath == trackPath) return
+        currentWaveformTrackPath = trackPath
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            val amplitudes = com.wayne.musicdeck.audio.WaveformExtractor.getWaveform(requireContext(), trackPath)
+            if (_binding != null && currentWaveformTrackPath == trackPath) {
+                binding.waveformSeekBar.setAmplitudes(amplitudes)
+            }
+        }
+    }
 
     // Playback mode: 0=Off, 1=Single Loop, 2=Shuffle, 3=Playlist Loop
     private var playbackMode = 0
@@ -91,6 +110,9 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
                 if (player.duration > 0) {
                     val progress = (player.currentPosition.toFloat() / player.duration * 1000f)
                     binding.seekBar.progress = progress.toInt().coerceIn(0, 1000)
+                    if (!isWaveformSeeking) {
+                        binding.waveformSeekBar.progress = (player.currentPosition.toFloat() / player.duration).coerceIn(0f, 1f)
+                    }
                 }
                 binding.tvCurrentTime.text = formatTime(player.currentPosition)
                 
@@ -134,27 +156,33 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         // Setup view switching
         setupViewSwitching()
 
-        // Observe USB DAC Telemetry State
+        // Observe Audio Telemetry & DAC State for Persistent Stream Badge
         viewLifecycleOwner.lifecycleScope.launch {
             com.wayne.musicdeck.audio.UsbDacManager.dacState.collect { dacState ->
                 if (_binding != null) {
-                    if (dacState.isConnected && dacState.isPassthroughEnabled) {
-                        binding.tvUsbDacPill.visibility = View.VISIBLE
-                        binding.tvUsbDacPill.text = if (dacState.passthroughMode == SettingsManager.USB_DAC_MODE_PURE_DIRECT) {
-                            "BIT-PERFECT"
-                        } else {
-                            "HI-RES DIRECT"
-                        }
-                    } else {
-                        binding.tvUsbDacPill.visibility = View.GONE
+                    val tier = dacState.qualityTier
+                    binding.tvAudioQualityTier.text = dacState.tierBadgeText
+                    binding.tvAudioTechnicalDetails.text = dacState.technicalStreamDetails
+
+                    val tierColor = when (tier) {
+                        com.wayne.musicdeck.audio.AudioQualityTier.BIT_PERFECT -> ContextCompat.getColor(requireContext(), R.color.colorNeon)
+                        com.wayne.musicdeck.audio.AudioQualityTier.HI_RES_DIRECT -> ContextCompat.getColor(requireContext(), R.color.colorOcean)
+                        com.wayne.musicdeck.audio.AudioQualityTier.HI_RES_LOSSLESS -> ContextCompat.getColor(requireContext(), R.color.colorAmber)
+                        com.wayne.musicdeck.audio.AudioQualityTier.LOSSLESS -> ContextCompat.getColor(requireContext(), R.color.colorSky)
+                        com.wayne.musicdeck.audio.AudioQualityTier.STANDARD -> ContextCompat.getColor(requireContext(), R.color.colorViolet)
                     }
+                    binding.tvAudioQualityTier.setTextColor(tierColor)
                 }
             }
         }
 
-        binding.tvUsbDacPill.setOnClickListener {
+        binding.layoutAudioBadge.setOnClickListener {
+            playHaptic(it)
             UsbDacBottomSheet().show(parentFragmentManager, "UsbDac")
         }
+
+        // Setup A-B Repeat Practice Looper
+        setupAbLoopControls()
         
         // Swipe Gestures
         val gestureDetector = GestureDetector(context, object : GestureDetector.SimpleOnGestureListener() {
@@ -1225,7 +1253,9 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         if (player.duration > 0) {
             val progress = (player.currentPosition.toFloat() / player.duration * 1000f)
             binding.seekBar.progress = progress.toInt().coerceIn(0, 1000)
+            binding.waveformSeekBar.progress = (player.currentPosition.toFloat() / player.duration).coerceIn(0f, 1f)
         }
+        loadWaveformForTrack(player.currentMediaItem?.mediaId)
         binding.seekBar.post(updateProgressAction)
 
         binding.btnPlayPause.setOnClickListener {
@@ -1297,6 +1327,7 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
                     if (duration > 0) {
                         binding.tvCurrentTime.text = formatTime((progress / 1000f * duration).toLong())
                     }
+                    binding.waveformSeekBar.progress = (progress / 1000f).coerceIn(0f, 1f)
                 }
             }
 
@@ -1317,6 +1348,23 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
                 }
             }
         })
+
+        // Waveform scrub listeners
+        binding.waveformSeekBar.onStartTouch = {
+            isWaveformSeeking = true
+        }
+        binding.waveformSeekBar.onSeekListener = { ratio ->
+            val duration = player.duration
+            if (duration > 0) {
+                val seekPos = (ratio * duration).toLong()
+                player.seekTo(seekPos)
+                binding.tvCurrentTime.text = formatTime(seekPos)
+                binding.seekBar.progress = (ratio * 1000f).toInt().coerceIn(0, 1000)
+            }
+        }
+        binding.waveformSeekBar.onStopTouch = {
+            isWaveformSeeking = false
+        }
 
         // Determine initial playback mode
         playbackMode = when {
@@ -1339,6 +1387,7 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
             updateMetadata(mediaItem)
             val player = viewModel.mediaController.value ?: return
             binding.tvTotalTime.text = formatTime(player.duration)
+            loadWaveformForTrack(mediaItem?.mediaId)
             
             val currentPath = mediaItem?.mediaId
             val isFav = viewModel.favorites.value?.any { it.data == currentPath } == true
@@ -1661,6 +1710,10 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         
         // Tint Play/Pause Ring
         binding.playPauseContainer.background?.setTint(color)
+
+        // Tint Waveform Seek Bar
+        binding.waveformSeekBar.activeColor = color
+        binding.waveformSeekBar.inactiveColor = if (isLightMode) 0x26000000.toInt() else 0x33FFFFFF.toInt()
     }
     
 
@@ -1904,6 +1957,13 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
             showFontSizeBottomSheet()
         }
 
+        val rowLyricCard = sheetView.findViewById<View>(R.id.rowLyricCard)
+        rowLyricCard?.setOnClickListener {
+            playHaptic(it)
+            dialog.dismiss()
+            LyricCardBottomSheet.newInstance().show(childFragmentManager, "LyricCardBottomSheet")
+        }
+
         dialog.show()
     }
 
@@ -1993,6 +2053,127 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         
         dialog.setContentView(container)
         dialog.show()
+    }
+
+    // ============================
+    // A-B REPEAT LOOPER CONTROLS
+    // ============================
+
+    private fun setupAbLoopControls() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            MusicService.instance?.abLoopState?.collect { state ->
+                updateAbLoopUi(state)
+            }
+        }
+
+        binding.btnAbLoop.setOnClickListener {
+            val player = viewModel.mediaController.value ?: return@setOnClickListener
+            val currentPos = player.currentPosition
+            val service = MusicService.instance
+            val currentState = service?.abLoopState?.value ?: MusicService.AbLoopState()
+
+            when {
+                // State 0: Point A not set -> Record Point A
+                currentState.startMs < 0L -> {
+                    playHaptic(it)
+                    if (service != null) {
+                        service.setAbLoopStart(currentPos)
+                    } else {
+                        val intent = Intent(requireContext(), MusicService::class.java).apply {
+                            action = MusicService.ACTION_SET_AB_LOOP_START
+                            putExtra(MusicService.EXTRA_AB_LOOP_POS, currentPos)
+                        }
+                        requireContext().startService(intent)
+                    }
+                    val posText = formatTime(currentPos)
+                    binding.tvAbLoopLabel.text = "A: $posText"
+                    val amberColor = ContextCompat.getColor(requireContext(), R.color.colorAmber)
+                    binding.ivAbLoopIcon.imageTintList = android.content.res.ColorStateList.valueOf(amberColor)
+                    binding.tvAbLoopLabel.setTextColor(amberColor)
+                    Toast.makeText(context, "Point A set at $posText. Tap at end point to loop.", Toast.LENGTH_SHORT).show()
+                }
+
+                // State 1: Point A set, not looping -> Record Point B & Start Loop
+                !currentState.isLooping && currentState.startMs >= 0L -> {
+                    if (currentPos <= currentState.startMs + 250L) {
+                        Toast.makeText(context, "Point B must be ahead of Point A", Toast.LENGTH_SHORT).show()
+                        return@setOnClickListener
+                    }
+                    com.wayne.musicdeck.utils.HapticManager.performShuffleHaptic(requireContext())
+                    if (service != null) {
+                        service.setAbLoopEnd(currentPos)
+                    } else {
+                        val intent = Intent(requireContext(), MusicService::class.java).apply {
+                            action = MusicService.ACTION_SET_AB_LOOP_END
+                            putExtra(MusicService.EXTRA_AB_LOOP_POS, currentPos)
+                        }
+                        requireContext().startService(intent)
+                    }
+                    val aText = formatTime(currentState.startMs)
+                    val bText = formatTime(currentPos)
+                    Toast.makeText(context, "Looping: $aText ⇄ $bText", Toast.LENGTH_SHORT).show()
+                }
+
+                // State 2: Looping -> Clear Loop
+                else -> {
+                    playHaptic(it)
+                    if (service != null) {
+                        service.clearAbLoop()
+                    } else {
+                        val intent = Intent(requireContext(), MusicService::class.java).apply {
+                            action = MusicService.ACTION_CLEAR_AB_LOOP
+                        }
+                        requireContext().startService(intent)
+                    }
+                    Toast.makeText(context, "A-B Loop cleared", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+
+        binding.btnAbLoop.setOnLongClickListener {
+            playHaptic(it)
+            val service = MusicService.instance
+            if (service != null) {
+                service.clearAbLoop()
+            } else {
+                val intent = Intent(requireContext(), MusicService::class.java).apply {
+                    action = MusicService.ACTION_CLEAR_AB_LOOP
+                }
+                requireContext().startService(intent)
+            }
+            Toast.makeText(context, "A-B Loop reset", Toast.LENGTH_SHORT).show()
+            true
+        }
+    }
+
+    private fun updateAbLoopUi(state: MusicService.AbLoopState) {
+        if (_binding == null) return
+        when {
+            state.isLooping && state.startMs >= 0L && state.endMs > state.startMs -> {
+                binding.btnAbLoop.setBackgroundResource(R.drawable.bg_ab_loop_active)
+                val aText = formatTime(state.startMs)
+                val bText = formatTime(state.endMs)
+                binding.tvAbLoopLabel.text = "$aText ⇄ $bText"
+                val activeColor = ContextCompat.getColor(requireContext(), R.color.colorViolet)
+                binding.ivAbLoopIcon.imageTintList = android.content.res.ColorStateList.valueOf(activeColor)
+                binding.tvAbLoopLabel.setTextColor(activeColor)
+            }
+            state.startMs >= 0L -> {
+                binding.btnAbLoop.setBackgroundResource(R.drawable.bg_pill_glassmorphic)
+                val aText = formatTime(state.startMs)
+                binding.tvAbLoopLabel.text = "A: $aText"
+                val amberColor = ContextCompat.getColor(requireContext(), R.color.colorAmber)
+                binding.ivAbLoopIcon.imageTintList = android.content.res.ColorStateList.valueOf(amberColor)
+                binding.tvAbLoopLabel.setTextColor(amberColor)
+            }
+            else -> {
+                binding.btnAbLoop.setBackgroundResource(R.drawable.bg_pill_glassmorphic)
+                binding.tvAbLoopLabel.text = "A-B Loop"
+                val defaultColor = ContextCompat.getColor(requireContext(), R.color.textSecondary)
+                binding.ivAbLoopIcon.imageTintList = android.content.res.ColorStateList.valueOf(defaultColor)
+                binding.tvAbLoopLabel.setTextColor(defaultColor)
+            }
+        }
     }
 
 }

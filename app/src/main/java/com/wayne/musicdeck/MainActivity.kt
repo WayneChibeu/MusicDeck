@@ -62,20 +62,29 @@ class MainActivity : AppCompatActivity() {
     }
     
     // Modern ActivityResultLauncher for MediaStore delete requests (Android 11+)
-    
+    private var pendingDeleteSongIds: List<Long>? = null
+
     private val deleteRequestLauncher = registerForActivityResult(
         androidx.activity.result.contract.ActivityResultContracts.StartIntentSenderForResult()
     ) { result ->
         if (result.resultCode == RESULT_OK) {
             viewModel.loadSongs()
-            viewModel.pendingDeleteSongId?.let { 
-                viewModel.onSongDeleted(it)
-                android.widget.Toast.makeText(this, "Queue updated!", android.widget.Toast.LENGTH_SHORT).show()
+            val batchIds = pendingDeleteSongIds
+            if (!batchIds.isNullOrEmpty()) {
+                batchIds.forEach { viewModel.onSongDeleted(it) }
+                pendingDeleteSongIds = null
+                android.widget.Toast.makeText(this, "Deleted ${batchIds.size} tracks", android.widget.Toast.LENGTH_SHORT).show()
+            } else {
+                viewModel.pendingDeleteSongId?.let { 
+                    viewModel.onSongDeleted(it)
+                    android.widget.Toast.makeText(this, "Queue updated!", android.widget.Toast.LENGTH_SHORT).show()
+                }
+                viewModel.pendingDeleteSongId = null
+                android.widget.Toast.makeText(this, "Deleted!", android.widget.Toast.LENGTH_SHORT).show()
             }
-            viewModel.pendingDeleteSongId = null
-            android.widget.Toast.makeText(this, "Deleted!", android.widget.Toast.LENGTH_SHORT).show()
         } else {
              viewModel.pendingDeleteSongId = null
+             pendingDeleteSongIds = null
         }
     }
     
@@ -112,6 +121,73 @@ class MainActivity : AppCompatActivity() {
             android.widget.Toast.makeText(this, "Failed to delete: ${e.message}", android.widget.Toast.LENGTH_SHORT).show()
         }
     }
+
+    fun deleteMultipleSongs(songs: List<Song>) {
+        if (songs.isEmpty()) return
+        val songIds = songs.map { it.id }
+        pendingDeleteSongIds = songIds
+        try {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                val uriList = songs.map { it.uri }
+                val pendingIntent = android.provider.MediaStore.createDeleteRequest(contentResolver, uriList)
+                val request = androidx.activity.result.IntentSenderRequest.Builder(pendingIntent.intentSender).build()
+                deleteRequestLauncher.launch(request)
+            } else {
+                var deletedCount = 0
+                for (song in songs) {
+                    try {
+                        contentResolver.delete(song.uri, null, null)
+                        viewModel.onSongDeleted(song.id)
+                        deletedCount++
+                    } catch (e: Exception) {
+                        // ignore individual failure
+                    }
+                }
+                viewModel.loadSongs()
+                pendingDeleteSongIds = null
+                android.widget.Toast.makeText(this, "Deleted $deletedCount of ${songs.size} songs", android.widget.Toast.LENGTH_SHORT).show()
+            }
+        } catch (e: Exception) {
+            pendingDeleteSongIds = null
+            android.widget.Toast.makeText(this, "Failed to delete: ${e.message}", android.widget.Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    fun showBatchDeleteConfirmationDialog(songs: List<Song>, onConfirmed: () -> Unit) {
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+            .setTitle("Delete ${songs.size} tracks?")
+            .setMessage("Are you sure you want to permanently delete these ${songs.size} track(s) from your device?")
+            .setPositiveButton("Delete") { _, _ ->
+                onConfirmed()
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    fun shareSongs(songs: List<Song>) {
+        if (songs.isEmpty()) return
+        try {
+            if (songs.size == 1) {
+                val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                    type = "audio/*"
+                    putExtra(android.content.Intent.EXTRA_STREAM, songs[0].uri)
+                    addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+                startActivity(android.content.Intent.createChooser(intent, "Share track"))
+            } else {
+                val uris = java.util.ArrayList(songs.map { it.uri })
+                val intent = android.content.Intent(android.content.Intent.ACTION_SEND_MULTIPLE).apply {
+                    type = "audio/*"
+                    putParcelableArrayListExtra(android.content.Intent.EXTRA_STREAM, uris)
+                    addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+                startActivity(android.content.Intent.createChooser(intent, "Share ${songs.size} tracks"))
+            }
+        } catch (e: Exception) {
+            android.widget.Toast.makeText(this, "Failed to share: ${e.message}", android.widget.Toast.LENGTH_SHORT).show()
+        }
+    }
+
     private var pendingTagEdit: PendingTagEdit? = null
     private data class PendingTagEdit(val song: Song, val title: String, val artist: String, val album: String)
     
@@ -192,6 +268,10 @@ class MainActivity : AppCompatActivity() {
         }
 
         onBackPressedDispatcher.addCallback(this) {
+             if (isSelectionModeActive) {
+                 exitSelectionMode()
+                 return@addCallback
+             }
              val tabLayout = binding.topBar.findViewById<com.google.android.material.tabs.TabLayout>(R.id.tabLayout)
              if (tabLayout.selectedTabPosition == 6 && currentFolder != null) { // Index 6 is Folders
                  currentFolder = null
@@ -204,6 +284,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         setupRecyclerView()
+        setupSelectionMode()
         // setupOneTimeEvents() removed
 
         // Automatic update check (throttled once per 24 hours, silent unless update available)
@@ -504,6 +585,12 @@ class MainActivity : AppCompatActivity() {
         
         viewModel.favorites.observe(this) {
             updateMiniPlayerFavoriteIcon()
+        }
+
+        lifecycleScope.launch {
+            com.wayne.musicdeck.audio.UsbDacManager.dacState.collect { dacState ->
+                updateMiniPlayerAudioBadge(dacState)
+            }
         }
     }
     
@@ -1001,45 +1088,197 @@ class MainActivity : AppCompatActivity() {
             android.widget.Toast.makeText(this, "Shuffling ${songs.size} songs", android.widget.Toast.LENGTH_SHORT).show()
         }
         
-        // List Menu (Sort Order + Multi-select like YouTube Music)
+        // List Menu: Multi-select + Sort Order
         binding.btnListMenu.setOnClickListener { view ->
-            val popup = android.widget.PopupMenu(this, view)
-            // Submenu style - create menu items
-            popup.menu.add(0, 100, 0, "Sort by song title")
-            popup.menu.add(0, 101, 0, "Sort by date added")
-            popup.menu.add(0, 102, 0, "Sort by artist")
-            popup.menu.add(0, 103, 0, "Sort by duration")
+            showListMenu(view)
+        }
+    }
 
-            popup.setOnMenuItemClickListener { item ->
-                when (item.itemId) {
-                    100 -> {
+    private fun showListMenu(anchor: android.view.View) {
+        val popupView = layoutInflater.inflate(R.layout.popup_list_menu, null)
+        val popupWindow = android.widget.PopupWindow(
+            popupView,
+            android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
+            android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
+            true
+        ).apply {
+            elevation = 16f
+            isOutsideTouchable = true
+            setBackgroundDrawable(android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT))
+        }
+
+        popupView.findViewById<android.view.View>(R.id.menuMultiSelect).setOnClickListener {
+            popupWindow.dismiss()
+            enterSelectionMode()
+        }
+
+        popupView.findViewById<android.view.View>(R.id.menuSortOrder).setOnClickListener {
+            popupWindow.dismiss()
+            showSortOrderDialog()
+        }
+
+        popupView.measure(
+            android.view.View.MeasureSpec.makeMeasureSpec(0, android.view.View.MeasureSpec.UNSPECIFIED),
+            android.view.View.MeasureSpec.makeMeasureSpec(0, android.view.View.MeasureSpec.UNSPECIFIED)
+        )
+        val xOffset = -(popupView.measuredWidth - anchor.width)
+        popupWindow.showAsDropDown(anchor, xOffset, 8)
+    }
+
+    private fun showSortOrderDialog() {
+        val sortOptions = arrayOf("Song title", "Date added", "Artist", "Duration")
+        val checkedIndex = when (currentSortOption) {
+            MainViewModel.SortOption.TITLE -> 0
+            MainViewModel.SortOption.DATE_ADDED -> 1
+            MainViewModel.SortOption.ARTIST -> 2
+            MainViewModel.SortOption.DURATION -> 3
+        }
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+            .setTitle("Sort Order")
+            .setSingleChoiceItems(sortOptions, checkedIndex) { dialog, which ->
+                when (which) {
+                    0 -> {
                         currentSortOption = MainViewModel.SortOption.TITLE
                         viewModel.sortSongs(MainViewModel.SortOption.TITLE)
                         refreshSongList()
                         android.widget.Toast.makeText(this, "Sorted by title", android.widget.Toast.LENGTH_SHORT).show()
                     }
-                    101 -> {
+                    1 -> {
                         currentSortOption = MainViewModel.SortOption.DATE_ADDED
                         viewModel.sortSongs(MainViewModel.SortOption.DATE_ADDED)
                         refreshSongList()
                         android.widget.Toast.makeText(this, "Sorted by date added", android.widget.Toast.LENGTH_SHORT).show()
                     }
-                    102 -> {
+                    2 -> {
                         currentSortOption = MainViewModel.SortOption.ARTIST
                         viewModel.sortSongs(MainViewModel.SortOption.ARTIST)
                         refreshSongList()
                         android.widget.Toast.makeText(this, "Sorted by artist", android.widget.Toast.LENGTH_SHORT).show()
                     }
-                    103 -> {
+                    3 -> {
                         currentSortOption = MainViewModel.SortOption.DURATION
                         viewModel.sortSongs(MainViewModel.SortOption.DURATION)
                         refreshSongList()
                         android.widget.Toast.makeText(this, "Sorted by duration", android.widget.Toast.LENGTH_SHORT).show()
                     }
                 }
-                true
+                dialog.dismiss()
             }
-            popup.show()
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    // --- Multi-Select Mode ---
+    private var isSelectionModeActive = false
+
+    private fun setupSelectionMode() {
+        adapter.onSelectionChanged = { selectedCount, totalCount ->
+            updateSelectionUi(selectedCount, totalCount)
+        }
+
+        binding.selectionHeader.btnCancelSelection.setOnClickListener {
+            exitSelectionMode()
+        }
+
+        binding.selectionHeader.btnSelectAll.setOnClickListener {
+            val totalSongs = adapter.currentList.count { it is SongListItem.SongItem }
+            if (adapter.selectedSongIds.size == totalSongs && totalSongs > 0) {
+                adapter.deselectAll()
+            } else {
+                adapter.selectAll()
+            }
+        }
+
+        binding.selectionBottomBar.btnActionDelete.setOnClickListener {
+            val selected = adapter.getSelectedSongs()
+            if (selected.isEmpty()) {
+                android.widget.Toast.makeText(this, "No tracks selected", android.widget.Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            showBatchDeleteConfirmationDialog(selected) {
+                deleteMultipleSongs(selected)
+                exitSelectionMode()
+            }
+        }
+
+        binding.selectionBottomBar.btnActionAddToPlaylist.setOnClickListener {
+            val selected = adapter.getSelectedSongs()
+            if (selected.isEmpty()) {
+                android.widget.Toast.makeText(this, "No tracks selected", android.widget.Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            AddToPlaylistBottomSheet.newInstance(selected).show(supportFragmentManager, "AddToPlaylist")
+            exitSelectionMode()
+        }
+
+        binding.selectionBottomBar.btnActionAddToQueue.setOnClickListener {
+            val selected = adapter.getSelectedSongs()
+            if (selected.isEmpty()) {
+                android.widget.Toast.makeText(this, "No tracks selected", android.widget.Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            viewModel.addToQueue(selected)
+            android.widget.Toast.makeText(this, "Added ${selected.size} track(s) to play queue", android.widget.Toast.LENGTH_SHORT).show()
+            exitSelectionMode()
+        }
+
+        binding.selectionBottomBar.btnActionShare.setOnClickListener {
+            val selected = adapter.getSelectedSongs()
+            if (selected.isEmpty()) {
+                android.widget.Toast.makeText(this, "No tracks selected", android.widget.Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            shareSongs(selected)
+            exitSelectionMode()
+        }
+    }
+
+    private fun enterSelectionMode() {
+        isSelectionModeActive = true
+        binding.mainHeader.visibility = android.view.View.GONE
+        binding.selectionHeader.root.visibility = android.view.View.VISIBLE
+        binding.miniPlayer.root.visibility = android.view.View.GONE
+        binding.selectionBottomBar.root.visibility = android.view.View.VISIBLE
+
+        adapter.isSelectionMode = true
+        val totalSongs = adapter.currentList.count { it is SongListItem.SongItem }
+        updateSelectionUi(0, totalSongs)
+    }
+
+    private fun exitSelectionMode() {
+        isSelectionModeActive = false
+        adapter.isSelectionMode = false
+        binding.selectionHeader.root.visibility = android.view.View.GONE
+        binding.selectionBottomBar.root.visibility = android.view.View.GONE
+        binding.mainHeader.visibility = android.view.View.VISIBLE
+
+        if (viewModel.mediaController.value?.currentMediaItem != null) {
+            binding.miniPlayer.root.visibility = android.view.View.VISIBLE
+        }
+    }
+
+    private fun updateSelectionUi(selectedCount: Int, totalCount: Int) {
+        val allSelected = selectedCount == totalCount && totalCount > 0
+        binding.selectionHeader.btnSelectAll.text = if (allSelected) "Deselect All" else "Select All"
+
+        val hasSelection = selectedCount > 0
+        val alpha = if (hasSelection) 1.0f else 0.38f
+
+        binding.selectionBottomBar.btnActionDelete.apply {
+            isEnabled = hasSelection
+            this.alpha = alpha
+        }
+        binding.selectionBottomBar.btnActionAddToPlaylist.apply {
+            isEnabled = hasSelection
+            this.alpha = alpha
+        }
+        binding.selectionBottomBar.btnActionAddToQueue.apply {
+            isEnabled = hasSelection
+            this.alpha = alpha
+        }
+        binding.selectionBottomBar.btnActionShare.apply {
+            isEnabled = hasSelection
+            this.alpha = alpha
         }
     }
     
@@ -1324,6 +1563,28 @@ class MainActivity : AppCompatActivity() {
             }
         }
         updateMiniPlayerFavoriteIcon()
+        updateMiniPlayerAudioBadge(com.wayne.musicdeck.audio.UsbDacManager.dacState.value)
+    }
+
+    private fun updateMiniPlayerAudioBadge(dacState: com.wayne.musicdeck.audio.UsbDacState) {
+        val player = viewModel.mediaController.value
+        val hasTrack = player?.currentMediaItem != null || !viewModel.lastPlayedSongPath.isNullOrEmpty()
+        val badge = binding.miniPlayer.tvMiniAudioBadge
+        if (!hasTrack) {
+            badge.visibility = View.GONE
+            return
+        }
+
+        badge.text = dacState.miniBadgeText
+        badge.visibility = View.VISIBLE
+        val colorRes = when (dacState.qualityTier) {
+            com.wayne.musicdeck.audio.AudioQualityTier.BIT_PERFECT -> R.color.colorNeon
+            com.wayne.musicdeck.audio.AudioQualityTier.HI_RES_DIRECT -> R.color.colorOcean
+            com.wayne.musicdeck.audio.AudioQualityTier.HI_RES_LOSSLESS -> R.color.colorAmber
+            com.wayne.musicdeck.audio.AudioQualityTier.LOSSLESS -> R.color.colorSky
+            com.wayne.musicdeck.audio.AudioQualityTier.STANDARD -> R.color.colorViolet
+        }
+        badge.setTextColor(androidx.core.content.ContextCompat.getColor(this, colorRes))
     }
     
     private fun updateMiniPlayerFavoriteIcon() {

@@ -45,6 +45,63 @@ class SongAdapter(
             }
         }
 
+    // --- HeyTap Multi-Select Mode ---
+    var isSelectionMode: Boolean = false
+        set(value) {
+            if (field != value) {
+                field = value
+                if (!value) {
+                    selectedSongIds.clear()
+                }
+                notifyDataSetChanged()
+                notifySelectionChanged()
+            }
+        }
+
+    val selectedSongIds = mutableSetOf<Long>()
+    var onSelectionChanged: ((selectedCount: Int, totalSongsCount: Int) -> Unit)? = null
+
+    private fun notifySelectionChanged() {
+        val totalSongs = currentList.count { it is SongListItem.SongItem }
+        onSelectionChanged?.invoke(selectedSongIds.size, totalSongs)
+    }
+
+    fun toggleSelection(song: Song) {
+        if (selectedSongIds.contains(song.id)) {
+            selectedSongIds.remove(song.id)
+        } else {
+            selectedSongIds.add(song.id)
+        }
+        notifyDataSetChanged()
+        notifySelectionChanged()
+    }
+
+    fun selectAll() {
+        currentList.forEach { item ->
+            if (item is SongListItem.SongItem) {
+                selectedSongIds.add(item.song.id)
+            }
+        }
+        notifyDataSetChanged()
+        notifySelectionChanged()
+    }
+
+    fun deselectAll() {
+        selectedSongIds.clear()
+        notifyDataSetChanged()
+        notifySelectionChanged()
+    }
+
+    fun getSelectedSongs(): List<Song> {
+        val list = mutableListOf<Song>()
+        currentList.forEach { item ->
+            if (item is SongListItem.SongItem && selectedSongIds.contains(item.song.id)) {
+                list.add(item.song)
+            }
+        }
+        return list
+    }
+
     override fun getItemViewType(position: Int): Int {
         return when (getItem(position)) {
             is SongListItem.Header -> VIEW_TYPE_HEADER
@@ -137,18 +194,38 @@ class SongAdapter(
             
             // Use centralized loader for consistency (DISABLED for Plan B: Minimal List)
             binding.ivAlbumArt.loadSongCover(song)
-            
-            binding.root.setOnClickListener { onSongClick(song) }
-            
-            // Long-press to show full menu (HeyTap style)
-            binding.root.setOnLongClickListener {
-                onSongMenuClick?.invoke(song, "show_menu")
-                true
-            }
-            
-            binding.btnMore.setOnClickListener {
-                // Same as long-press - show the nice BottomSheet menu
-                onSongMenuClick?.invoke(song, "show_menu")
+
+            if (isSelectionMode) {
+                binding.btnMore.visibility = View.GONE
+                binding.ivEqualizer.visibility = View.GONE
+                binding.ivSelectionCheck.visibility = View.VISIBLE
+
+                val isSelected = selectedSongIds.contains(song.id)
+                binding.ivSelectionCheck.setImageResource(
+                    if (isSelected) R.drawable.ic_checkbox_selected else R.drawable.ic_checkbox_unselected
+                )
+
+                binding.root.setOnClickListener {
+                    toggleSelection(song)
+                }
+                binding.root.setOnLongClickListener(null)
+                binding.btnMore.setOnClickListener(null)
+            } else {
+                binding.ivSelectionCheck.visibility = View.GONE
+                binding.btnMore.visibility = View.VISIBLE
+
+                binding.root.setOnClickListener { onSongClick(song) }
+
+                // Long-press to show full menu (HeyTap style)
+                binding.root.setOnLongClickListener {
+                    onSongMenuClick?.invoke(song, "show_menu")
+                    true
+                }
+
+                binding.btnMore.setOnClickListener {
+                    // Same as long-press - show the nice BottomSheet menu
+                    onSongMenuClick?.invoke(song, "show_menu")
+                }
             }
         }
     }

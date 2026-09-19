@@ -222,6 +222,11 @@
             layout="@layout/layout_playlist_toolbar"
             android:visibility="gone" />
 
+        <include
+            android:id="@+id/selectionHeader"
+            layout="@layout/layout_selection_header"
+            android:visibility="gone" />
+
     </FrameLayout>
 
     <FrameLayout
@@ -317,6 +322,17 @@
         layout="@layout/include_mini_player"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- HEYTAP MULTI-SELECT BOTTOM ACTION BAR -->
+    <include
+        android:id="@+id/selectionBottomBar"
+        layout="@layout/layout_selection_bottom_bar"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />

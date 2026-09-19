@@ -20,6 +20,14 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
+enum class AudioQualityTier {
+    BIT_PERFECT,
+    HI_RES_DIRECT,
+    HI_RES_LOSSLESS,
+    LOSSLESS,
+    STANDARD
+}
+
 data class UsbDacState(
     val isConnected: Boolean = false,
     val deviceName: String = "",
@@ -34,7 +42,59 @@ data class UsbDacState(
     val activeAudioFormat: String = "PCM",
     val passthroughMode: String = SettingsManager.USB_DAC_MODE_PURE_DIRECT,
     val isPassthroughEnabled: Boolean = true
-)
+) {
+    val isLosslessFormat: Boolean
+        get() {
+            val fmt = activeAudioFormat.uppercase()
+            return fmt == "FLAC" || fmt == "WAV" || fmt == "ALAC" || fmt == "DSD" || fmt == "PCM"
+        }
+
+    val isHiRes: Boolean
+        get() = isLosslessFormat && (activeSampleRate > 48000 || activeBitDepth > 16)
+
+    val qualityTier: AudioQualityTier
+        get() = when {
+            isConnected && isPassthroughEnabled -> {
+                if (passthroughMode == SettingsManager.USB_DAC_MODE_PURE_DIRECT) {
+                    AudioQualityTier.BIT_PERFECT
+                } else {
+                    AudioQualityTier.HI_RES_DIRECT
+                }
+            }
+            isHiRes -> AudioQualityTier.HI_RES_LOSSLESS
+            isLosslessFormat -> AudioQualityTier.LOSSLESS
+            else -> AudioQualityTier.STANDARD
+        }
+
+    val tierBadgeText: String
+        get() = when (qualityTier) {
+            AudioQualityTier.BIT_PERFECT -> "BIT-PERFECT"
+            AudioQualityTier.HI_RES_DIRECT -> "HI-RES DIRECT"
+            AudioQualityTier.HI_RES_LOSSLESS -> "HI-RES LOSSLESS"
+            AudioQualityTier.LOSSLESS -> "LOSSLESS"
+            AudioQualityTier.STANDARD -> activeAudioFormat.uppercase()
+        }
+
+    val formattedSampleRate: String
+        get() {
+            val rate = activeSampleRate
+            return if (rate <= 0) "44.1 kHz"
+            else if (rate % 1000 == 0) "${rate / 1000}.0 kHz"
+            else String.format(java.util.Locale.US, "%.1f kHz", rate / 1000f)
+        }
+
+    val technicalStreamDetails: String
+        get() = "${activeBitDepth}-bit / $formattedSampleRate ${activeAudioFormat.uppercase()}"
+
+    val miniBadgeText: String
+        get() = when (qualityTier) {
+            AudioQualityTier.BIT_PERFECT -> "DAC"
+            AudioQualityTier.HI_RES_DIRECT -> "DIR"
+            AudioQualityTier.HI_RES_LOSSLESS -> "HR"
+            AudioQualityTier.LOSSLESS -> "FLAC"
+            AudioQualityTier.STANDARD -> activeAudioFormat.uppercase()
+        }
+}
 
 object UsbDacManager {
     private const val TAG = "UsbDacManager"

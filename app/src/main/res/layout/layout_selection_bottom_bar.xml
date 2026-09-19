@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/layoutSelectionBottomBar"
+    android:layout_width="match_parent"
+    android:layout_height="68dp"
+    android:orientation="horizontal"
+    android:background="#161618"
+    android:elevation="16dp"
+    android:gravity="center_vertical"
+    android:baselineAligned="false">
+
+    <!-- 1. Delete -->
+    <LinearLayout
+        android:id="@+id/btnActionDelete"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:background="?attr/selectableItemBackground"
+        android:clickable="true"
+        android:focusable="true">
+
+        <ImageView
+            android:id="@+id/ivActionDelete"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_delete"
+            app:tint="#D0D0D2"
+            android:contentDescription="Delete selected" />
+
+        <TextView
+            android:id="@+id/tvActionDelete"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="Delete"
+            android:textColor="#A0A0A4"
+            android:textSize="11sp"
+            android:maxLines="1" />
+    </LinearLayout>
+
+    <!-- 2. Add to Playlist -->
+    <LinearLayout
+        android:id="@+id/btnActionAddToPlaylist"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:background="?attr/selectableItemBackground"
+        android:clickable="true"
+        android:focusable="true">
+
+        <ImageView
+            android:id="@+id/ivActionAddToPlaylist"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_playlist_add"
+            app:tint="#D0D0D2"
+            android:contentDescription="Add to Playlist" />
+
+        <TextView
+            android:id="@+id/tvActionAddToPlaylist"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="Add to Playlist"
+            android:textColor="#A0A0A4"
+            android:textSize="11sp"
+            android:maxLines="1" />
+    </LinearLayout>
+
+    <!-- 3. Add to play queue -->
+    <LinearLayout
+        android:id="@+id/btnActionAddToQueue"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:background="?attr/selectableItemBackground"
+        android:clickable="true"
+        android:focusable="true">
+
+        <ImageView
+            android:id="@+id/ivActionAddToQueue"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_add_to_queue"
+            app:tint="#D0D0D2"
+            android:contentDescription="Add to play queue" />
+
+        <TextView
+            android:id="@+id/tvActionAddToQueue"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="Add to play que..."
+            android:textColor="#A0A0A4"
+            android:textSize="11sp"
+            android:maxLines="1"
+            android:ellipsize="end" />
+    </LinearLayout>
+
+    <!-- 4. Share file -->
+    <LinearLayout
+        android:id="@+id/btnActionShare"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:background="?attr/selectableItemBackground"
+        android:clickable="true"
+        android:focusable="true">
+
+        <ImageView
+            android:id="@+id/ivActionShare"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_share"
+            app:tint="#D0D0D2"
+            android:contentDescription="Share file" />
+
+        <TextView
+            android:id="@+id/tvActionShare"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="Share file"
+            android:textColor="#A0A0A4"
+            android:textSize="11sp"
+            android:maxLines="1" />
+    </LinearLayout>
+
+</LinearLayout>

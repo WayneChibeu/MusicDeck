@@ -74,15 +74,37 @@
                 android:textAppearance="?attr/textAppearanceTitleMedium"
                 android:textColor="#FFFFFF" />
 
-            <TextView
-                android:id="@+id/tvMiniArtist"
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:ellipsize="end"
-                android:maxLines="1"
-                android:text="Select a song"
-                android:textAppearance="?attr/textAppearanceBodySmall"
-                android:textColor="#B3FFFFFF" />
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:id="@+id/tvMiniArtist"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:text="Select a song"
+                    android:textAppearance="?attr/textAppearanceBodySmall"
+                    android:textColor="#B3FFFFFF" />
+
+                <TextView
+                    android:id="@+id/tvMiniAudioBadge"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="6dp"
+                    android:text="HR"
+                    android:textSize="8sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/colorAmber"
+                    android:background="@drawable/bg_pill_glassmorphic"
+                    android:paddingHorizontal="5dp"
+                    android:paddingVertical="1dp"
+                    android:visibility="gone" />
+            </LinearLayout>
         </LinearLayout>
 
         <ImageButton

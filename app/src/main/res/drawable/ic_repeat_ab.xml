@@ -1,0 +1,18 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Outer Repeat Loop Arrows -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M7,7h10v2.5l3.5,-3.5l-3.5,-3.5v2.5H5.5C4.7,5 4,5.7 4,6.5v3.5h2V7zM17,17H7v-2.5l-3.5,3.5l3.5,3.5v-2.5h11.5c0.8,0 1.5,-0.7 1.5,-1.5v-3.5h-2V17z" />
+    <!-- Letter A -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M8.2,8.8h1.2l1.6,6h-1.1l-0.35,-1.4h-1.9L7.3,14.8h-1L8.2,8.8z M8.0,12.2h1.3L8.7,9.9h-0.05L8.0,12.2z" />
+    <!-- Letter B -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M12.8,8.8h1.8c0.8,0 1.4,0.4 1.4,1.1c0,0.4 -0.2,0.8 -0.6,0.9c0.5,0.1 0.8,0.5 0.8,1.1c0,0.8 -0.6,1.4 -1.5,1.4h-1.9V8.8z M13.8,11.2h0.7c0.3,0 0.5,-0.2 0.5,-0.5c0,-0.3 -0.2,-0.5 -0.5,-0.5h-0.7V11.2z M13.8,13.4h0.8c0.35,0 0.6,-0.2 0.6,-0.55c0,-0.35 -0.25,-0.55 -0.6,-0.55h-0.8V13.4z" />
+</vector>

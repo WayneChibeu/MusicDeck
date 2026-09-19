@@ -4,8 +4,9 @@ import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.util.AttributeSet
+import android.view.MotionEvent
 import android.view.View
-import androidx.core.content.ContextCompat
+import kotlin.math.max
 
 class WaveformSeekBar @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
@@ -18,55 +19,81 @@ class WaveformSeekBar @JvmOverloads constructor(
     private val wavePaint = Paint().apply {
         isAntiAlias = true
         style = Paint.Style.FILL
-        strokeCap = Paint.Cap.ROUND
-        color = 0xFF555555.toInt() // Inactive color
+        color = 0x33FFFFFF // Inactive translucent gray
     }
 
     private val activePaint = Paint().apply {
         isAntiAlias = true
         style = Paint.Style.FILL
-        strokeCap = Paint.Cap.ROUND
-        color = 0xFF7F58FF.toInt() // Active color (Violet)
+        color = 0xFF7F58FF.toInt() // Active theme color (Violet)
     }
 
-    // Fake amplitudes
-    private val amplitudes = IntArray(60) { (20..100).random() }
+    var activeColor: Int
+        get() = activePaint.color
+        set(value) {
+            activePaint.color = value
+            invalidate()
+        }
+
+    var inactiveColor: Int
+        get() = wavePaint.color
+        set(value) {
+            wavePaint.color = value
+            invalidate()
+        }
+
+    private var amplitudes: IntArray = IntArray(80) { (20..80).random() }
     
     var progress: Float = 0f
         set(value) {
-            field = value.coerceIn(0f, 1f)
-            invalidate()
+            val clamped = value.coerceIn(0f, 1f)
+            if (field != clamped) {
+                field = clamped
+                invalidate()
+            }
         }
         
     fun setProgressPercent(percent: Int) {
         progress = percent / 100f
     }
 
+    fun setAmplitudes(data: IntArray) {
+        if (data.isNotEmpty()) {
+            amplitudes = data
+            invalidate()
+        }
+    }
+
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
+        if (amplitudes.isEmpty() || width <= 0 || height <= 0) return
         
         val width = width.toFloat()
         val height = height.toFloat()
-        val barWidth = width / (amplitudes.size * 1.5f)
-        val gap = barWidth * 0.5f
+        val count = amplitudes.size
+        
+        // Total slots = count bars + (count - 1) gaps
+        // gap = 0.4 * barWidth => total = count * 1.4 - 0.4
+        val barWidth = width / (count * 1.4f)
+        val gap = barWidth * 0.4f
+        val cornerRadius = barWidth / 2f
+        val centerY = height / 2f
+        val minBarHeight = 4f * resources.displayMetrics.density
         
         var currentX = 0f
         
-        // Center vertically
-        val centerY = height / 2f
-        
-        amplitudes.forEachIndexed { index, amp ->
-            val barHeight = (amp / 100f) * height
+        for (i in 0 until count) {
+            val amp = amplitudes[i].coerceIn(10, 100)
+            val barHeight = max(minBarHeight, (amp / 100f) * (height - 4f))
             val startY = centerY - (barHeight / 2f)
             val endY = centerY + (barHeight / 2f)
             
-            val isPassed = (index.toFloat() / amplitudes.size) <= progress
-            
+            val isPassed = (i.toFloat() / count) <= progress
             val paint = if (isPassed) activePaint else wavePaint
             
             canvas.drawRoundRect(
                 currentX, startY, currentX + barWidth, endY,
-                barWidth / 2f, barWidth / 2f,
+                cornerRadius, cornerRadius,
                 paint
             )
             
@@ -74,23 +101,44 @@ class WaveformSeekBar @JvmOverloads constructor(
         }
     }
 
-    override fun onTouchEvent(event: android.view.MotionEvent): Boolean {
+    private var isDragging = false
+
+    override fun onTouchEvent(event: MotionEvent): Boolean {
+        if (!isEnabled) return false
+        
         when (event.action) {
-            android.view.MotionEvent.ACTION_DOWN -> {
+            MotionEvent.ACTION_DOWN -> {
+                isDragging = true
+                parent?.requestDisallowInterceptTouchEvent(true)
                 onStartTouch?.invoke()
-                progress = event.x / width
+                progress = (event.x / width).coerceIn(0f, 1f)
                 onSeekListener?.invoke(progress)
                 return true
             }
-            android.view.MotionEvent.ACTION_MOVE -> {
-                progress = event.x / width
-                onSeekListener?.invoke(progress)
-                return true
+            MotionEvent.ACTION_MOVE -> {
+                if (isDragging) {
+                    progress = (event.x / width).coerceIn(0f, 1f)
+                    onSeekListener?.invoke(progress)
+                    return true
+                }
             }
-            android.view.MotionEvent.ACTION_UP,
-            android.view.MotionEvent.ACTION_CANCEL -> {
-                onStopTouch?.invoke()
-                return true
+            MotionEvent.ACTION_UP -> {
+                if (isDragging) {
+                    progress = (event.x / width).coerceIn(0f, 1f)
+                    onSeekListener?.invoke(progress)
+                    onStopTouch?.invoke()
+                    isDragging = false
+                    parent?.requestDisallowInterceptTouchEvent(false)
+                    return true
+                }
+            }
+            MotionEvent.ACTION_CANCEL -> {
+                if (isDragging) {
+                    onStopTouch?.invoke()
+                    isDragging = false
+                    parent?.requestDisallowInterceptTouchEvent(false)
+                    return true
+                }
             }
         }
         return super.onTouchEvent(event)

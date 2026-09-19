@@ -23,6 +23,9 @@ import androidx.media3.session.SessionCommand
 import androidx.media3.session.CommandButton
 import org.koin.android.ext.android.inject
 import com.wayne.musicdeck.utils.SettingsManager
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 class MusicService : MediaLibraryService() {
 
@@ -67,6 +70,11 @@ class MusicService : MediaLibraryService() {
         const val ACTION_SET_TEMPO_PITCH = "com.wayne.musicdeck.ACTION_SET_TEMPO_PITCH"
         const val EXTRA_TEMPO = "extra_tempo"
         const val EXTRA_PITCH_SEMITONES = "extra_pitch_semitones"
+
+        const val ACTION_SET_AB_LOOP_START = "com.wayne.musicdeck.ACTION_SET_AB_LOOP_START"
+        const val ACTION_SET_AB_LOOP_END = "com.wayne.musicdeck.ACTION_SET_AB_LOOP_END"
+        const val ACTION_CLEAR_AB_LOOP = "com.wayne.musicdeck.ACTION_CLEAR_AB_LOOP"
+        const val EXTRA_AB_LOOP_POS = "extra_ab_loop_pos"
 
         @Volatile
         var instance: MusicService? = null
@@ -652,6 +660,7 @@ class MusicService : MediaLibraryService() {
 
                 suppressFadeIn = true
                 volumeManager.resetVolume()
+                clearAbLoop()
                 updateWidget(activeDeck)
                 startPlayCountHeartbeat(mediaItem)
 
@@ -884,6 +893,15 @@ class MusicService : MediaLibraryService() {
                 kotlinx.coroutines.delay(100)
                 val currentDeck = activeDeck
                 
+                // A-B Repeat Loop Boundary Check
+                val currentLoop = _abLoopState.value
+                if (currentLoop.isLooping && currentLoop.startMs >= 0L && currentLoop.endMs > currentLoop.startMs) {
+                    val pos = currentDeck.currentPosition
+                    if (pos >= currentLoop.endMs) {
+                        currentDeck.seekTo(currentLoop.startMs)
+                    }
+                }
+
                 saveCounter++
                 if (saveCounter >= 10) {
                     saveCounter = 0
@@ -1244,6 +1262,17 @@ class MusicService : MediaLibraryService() {
                     val pitch = intent.getFloatExtra(EXTRA_PITCH_SEMITONES, 0.0f)
                     applyTempoAndPitch(tempo, pitch)
                 }
+                ACTION_SET_AB_LOOP_START -> {
+                    val pos = intent.getLongExtra(EXTRA_AB_LOOP_POS, activeDeck.currentPosition)
+                    setAbLoopStart(pos)
+                }
+                ACTION_SET_AB_LOOP_END -> {
+                    val pos = intent.getLongExtra(EXTRA_AB_LOOP_POS, activeDeck.currentPosition)
+                    setAbLoopEnd(pos)
+                }
+                ACTION_CLEAR_AB_LOOP -> {
+                    clearAbLoop()
+                }
                 MusicWidgetProvider.ACTION_SHUFFLE -> {
                     player.shuffleModeEnabled = !player.shuffleModeEnabled
                 }
@@ -1582,6 +1611,66 @@ class MusicService : MediaLibraryService() {
         val params = androidx.media3.common.PlaybackParameters(clampedSpeed, pitchFactor)
         primaryExoPlayer.playbackParameters = params
         secondaryExoPlayer.playbackParameters = params
+    }
+
+    // ============================
+    // A-B REPEAT PRACTICE LOOPER
+    // ============================
+
+    data class AbLoopState(
+        val isLooping: Boolean = false,
+        val startMs: Long = -1L,
+        val endMs: Long = -1L
+    )
+
+    private val _abLoopState = MutableStateFlow(AbLoopState())
+    val abLoopState: StateFlow<AbLoopState> = _abLoopState.asStateFlow()
+
+    fun setAbLoopStart(posMs: Long = activeDeck.currentPosition) {
+        val start = posMs.coerceAtLeast(0L)
+        _abLoopState.value = AbLoopState(
+            isLooping = false,
+            startMs = start,
+            endMs = -1L
+        )
+        syncAbLoopExtras()
+    }
+
+    fun setAbLoopEnd(posMs: Long = activeDeck.currentPosition) {
+        val currentStart = _abLoopState.value.startMs
+        if (currentStart >= 0L && posMs > currentStart + 250L) {
+            _abLoopState.value = AbLoopState(
+                isLooping = true,
+                startMs = currentStart,
+                endMs = posMs
+            )
+            // If current position is already past end, jump to start immediately
+            if (activeDeck.currentPosition >= posMs || activeDeck.currentPosition < currentStart) {
+                activeDeck.seekTo(currentStart)
+            }
+            syncAbLoopExtras()
+        }
+    }
+
+    fun clearAbLoop() {
+        if (_abLoopState.value.startMs != -1L || _abLoopState.value.isLooping) {
+            _abLoopState.value = AbLoopState(
+                isLooping = false,
+                startMs = -1L,
+                endMs = -1L
+            )
+            syncAbLoopExtras()
+        }
+    }
+
+    private fun syncAbLoopExtras() {
+        val state = _abLoopState.value
+        val extras = android.os.Bundle().apply {
+            putBoolean("AB_LOOP_ACTIVE", state.isLooping)
+            putLong("AB_LOOP_START", state.startMs)
+            putLong("AB_LOOP_END", state.endMs)
+        }
+        mediaSession?.setSessionExtras(extras)
     }
 
     private fun observeUsbDacState() {

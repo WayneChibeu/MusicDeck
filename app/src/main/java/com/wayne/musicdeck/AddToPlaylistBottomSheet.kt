@@ -12,12 +12,8 @@ import org.koin.androidx.viewmodel.ext.android.activityViewModel
 
 class AddToPlaylistBottomSheet : BottomSheetDialogFragment() {
 
-    private var song: Song? = null
+    private var songs: List<Song> = emptyList()
     private val viewModel: MainViewModel by activityViewModel()
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -51,9 +47,16 @@ class AddToPlaylistBottomSheet : BottomSheetDialogFragment() {
                         setTextColor(context.getColor(android.R.color.white))
                         setPadding(48, 32, 48, 32)
                         setOnClickListener {
-                            song?.let { s ->
-                                viewModel.addSongToPlaylist(playlist.id, s)
-                                Toast.makeText(context, "Added to ${playlist.name}", Toast.LENGTH_SHORT).show()
+                            if (songs.isNotEmpty()) {
+                                songs.forEach { s ->
+                                    viewModel.addSongToPlaylist(playlist.id, s)
+                                }
+                                val msg = if (songs.size == 1) {
+                                    "Added to ${playlist.name}"
+                                } else {
+                                    "Added ${songs.size} songs to ${playlist.name}"
+                                }
+                                Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
                                 dismiss()
                             }
                         }
@@ -68,7 +71,13 @@ class AddToPlaylistBottomSheet : BottomSheetDialogFragment() {
     companion object {
         fun newInstance(song: Song): AddToPlaylistBottomSheet {
             return AddToPlaylistBottomSheet().apply {
-                this.song = song
+                this.songs = listOf(song)
+            }
+        }
+
+        fun newInstance(songs: List<Song>): AddToPlaylistBottomSheet {
+            return AddToPlaylistBottomSheet().apply {
+                this.songs = songs
             }
         }
     }

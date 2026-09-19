@@ -57,6 +57,16 @@
         android:src="@drawable/equalizer_animation"
         android:visibility="gone"/>
 
+    <!-- Selection Checkbox for HeyTap Multi-Select Mode -->
+    <ImageView
+        android:id="@+id/ivSelectionCheck"
+        android:layout_width="22dp"
+        android:layout_height="22dp"
+        android:layout_marginEnd="10dp"
+        android:src="@drawable/ic_checkbox_unselected"
+        android:visibility="gone"
+        android:contentDescription="Select item" />
+
     <ImageButton
         android:id="@+id/btnMore"
         android:layout_width="40dp"
