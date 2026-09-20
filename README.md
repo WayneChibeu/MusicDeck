@@ -3,7 +3,7 @@
 A modern, ad-free Android music player powered by the proprietary **DeckAcoustix™ Native C++ DSP Audio Engine** and Jetpack Media3.
 
 ## Download
-[**Download Latest APK (v3.1.0)**](https://github.com/WayneChibeu/MusicDeck/releases/download/v3.1.0/MusicDeck-v3.1.0.apk)
+[**Download Latest APK (v3.1.1)**](https://github.com/WayneChibeu/MusicDeck/releases/download/v3.1.1/MusicDeck-v3.1.1.apk)
 
 *Alternatively, view all [Releases](https://github.com/WayneChibeu/MusicDeck/releases).*
 
