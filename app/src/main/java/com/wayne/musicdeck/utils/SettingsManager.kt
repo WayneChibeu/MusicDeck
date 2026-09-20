@@ -140,6 +140,18 @@ class SettingsManager(context: Context) {
         get() = kv.decodeBool("visualizer_enabled", true)
         set(value) { kv.encode("visualizer_enabled", value) }
 
+    var isAbLoopEnabled: Boolean
+        get() = kv.decodeBool("ab_loop_enabled", true)
+        set(value) { kv.encode("ab_loop_enabled", value) }
+
+    var isAudioBadgeEnabled: Boolean
+        get() = kv.decodeBool("audio_badge_enabled", false) // Default off to keep player uncluttered, accessible via 3-dots
+        set(value) { kv.encode("audio_badge_enabled", value) }
+
+    var isWaveformScrubBarEnabled: Boolean
+        get() = kv.decodeBool("waveform_scrub_bar_enabled", true)
+        set(value) { kv.encode("waveform_scrub_bar_enabled", value) }
+
     var playbackTempo: Float
         get() = kv.decodeFloat("playback_tempo", 1.0f).coerceIn(0.5f, 2.0f)
         set(value) { kv.encode("playback_tempo", value.coerceIn(0.5f, 2.0f)) }

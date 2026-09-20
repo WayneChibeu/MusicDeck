@@ -183,6 +183,9 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
 
         // Setup A-B Repeat Practice Looper
         setupAbLoopControls()
+
+        // Apply dynamic visibility for A-B looper, audio stream pill, and waveform scrub bar
+        applyPlayerControlVisibility()
         
         // Swipe Gestures
         val gestureDetector = GestureDetector(context, object : GestureDetector.SimpleOnGestureListener() {
@@ -1183,6 +1186,7 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
             _binding?.visualizerView?.setVisualizerEnabled(settingsManager.isVisualizerEnabled)
             _binding?.visualizerView?.setPlaying(player.isPlaying)
         }
+        applyPlayerControlVisibility()
     }
     
     private fun setupEdgeToEdge(dialog: BottomSheetDialog) {
@@ -2174,6 +2178,19 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
                 binding.tvAbLoopLabel.setTextColor(defaultColor)
             }
         }
+    }
+
+    fun applyPlayerControlVisibility() {
+        val b = _binding ?: return
+        val showAb = settingsManager.isAbLoopEnabled
+        val showAudioBadge = settingsManager.isAudioBadgeEnabled
+        val showWaveform = settingsManager.isWaveformScrubBarEnabled
+
+        b.btnAbLoop.visibility = if (showAb) View.VISIBLE else View.GONE
+        b.layoutAudioBadge.visibility = if (showAudioBadge) View.VISIBLE else View.GONE
+        b.layoutAudioBadgeRow.visibility = if (showAb || showAudioBadge) View.VISIBLE else View.GONE
+
+        b.waveformSeekBar.visibility = if (showWaveform) View.VISIBLE else View.GONE
     }
 
 }

@@ -356,6 +356,51 @@ class PlayerMenuBottomSheet : BottomSheetDialogFragment() {
         view.findViewById<View>(R.id.menuVisualizer).setOnClickListener {
             visualizerSwitch.isChecked = !visualizerSwitch.isChecked
         }
+
+        // A-B Practice Looper Toggle
+        val switchAbLoop = view.findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.switchAbLoop)
+        switchAbLoop.isChecked = settingsManager.isAbLoopEnabled
+
+        switchAbLoop.setOnCheckedChangeListener { _, isChecked ->
+            settingsManager.isAbLoopEnabled = isChecked
+            (parentFragmentManager.fragments.filterIsInstance<PlayerBottomSheetFragment>().firstOrNull()
+                ?: (activity as? MainActivity)?.supportFragmentManager?.fragments?.filterIsInstance<PlayerBottomSheetFragment>()?.firstOrNull())
+                ?.applyPlayerControlVisibility()
+        }
+
+        view.findViewById<View>(R.id.menuAbLoop).setOnClickListener {
+            switchAbLoop.isChecked = !switchAbLoop.isChecked
+        }
+
+        // Audio Stream Telemetry Pill Toggle
+        val switchAudioBadge = view.findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.switchAudioBadge)
+        switchAudioBadge.isChecked = settingsManager.isAudioBadgeEnabled
+
+        switchAudioBadge.setOnCheckedChangeListener { _, isChecked ->
+            settingsManager.isAudioBadgeEnabled = isChecked
+            (parentFragmentManager.fragments.filterIsInstance<PlayerBottomSheetFragment>().firstOrNull()
+                ?: (activity as? MainActivity)?.supportFragmentManager?.fragments?.filterIsInstance<PlayerBottomSheetFragment>()?.firstOrNull())
+                ?.applyPlayerControlVisibility()
+        }
+
+        view.findViewById<View>(R.id.menuAudioBadge).setOnClickListener {
+            switchAudioBadge.isChecked = !switchAudioBadge.isChecked
+        }
+
+        // Waveform Scrub Bar Toggle
+        val switchWaveform = view.findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.switchWaveform)
+        switchWaveform.isChecked = settingsManager.isWaveformScrubBarEnabled
+
+        switchWaveform.setOnCheckedChangeListener { _, isChecked ->
+            settingsManager.isWaveformScrubBarEnabled = isChecked
+            (parentFragmentManager.fragments.filterIsInstance<PlayerBottomSheetFragment>().firstOrNull()
+                ?: (activity as? MainActivity)?.supportFragmentManager?.fragments?.filterIsInstance<PlayerBottomSheetFragment>()?.firstOrNull())
+                ?.applyPlayerControlVisibility()
+        }
+
+        view.findViewById<View>(R.id.menuWaveform).setOnClickListener {
+            switchWaveform.isChecked = !switchWaveform.isChecked
+        }
     }
 
     private fun formatSpeed(speed: Float): String {

@@ -1170,8 +1170,21 @@ class MainActivity : AppCompatActivity() {
 
     // --- Multi-Select Mode ---
     private var isSelectionModeActive = false
+    private var wasMiniPlayerVisibleBeforeSelection = false
 
     private fun setupSelectionMode() {
+        // Handle gesture navigation / 3-button navigation bar insets
+        androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(binding.selectionBottomBar.root) { view, windowInsets ->
+            val navInsets = windowInsets.getInsets(androidx.core.view.WindowInsetsCompat.Type.navigationBars())
+            view.setPadding(
+                view.paddingLeft,
+                view.paddingTop,
+                view.paddingRight,
+                navInsets.bottom
+            )
+            windowInsets
+        }
+
         adapter.onSelectionChanged = { selectedCount, totalCount ->
             updateSelectionUi(selectedCount, totalCount)
         }
@@ -1237,6 +1250,7 @@ class MainActivity : AppCompatActivity() {
         isSelectionModeActive = true
         binding.mainHeader.visibility = android.view.View.GONE
         binding.selectionHeader.root.visibility = android.view.View.VISIBLE
+        wasMiniPlayerVisibleBeforeSelection = binding.miniPlayer.root.visibility == android.view.View.VISIBLE
         binding.miniPlayer.root.visibility = android.view.View.GONE
         binding.selectionBottomBar.root.visibility = android.view.View.VISIBLE
 
@@ -1252,7 +1266,9 @@ class MainActivity : AppCompatActivity() {
         binding.selectionBottomBar.root.visibility = android.view.View.GONE
         binding.mainHeader.visibility = android.view.View.VISIBLE
 
-        if (viewModel.mediaController.value?.currentMediaItem != null) {
+        val hasCurrentSong = viewModel.mediaController.value?.currentMediaItem != null
+        val hasRestoredSong = !viewModel.lastPlayedSongPath.isNullOrEmpty()
+        if (wasMiniPlayerVisibleBeforeSelection || hasCurrentSong || hasRestoredSong) {
             binding.miniPlayer.root.visibility = android.view.View.VISIBLE
         }
     }
