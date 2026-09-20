@@ -1,9 +1,9 @@
 {
-  "versionName": "3.1.4",
-  "versionCode": 81,
-  "releaseTitle": "MusicDeck v3.1.4 - Final Layout Fix",
-  "releaseNotes": "Fixes broken constraint chains that caused overlapping in the player view when the waveform seekbar was toggled.",
-  "downloadUrl": "https://github.com/WayneChibeu/MusicDeck/releases/download/v3.1.4/MusicDeck-v3.1.4.apk",
+  "versionName": "3.1.5",
+  "versionCode": 82,
+  "releaseTitle": "MusicDeck v3.1.5 - Vertical Centering Fix",
+  "releaseNotes": "Fixes an issue where the playback controls were pushed to the extreme bottom of the screen with a massive gap above them when the audio quality badge was hidden.",
+  "downloadUrl": "https://github.com/WayneChibeu/MusicDeck/releases/download/v3.1.5/MusicDeck-v3.1.5.apk",
   "apkSize": 7261970,
-  "htmlUrl": "https://github.com/WayneChibeu/MusicDeck/releases/tag/v3.1.4"
+  "htmlUrl": "https://github.com/WayneChibeu/MusicDeck/releases/tag/v3.1.5"
 }
