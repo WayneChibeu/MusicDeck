@@ -1,5 +1,7 @@
 package com.wayne.musicdeck
 
+import android.graphics.Bitmap
+import android.graphics.drawable.BitmapDrawable
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -10,6 +12,10 @@ import android.widget.Toast
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import coil.imageLoader
+import coil.request.ImageRequest
+import coil.request.SuccessResult
+import coil.transform.RoundedCornersTransformation
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.chip.ChipGroup
@@ -17,13 +23,15 @@ import com.wayne.musicdeck.data.LyricLine
 import com.wayne.musicdeck.utils.LyricCardGenerator
 import kotlinx.coroutines.launch
 import org.koin.androidx.viewmodel.ext.android.activityViewModel
+import java.io.File
 
 class LyricCardBottomSheet : BottomSheetDialogFragment() {
 
     private val viewModel: MainViewModel by activityViewModel()
     private var lyrics: List<LyricLine> = emptyList()
     private val selectedIndices = mutableSetOf<Int>()
-    private var selectedTheme = LyricCardGenerator.CardTheme.VIOLET
+    private var selectedTheme = LyricCardGenerator.CardTheme.ALBUM_MATCH
+    private var cachedCoverBitmap: Bitmap? = null
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -41,6 +49,62 @@ class LyricCardBottomSheet : BottomSheetDialogFragment() {
         val chipGroupThemes = view.findViewById<ChipGroup>(R.id.chipGroupThemes)
         val btnShare = view.findViewById<MaterialButton>(R.id.btnShareLyricCard)
 
+        // Live Preview Views
+        val cardPreviewContainer = view.findViewById<View>(R.id.cardPreviewContainer)
+        val ivPreviewCover = view.findViewById<ImageView>(R.id.ivPreviewCover)
+        val tvPreviewTitle = view.findViewById<TextView>(R.id.tvPreviewTitle)
+        val tvPreviewArtist = view.findViewById<TextView>(R.id.tvPreviewArtist)
+        val tvPreviewQuote = view.findViewById<TextView>(R.id.tvPreviewQuote)
+        val tvPreviewLyrics = view.findViewById<TextView>(R.id.tvPreviewLyrics)
+
+        fun updatePreviewTheme() {
+            if (selectedTheme == LyricCardGenerator.CardTheme.ALBUM_MATCH) {
+                val dynamicTheme = LyricCardGenerator.createDynamicTheme(requireContext(), cachedCoverBitmap)
+                cardPreviewContainer.background = dynamicTheme.backgroundDrawable
+                tvPreviewQuote.setTextColor(dynamicTheme.accentColor)
+            } else {
+                cardPreviewContainer.setBackgroundResource(selectedTheme.backgroundRes)
+                tvPreviewQuote.setTextColor(selectedTheme.accentColor)
+            }
+        }
+
+        fun updatePreviewLyrics() {
+            val sortedSelected = selectedIndices.sorted().mapNotNull { lyrics.getOrNull(it)?.text }
+            tvPreviewLyrics.text = if (sortedSelected.isNotEmpty()) {
+                sortedSelected.joinToString("\n")
+            } else {
+                "Select lyrics below to preview..."
+            }
+        }
+
+        // Initialize preview theme
+        updatePreviewTheme()
+
+        // Populate song metadata & artwork in preview
+        val currentPath = viewModel.mediaController.value?.currentMediaItem?.mediaId
+        val currentSong = if (currentPath != null) viewModel.songs.value?.find { it.data == currentPath } else null
+        if (currentSong != null) {
+            tvPreviewTitle.text = currentSong.title
+            tvPreviewArtist.text = currentSong.artist
+            
+            viewLifecycleOwner.lifecycleScope.launch {
+                try {
+                    val loader = requireContext().imageLoader
+                    val request = ImageRequest.Builder(requireContext())
+                        .data(File(currentSong.data))
+                        .transformations(RoundedCornersTransformation(16f))
+                        .allowHardware(false)
+                        .build()
+                    val result = loader.execute(request)
+                    if (result is SuccessResult) {
+                        ivPreviewCover.setImageDrawable(result.drawable)
+                        cachedCoverBitmap = (result.drawable as? BitmapDrawable)?.bitmap
+                        updatePreviewTheme()
+                    }
+                } catch (_: Exception) {}
+            }
+        }
+
         rvLyrics.layoutManager = LinearLayoutManager(requireContext())
 
         // 1. Observe current lyrics
@@ -54,6 +118,7 @@ class LyricCardBottomSheet : BottomSheetDialogFragment() {
             }
             rvLyrics.adapter?.notifyDataSetChanged()
             updateSubtitle(tvSubtitle, btnShare)
+            updatePreviewLyrics()
         }
 
         val adapter = object : RecyclerView.Adapter<LyricSelectViewHolder>() {
@@ -85,6 +150,7 @@ class LyricCardBottomSheet : BottomSheetDialogFragment() {
                     }
                     notifyItemChanged(position)
                     updateSubtitle(tvSubtitle, btnShare)
+                    updatePreviewLyrics()
                 }
             }
         }
@@ -93,11 +159,14 @@ class LyricCardBottomSheet : BottomSheetDialogFragment() {
         // 2. Setup theme picker
         chipGroupThemes.setOnCheckedStateChangeListener { _, checkedIds ->
             selectedTheme = when (checkedIds.firstOrNull()) {
+                R.id.chipThemeAlbum -> LyricCardGenerator.CardTheme.ALBUM_MATCH
                 R.id.chipThemeMidnight -> LyricCardGenerator.CardTheme.MIDNIGHT
                 R.id.chipThemeRose -> LyricCardGenerator.CardTheme.ROSE
                 R.id.chipThemeCyan -> LyricCardGenerator.CardTheme.CYAN
-                else -> LyricCardGenerator.CardTheme.VIOLET
+                R.id.chipThemeViolet -> LyricCardGenerator.CardTheme.VIOLET
+                else -> LyricCardGenerator.CardTheme.ALBUM_MATCH
             }
+            updatePreviewTheme()
         }
 
         // 3. Setup Share Click
@@ -108,9 +177,8 @@ class LyricCardBottomSheet : BottomSheetDialogFragment() {
                 return@setOnClickListener
             }
 
-            val currentPath = viewModel.mediaController.value?.currentMediaItem?.mediaId
-            val currentSong = if (currentPath != null) viewModel.songs.value?.find { it.data == currentPath } else null
-            if (currentSong == null) {
+            val curSong = if (currentPath != null) viewModel.songs.value?.find { it.data == currentPath } else null
+            if (curSong == null) {
                 Toast.makeText(context, "No active song playing", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
@@ -119,7 +187,7 @@ class LyricCardBottomSheet : BottomSheetDialogFragment() {
                 btnShare.text = "Generating Card..."
                 LyricCardGenerator.generateAndShare(
                     requireActivity(),
-                    currentSong,
+                    curSong,
                     sortedSelected,
                     selectedTheme
                 )
@@ -128,6 +196,7 @@ class LyricCardBottomSheet : BottomSheetDialogFragment() {
         }
 
         updateSubtitle(tvSubtitle, btnShare)
+        updatePreviewLyrics()
     }
 
     private fun updateSubtitle(tvSubtitle: TextView, btnShare: MaterialButton) {

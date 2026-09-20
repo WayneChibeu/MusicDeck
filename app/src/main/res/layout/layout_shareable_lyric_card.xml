@@ -5,7 +5,7 @@
     android:layout_width="380dp"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:background="@drawable/bg_share_card_canvas"
+    android:background="@drawable/bg_card_violet"
     android:padding="28dp">
 
     <!-- Top Track Info Row -->
@@ -15,19 +15,21 @@
         android:orientation="horizontal"
         android:gravity="center_vertical">
 
+        <!-- Hero Album Cover with Squircle & Ambient Depth -->
         <com.google.android.material.imageview.ShapeableImageView
             android:id="@+id/ivCardCover"
-            android:layout_width="52dp"
-            android:layout_height="52dp"
+            android:layout_width="64dp"
+            android:layout_height="64dp"
             android:scaleType="centerCrop"
             android:src="@drawable/default_album_art"
-            app:shapeAppearanceOverlay="@style/RoundedCorner8" />
+            android:elevation="6dp"
+            app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Medium" />
 
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:layout_marginStart="14dp"
+            android:layout_marginStart="16dp"
             android:orientation="vertical">
 
             <TextView
@@ -36,58 +38,32 @@
                 android:layout_height="wrap_content"
                 android:text="Song Title"
                 android:textColor="#FFFFFF"
-                android:textSize="17sp"
+                android:textSize="18sp"
                 android:textStyle="bold"
-                android:maxLines="1"
+                android:maxLines="2"
                 android:ellipsize="end" />
 
             <TextView
                 android:id="@+id/tvCardArtist"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
+                android:layout_marginTop="3dp"
                 android:text="Artist Name"
-                android:textColor="#A0A0A8"
-                android:textSize="13sp"
+                android:textColor="#B3FFFFFF"
+                android:textSize="14sp"
                 android:maxLines="1"
                 android:ellipsize="end" />
-        </LinearLayout>
-
-        <!-- Brand Pill -->
-        <LinearLayout
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:background="@drawable/bg_pill_glassmorphic"
-            android:paddingHorizontal="8dp"
-            android:paddingVertical="4dp">
-
-            <ImageView
-                android:layout_width="12dp"
-                android:layout_height="12dp"
-                android:src="@drawable/ic_music_note"
-                app:tint="#B3FFFFFF"
-                android:layout_marginEnd="4dp"
-                android:contentDescription="Music note icon" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="MusicDeck"
-                android:textColor="#E0E0E0"
-                android:textSize="10sp"
-                android:textStyle="bold" />
         </LinearLayout>
     </LinearLayout>
 
     <!-- Large Decorative Quote Glyph -->
     <TextView
+        android:id="@+id/tvCardQuote"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="20dp"
         android:text="“"
-        android:textColor="#40FFFFFF"
+        android:textColor="#B3A78BFA"
         android:textSize="44sp"
         android:textStyle="bold"
         android:includeFontPadding="false" />
@@ -105,27 +81,22 @@
         android:textStyle="bold"
         android:lineSpacingExtra="8dp" />
 
-    <!-- Bottom Signature Scrim -->
+    <!-- Minimalist Single Watermark -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:gravity="center_vertical">
-
-        <View
-            android:layout_width="0dp"
-            android:layout_height="1dp"
-            android:layout_weight="1"
-            android:background="#1AFFFFFF" />
+        android:gravity="center_vertical|end"
+        android:layout_marginTop="4dp">
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
-            android:text="Shared via MusicDeck"
-            android:textColor="#66FFFFFF"
-            android:textSize="11sp"
-            android:letterSpacing="0.05" />
+            android:text="MusicDeck"
+            android:textColor="#80FFFFFF"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.08" />
     </LinearLayout>
 
 </LinearLayout>

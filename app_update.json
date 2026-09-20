@@ -1,9 +1,9 @@
 {
-  "versionName": "3.1.1",
-  "versionCode": 78,
-  "releaseTitle": "MusicDeck v3.1.1 - Multi-Style Widgets, Decoded Waveforms, Lyric Cards & Mini-Player Refinement",
-  "releaseNotes": "Refines the mini player by keeping audio format badges hidden by default for a clean layout, alongside real-time decoded audio waveforms, shareable lyric cards, comprehensive multi-select library management, and 3 multi-style home screen widgets.",
-  "downloadUrl": "https://github.com/WayneChibeu/MusicDeck/releases/download/v3.1.1/MusicDeck-v3.1.1.apk",
+  "versionName": "3.1.2",
+  "versionCode": 79,
+  "releaseTitle": "MusicDeck v3.1.2 - Player Layout Restoration, Dynamic Lyric Cards & UI Polish",
+  "releaseNotes": "Restores the original player bottom sheet packed chain layout, introduces Spotify-style dynamic Album Match color extraction and clean single-watermark styling for lyric cards with real-time interactive preview, and refines library menu icon sizing.",
+  "downloadUrl": "https://github.com/WayneChibeu/MusicDeck/releases/download/v3.1.2/MusicDeck-v3.1.2.apk",
   "apkSize": 7258400,
-  "htmlUrl": "https://github.com/WayneChibeu/MusicDeck/releases/tag/v3.1.1"
+  "htmlUrl": "https://github.com/WayneChibeu/MusicDeck/releases/tag/v3.1.2"
 }

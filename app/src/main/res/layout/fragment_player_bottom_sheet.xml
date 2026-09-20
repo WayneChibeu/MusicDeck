@@ -30,14 +30,12 @@
             android:id="@+id/artContainer"
             android:layout_width="0dp"
             android:layout_height="0dp"
-            android:layout_marginBottom="8dp"
             app:layout_constraintDimensionRatio="1:1"
-            app:layout_constrainedWidth="true"
-            app:layout_constrainedHeight="true"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintBottom_toTopOf="@+id/visualizerView"
+            app:layout_constraintVertical_chainStyle="packed"
             android:elevation="4dp">
 
             <com.google.android.material.imageview.ShapeableImageView
@@ -180,7 +178,9 @@
             android:id="@+id/visualizerView"
             android:layout_width="0dp"
             android:layout_height="22dp"
-            android:layout_marginBottom="4dp"
+            android:layout_marginTop="4dp"
+            android:layout_marginBottom="2dp"
+            app:layout_constraintTop_toBottomOf="@+id/artContainer"
             app:layout_constraintBottom_toTopOf="@+id/tvFullTitle"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent" />
@@ -190,7 +190,8 @@
             android:id="@+id/tvFullTitle"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="2dp"
+            android:layout_marginTop="2dp"
+            app:layout_goneMarginTop="28dp"
             android:text="Song Title"
             android:textAppearance="?attr/textAppearanceTitleLarge"
             android:textColor="?attr/colorOnSurface"
@@ -200,9 +201,10 @@
             android:marqueeRepeatLimit="marquee_forever"
             android:focusable="true"
             android:focusableInTouchMode="true"
-            app:layout_constraintBottom_toTopOf="@+id/tvFullArtist"
+            app:layout_constraintTop_toBottomOf="@+id/visualizerView"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toStartOf="@+id/btnFavorite"
+            app:layout_constraintBottom_toTopOf="@+id/tvFullArtist"
             android:layout_marginEnd="12dp" />
 
         <ImageButton
@@ -223,28 +225,30 @@
             android:id="@+id/tvFullArtist"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="4dp"
+            android:layout_marginTop="4dp"
             android:text="Artist Name"
             android:textAppearance="?attr/textAppearanceBodyMedium"
             android:textColor="?attr/colorOnSurfaceVariant"
             android:alpha="0.8"
             android:singleLine="true"
             android:ellipsize="end"
-            app:layout_constraintBottom_toTopOf="@+id/layoutAudioBadgeRow"
+            app:layout_constraintTop_toBottomOf="@+id/tvFullTitle"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent" />
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintBottom_toTopOf="@+id/layoutAudioBadgeRow" />
 
         <!-- Audio Quality Telemetry & Practice Looper Row -->
         <LinearLayout
             android:id="@+id/layoutAudioBadgeRow"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="6dp"
+            android:layout_marginTop="8dp"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            app:layout_constraintBottom_toTopOf="@+id/waveformSeekBar"
+            app:layout_constraintTop_toBottomOf="@+id/tvFullArtist"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent">
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintBottom_toTopOf="@+id/seekBar">
 
             <!-- Persistent Audio Quality Pill (Clickable -> Signal Path Diagnostics) -->
             <LinearLayout
@@ -332,8 +336,9 @@
             android:layout_width="0dp"
             android:layout_height="30dp"
             android:layout_marginHorizontal="8dp"
-            android:layout_marginBottom="4dp"
-            app:layout_constraintBottom_toTopOf="@+id/seekBar"
+            android:layout_marginTop="6dp"
+            app:layout_goneMarginTop="8dp"
+            app:layout_constraintTop_toBottomOf="@+id/layoutAudioBadgeRow"
             app:layout_constraintStart_toEndOf="@+id/tvCurrentTime"
             app:layout_constraintEnd_toStartOf="@+id/tvTotalTime" />
 
@@ -353,6 +358,7 @@
             android:id="@+id/seekBar"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
             android:layout_marginBottom="8dp"
             android:layout_marginHorizontal="8dp"
             android:max="1000"
@@ -365,7 +371,8 @@
             android:minHeight="4dp"
             android:maxHeight="4dp"
             android:paddingVertical="10dp"
-            app:layout_constraintBottom_toTopOf="@+id/layoutControls"
+            app:layout_goneMarginTop="8dp"
+            app:layout_constraintTop_toBottomOf="@+id/waveformSeekBar"
             app:layout_constraintStart_toEndOf="@+id/tvCurrentTime"
             app:layout_constraintEnd_toStartOf="@+id/tvTotalTime" />
 
@@ -388,8 +395,8 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center"
-            android:layout_marginBottom="8dp"
-            app:layout_constraintBottom_toBottomOf="parent"
+            android:layout_marginTop="4dp"
+            app:layout_constraintTop_toBottomOf="@+id/seekBar"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent">
 
