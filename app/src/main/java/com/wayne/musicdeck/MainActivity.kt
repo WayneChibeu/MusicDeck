@@ -1586,7 +1586,7 @@ class MainActivity : AppCompatActivity() {
         val player = viewModel.mediaController.value
         val hasTrack = player?.currentMediaItem != null || !viewModel.lastPlayedSongPath.isNullOrEmpty()
         val badge = binding.miniPlayer.tvMiniAudioBadge
-        if (!hasTrack) {
+        if (!hasTrack || !settingsManager.isAudioBadgeEnabled) {
             badge.visibility = View.GONE
             return
         }
