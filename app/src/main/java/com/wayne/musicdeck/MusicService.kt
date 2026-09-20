@@ -1067,7 +1067,11 @@ class MusicService : MediaLibraryService() {
         val title = mediaItem?.mediaMetadata?.title?.toString() ?: "Unknown"
         val artist = mediaItem?.mediaMetadata?.artist?.toString() ?: "Unknown Artist"
         val isPlaying = player.isPlaying
-        MusicWidgetProvider.pushUpdate(this@MusicService, title, artist, isPlaying, isFav, cachedArtBitmap)
+        val duration = player.duration.coerceAtLeast(0L)
+        val position = player.currentPosition.coerceAtLeast(0L)
+        val isShuffle = player.shuffleModeEnabled
+        val repeatMode = player.repeatMode
+        MusicWidgetProvider.pushUpdate(this@MusicService, title, artist, isPlaying, isFav, cachedArtBitmap, duration, position, isShuffle, repeatMode)
         updateMediaSessionLayout(player)
     }
 
@@ -1137,7 +1141,11 @@ class MusicService : MediaLibraryService() {
                 }
 
                 kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-                    MusicWidgetProvider.pushUpdate(this@MusicService, title, artist, isPlaying, isFav, artBitmap)
+                    val duration = player.duration.coerceAtLeast(0L)
+                    val position = player.currentPosition.coerceAtLeast(0L)
+                    val isShuffle = player.shuffleModeEnabled
+                    val repeatMode = player.repeatMode
+                    MusicWidgetProvider.pushUpdate(this@MusicService, title, artist, isPlaying, isFav, artBitmap, duration, position, isShuffle, repeatMode)
                     settingsManager.lastPlayedIsFavorite = isFav
                     updateMediaSessionLayout(player)
                     
@@ -1237,6 +1245,18 @@ class MusicService : MediaLibraryService() {
                             }
                         }
                     }
+                }
+                MusicWidgetProvider.ACTION_SHUFFLE -> {
+                    player.shuffleModeEnabled = !player.shuffleModeEnabled
+                    updateWidget(player)
+                }
+                MusicWidgetProvider.ACTION_REPEAT -> {
+                    player.repeatMode = when (player.repeatMode) {
+                        Player.REPEAT_MODE_OFF -> Player.REPEAT_MODE_ALL
+                        Player.REPEAT_MODE_ALL -> Player.REPEAT_MODE_ONE
+                        else -> Player.REPEAT_MODE_OFF
+                    }
+                    updateWidget(player)
                 }
                 ACTION_SET_SLEEP_TIMER -> {
                     val minutes = intent.getIntExtra(EXTRA_TIMER_MINUTES, 0)

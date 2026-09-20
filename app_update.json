@@ -1,9 +1,9 @@
 {
   "versionName": "3.1.0",
   "versionCode": 77,
-  "releaseTitle": "MusicDeck v3.1.0 - Decoded Audio Waveforms, Shareable Lyric Cards, Multi-Select Library & Hi-Res Telemetry",
-  "releaseNotes": "Introduces real-time decoded audio PCM waveform scrub bars with peak amplitude extraction and dynamic album palette tinting, 1080px shareable lyric card generator with 4 curated card themes, comprehensive multi-select library management with batch Delete, Add to Playlist, Add to Queue, and Share actions, persistent Hi-Res audio stream telemetry badge, and precision A-B repeat practice looper.",
+  "releaseTitle": "MusicDeck v3.1.0 - Decoded Audio Waveforms, Shareable Lyric Cards, Multi-Select Library, Multi-Style Widgets & Hi-Res Telemetry",
+  "releaseNotes": "Introduces real-time decoded audio PCM waveform scrub bars with peak amplitude extraction, 1080px shareable lyric card generator with 4 curated card themes, comprehensive multi-select library management with batch actions, 3 all-new multi-style home screen widgets (Minimal Floating Pill 2x1, Spinning Vinyl Turntable 2x2, and Master Deck Dashboard 4x2), persistent Hi-Res audio stream telemetry badge, and precision A-B repeat practice looper.",
   "downloadUrl": "https://github.com/WayneChibeu/MusicDeck/releases/download/v3.1.0/MusicDeck-v3.1.0.apk",
-  "apkSize": 15046936,
+  "apkSize": 15059073,
   "htmlUrl": "https://github.com/WayneChibeu/MusicDeck/releases/tag/v3.1.0"
 }

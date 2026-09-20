@@ -112,7 +112,7 @@ class MusicWidgetProvider : AppWidgetProvider() {
             appWidgetManager.updateAppWidget(appWidgetId, views)
         }
 
-        private fun getRoundedCornerBitmap(bitmap: Bitmap, cornerRadiusDp: Float, context: Context): Bitmap {
+        fun getRoundedCornerBitmap(bitmap: Bitmap, cornerRadiusDp: Float, context: Context): Bitmap {
             return try {
                 val density = context.resources.displayMetrics.density
                 val targetSizePx = (56 * density).toInt().coerceAtLeast(100)
@@ -140,7 +140,104 @@ class MusicWidgetProvider : AppWidgetProvider() {
             }
         }
 
-        private fun getPendingIntent(context: Context, action: String): PendingIntent {
+        fun getCircularBitmap(bitmap: Bitmap, targetSizeDp: Int, context: Context): Bitmap {
+            return try {
+                val density = context.resources.displayMetrics.density
+                val targetSizePx = (targetSizeDp * density).toInt().coerceAtLeast(64)
+                val scaled = Bitmap.createScaledBitmap(bitmap, targetSizePx, targetSizePx, true)
+                val output = Bitmap.createBitmap(targetSizePx, targetSizePx, Bitmap.Config.ARGB_8888)
+                val canvas = Canvas(output)
+                val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+                val radius = targetSizePx / 2f
+                canvas.drawCircle(radius, radius, radius, paint)
+                paint.xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_IN)
+                canvas.drawBitmap(scaled, 0f, 0f, paint)
+                output
+            } catch (e: Exception) {
+                bitmap
+            }
+        }
+
+        fun createVinylRecordBitmap(art: Bitmap?, targetSizeDp: Int, context: Context): Bitmap {
+            return try {
+                val density = context.resources.displayMetrics.density
+                val sizePx = (targetSizeDp * density).toInt().coerceAtLeast(180)
+                val output = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888)
+                val canvas = Canvas(output)
+                val center = sizePx / 2f
+                val radius = sizePx / 2f - 2f
+
+                // Disc Body (Deep vinyl black)
+                val discPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    color = android.graphics.Color.parseColor("#121215")
+                    style = Paint.Style.FILL
+                }
+                canvas.drawCircle(center, center, radius, discPaint)
+
+                // Vinyl Grooves (Subtle concentric tracks)
+                val groovePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    color = android.graphics.Color.parseColor("#25252B")
+                    style = Paint.Style.STROKE
+                    strokeWidth = 1.2f
+                }
+                var r = radius * 0.44f
+                while (r < radius * 0.95f) {
+                    canvas.drawCircle(center, center, r, groovePaint)
+                    r += 3.5f * density
+                }
+
+                // Vinyl Sheen Highlight (Sleek reflections)
+                val sheenPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    color = android.graphics.Color.parseColor("#14FFFFFF")
+                    style = Paint.Style.STROKE
+                    strokeWidth = 3f * density
+                }
+                canvas.drawArc(RectF(center - radius * 0.7f, center - radius * 0.7f, center + radius * 0.7f, center + radius * 0.7f), 30f, 60f, false, sheenPaint)
+                canvas.drawArc(RectF(center - radius * 0.7f, center - radius * 0.7f, center + radius * 0.7f, center + radius * 0.7f), 210f, 60f, false, sheenPaint)
+
+                // Center Label with Album Art (Radius ~ 38% of disc)
+                val labelRadius = radius * 0.38f
+                if (art != null) {
+                    val labelSize = (labelRadius * 2).toInt().coerceAtLeast(20)
+                    val scaledArt = Bitmap.createScaledBitmap(art, labelSize, labelSize, true)
+                    val labelBitmap = Bitmap.createBitmap(labelSize, labelSize, Bitmap.Config.ARGB_8888)
+                    val labelCanvas = Canvas(labelBitmap)
+                    val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+                    labelCanvas.drawCircle(labelRadius, labelRadius, labelRadius, labelPaint)
+                    labelPaint.xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_IN)
+                    labelCanvas.drawBitmap(scaledArt, 0f, 0f, labelPaint)
+
+                    canvas.drawBitmap(labelBitmap, center - labelRadius, center - labelRadius, null)
+                } else {
+                    val defaultLabelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                        color = android.graphics.Color.parseColor("#2B2B32")
+                        style = Paint.Style.FILL
+                    }
+                    canvas.drawCircle(center, center, labelRadius, defaultLabelPaint)
+                }
+
+                // Spindle Hole in Center
+                val spindlePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    color = android.graphics.Color.parseColor("#09090B")
+                    style = Paint.Style.FILL
+                }
+                canvas.drawCircle(center, center, radius * 0.08f, spindlePaint)
+
+                // Outer edge ring
+                val rimPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    color = android.graphics.Color.parseColor("#383842")
+                    style = Paint.Style.STROKE
+                    strokeWidth = 1.5f
+                }
+                canvas.drawCircle(center, center, radius, rimPaint)
+
+                output
+            } catch (e: Exception) {
+                art ?: Bitmap.createBitmap(100, 100, Bitmap.Config.ARGB_8888)
+            }
+        }
+
+        fun getPendingIntent(context: Context, action: String): PendingIntent {
             val intent = Intent(context, MusicWidgetProvider::class.java).apply {
                 this.action = action
             }
@@ -148,12 +245,45 @@ class MusicWidgetProvider : AppWidgetProvider() {
             return PendingIntent.getBroadcast(context, reqCode, intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
         }
 
-        fun pushUpdate(context: Context, title: String, artist: String, isPlaying: Boolean, isFavorite: Boolean, album_artBitmap: Bitmap? = null) {
+        fun pushUpdate(
+            context: Context,
+            title: String,
+            artist: String,
+            isPlaying: Boolean,
+            isFavorite: Boolean,
+            album_artBitmap: Bitmap? = null,
+            duration: Long = 0L,
+            position: Long = 0L,
+            isShuffle: Boolean = false,
+            repeatMode: Int = 0
+        ) {
             val manager = AppWidgetManager.getInstance(context)
-            val component = ComponentName(context, MusicWidgetProvider::class.java)
-            val ids = manager.getAppWidgetIds(component)
-            for (id in ids) {
+
+            // 1. Standard Control Widget (4x1)
+            val standardComp = ComponentName(context, MusicWidgetProvider::class.java)
+            for (id in manager.getAppWidgetIds(standardComp)) {
                 updateAppWidget(context, manager, id, title, artist, isPlaying, isFavorite, album_artBitmap)
+            }
+
+            // 2. Minimal Floating Pill (2x1)
+            val pillComp = ComponentName(context, PillWidgetProvider::class.java)
+            for (id in manager.getAppWidgetIds(pillComp)) {
+                PillWidgetProvider.updateAppWidget(context, manager, id, title, artist, isPlaying, album_artBitmap)
+            }
+
+            // 3. Spinning Vinyl Turntable (2x2)
+            val vinylComp = ComponentName(context, VinylWidgetProvider::class.java)
+            for (id in manager.getAppWidgetIds(vinylComp)) {
+                VinylWidgetProvider.updateAppWidget(context, manager, id, title, artist, isPlaying, isFavorite, album_artBitmap)
+            }
+
+            // 4. Master Deck Dashboard (4x2)
+            val masterDeckComp = ComponentName(context, MasterDeckWidgetProvider::class.java)
+            for (id in manager.getAppWidgetIds(masterDeckComp)) {
+                MasterDeckWidgetProvider.updateAppWidget(
+                    context, manager, id, title, artist, isPlaying, isFavorite, album_artBitmap,
+                    duration, position, isShuffle, repeatMode
+                )
             }
         }
     }

@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widgetMasterDeckBox"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/bg_widget_master_deck"
+    android:orientation="horizontal"
+    android:padding="12dp"
+    android:gravity="center_vertical">
+
+    <!-- Hero Album Art on Left -->
+    <ImageView
+        android:id="@+id/ivMasterDeckArt"
+        android:layout_width="88dp"
+        android:layout_height="88dp"
+        android:src="@drawable/default_album_art"
+        android:scaleType="centerCrop"
+        android:contentDescription="Album Art" />
+
+    <!-- Right Side Dashboard -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:layout_marginStart="14dp"
+        android:gravity="center_vertical">
+
+        <!-- Title & Favorite Header Row -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:id="@+id/tvMasterDeckTitle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Song Title"
+                android:textColor="@android:color/white"
+                android:textSize="13.5sp"
+                android:textStyle="bold"
+                android:maxLines="1"
+                android:ellipsize="end" />
+
+            <ImageButton
+                android:id="@+id/btnMasterDeckFavorite"
+                android:layout_width="26dp"
+                android:layout_height="26dp"
+                android:padding="3dp"
+                android:src="@drawable/ic_favorite_border"
+                android:background="?android:attr/selectableItemBackgroundBorderless"
+                android:tint="@android:color/white"
+                android:scaleType="fitCenter"
+                android:contentDescription="Favorite" />
+        </LinearLayout>
+
+        <!-- Artist & Badge Row -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginTop="1dp">
+
+            <TextView
+                android:id="@+id/tvMasterDeckArtist"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Artist Name"
+                android:textColor="#A2A2AC"
+                android:textSize="11sp"
+                android:maxLines="1"
+                android:ellipsize="end" />
+
+            <TextView
+                android:id="@+id/tvMasterDeckBadge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="LOSSLESS"
+                android:textSize="8sp"
+                android:textStyle="bold"
+                android:textColor="#F5A623"
+                android:background="@drawable/bg_pill_glassmorphic"
+                android:paddingHorizontal="5dp"
+                android:paddingVertical="1dp" />
+        </LinearLayout>
+
+        <!-- Progress Bar & Timestamps -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginTop="5dp">
+
+            <TextView
+                android:id="@+id/tvMasterDeckCurrentTime"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0:00"
+                android:textColor="#7A7A85"
+                android:textSize="9sp" />
+
+            <ProgressBar
+                android:id="@+id/pbMasterDeckProgress"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="0dp"
+                android:layout_height="4dp"
+                android:layout_weight="1"
+                android:layout_marginHorizontal="6dp"
+                android:progressDrawable="@drawable/widget_progress_bar"
+                android:max="1000"
+                android:progress="0" />
+
+            <TextView
+                android:id="@+id/tvMasterDeckTotalTime"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0:00"
+                android:textColor="#7A7A85"
+                android:textSize="9sp" />
+        </LinearLayout>
+
+        <!-- Playback Controls Row -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginTop="4dp">
+
+            <!-- Shuffle -->
+            <ImageButton
+                android:id="@+id/btnMasterDeckShuffle"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:padding="5dp"
+                android:src="@drawable/ic_shuffle_off"
+                android:background="?android:attr/selectableItemBackgroundBorderless"
+                android:tint="#8E8E96"
+                android:scaleType="fitCenter"
+                android:contentDescription="Shuffle" />
+
+            <FrameLayout
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1" />
+
+            <!-- Prev -->
+            <ImageButton
+                android:id="@+id/btnMasterDeckPrev"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:padding="4dp"
+                android:src="@drawable/ic_widget_prev"
+                android:background="?android:attr/selectableItemBackgroundBorderless"
+                android:tint="@android:color/white"
+                android:scaleType="fitCenter"
+                android:contentDescription="Previous" />
+
+            <!-- Play/Pause -->
+            <ImageButton
+                android:id="@+id/btnMasterDeckPlayPause"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_marginHorizontal="8dp"
+                android:padding="5dp"
+                android:src="@drawable/ic_widget_play"
+                android:background="@drawable/bg_color_circle"
+                android:backgroundTint="#2E2E38"
+                android:tint="@android:color/white"
+                android:scaleType="fitCenter"
+                android:contentDescription="Play/Pause" />
+
+            <!-- Next -->
+            <ImageButton
+                android:id="@+id/btnMasterDeckNext"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:padding="4dp"
+                android:src="@drawable/ic_widget_next"
+                android:background="?android:attr/selectableItemBackgroundBorderless"
+                android:tint="@android:color/white"
+                android:scaleType="fitCenter"
+                android:contentDescription="Next" />
+
+            <FrameLayout
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1" />
+
+            <!-- Repeat -->
+            <ImageButton
+                android:id="@+id/btnMasterDeckRepeat"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:padding="5dp"
+                android:src="@drawable/ic_repeat_off"
+                android:background="?android:attr/selectableItemBackgroundBorderless"
+                android:tint="#8E8E96"
+                android:scaleType="fitCenter"
+                android:contentDescription="Repeat" />
+        </LinearLayout>
+
+    </LinearLayout>
+
+</LinearLayout>

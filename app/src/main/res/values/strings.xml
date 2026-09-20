@@ -4,4 +4,8 @@
     <string name="desc_permission_needed">This app needs access to your audio files to play music.</string>
     <string name="action_grant">Grant Permission</string>
     <string name="unknown_artist">Unknown Artist</string>
+    <string name="widget_name_standard">MusicDeck Player</string>
+    <string name="widget_name_minimal_pill">MusicDeck Minimal Pill (2x1)</string>
+    <string name="widget_name_vinyl_turntable">MusicDeck Vinyl Turntable (2x2)</string>
+    <string name="widget_name_master_deck">MusicDeck Master Deck (4x2)</string>
 </resources>

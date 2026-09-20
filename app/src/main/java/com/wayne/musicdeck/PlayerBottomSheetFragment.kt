@@ -1224,18 +1224,18 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
                 binding.headerView.paddingBottom
             )
             
-            // Add bottom padding to container to avoid nav bar overlap
-            // We apply this to the containers inside the root, not the root itself (which has background)
+            // Add top padding to container to start cleanly below headerView (which has insets.top + ~64dp height)
+            val headerTopOffset = insets.top + 68.dpToPx()
             binding.coverView.setPadding(
                 binding.coverView.paddingLeft,
-                binding.coverView.paddingTop,
+                headerTopOffset,
                 binding.coverView.paddingRight,
                 insets.bottom + 16.dpToPx() // Original 16dp + nav bar height
             )
             
             binding.lyricView.setPadding(
                 binding.lyricView.paddingLeft,
-                binding.lyricView.paddingTop,
+                headerTopOffset,
                 binding.lyricView.paddingRight,
                 insets.bottom + 16.dpToPx()
             )

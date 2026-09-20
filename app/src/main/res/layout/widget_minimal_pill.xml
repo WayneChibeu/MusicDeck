@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widgetPillBox"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/bg_widget_pill"
+    android:orientation="horizontal"
+    android:paddingHorizontal="10dp"
+    android:paddingVertical="6dp"
+    android:gravity="center_vertical">
+
+    <!-- Circular / Rounded Album Art -->
+    <ImageView
+        android:id="@+id/ivPillArt"
+        android:layout_width="38dp"
+        android:layout_height="38dp"
+        android:src="@drawable/default_album_art"
+        android:scaleType="centerCrop"
+        android:contentDescription="Album Art" />
+
+    <!-- Title & Artist Column -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:layout_marginStart="10dp"
+        android:layout_marginEnd="6dp"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:id="@+id/tvPillTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Song Title"
+            android:textColor="@android:color/white"
+            android:textSize="12.5sp"
+            android:textStyle="bold"
+            android:maxLines="1"
+            android:ellipsize="end" />
+
+        <TextView
+            android:id="@+id/tvPillArtist"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Artist Name"
+            android:textColor="#A0A0A8"
+            android:textSize="10.5sp"
+            android:maxLines="1"
+            android:ellipsize="end" />
+    </LinearLayout>
+
+    <!-- Play/Pause Button -->
+    <ImageButton
+        android:id="@+id/btnPillPlayPause"
+        android:layout_width="34dp"
+        android:layout_height="34dp"
+        android:padding="5dp"
+        android:src="@drawable/ic_widget_play"
+        android:background="?android:attr/selectableItemBackgroundBorderless"
+        android:tint="@android:color/white"
+        android:scaleType="fitCenter"
+        android:contentDescription="Play/Pause" />
+
+    <!-- Next Button -->
+    <ImageButton
+        android:id="@+id/btnPillNext"
+        android:layout_width="30dp"
+        android:layout_height="30dp"
+        android:layout_marginStart="4dp"
+        android:padding="5dp"
+        android:src="@drawable/ic_widget_next"
+        android:background="?android:attr/selectableItemBackgroundBorderless"
+        android:tint="@android:color/white"
+        android:scaleType="fitCenter"
+        android:contentDescription="Next" />
+
+</LinearLayout>

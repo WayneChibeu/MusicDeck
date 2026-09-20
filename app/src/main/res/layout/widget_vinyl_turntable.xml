@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widgetVinylBox"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/bg_widget_vinyl_turntable"
+    android:orientation="vertical"
+    android:padding="10dp"
+    android:gravity="center">
+
+    <!-- Turntable Platter & Vinyl Record -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <!-- Vinyl Disc with center artwork -->
+        <ImageView
+            android:id="@+id/ivVinylRecord"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_gravity="center"
+            android:scaleType="fitCenter"
+            android:src="@drawable/default_album_art"
+            android:contentDescription="Vinyl Record" />
+
+        <!-- Center Spindle / Play-Pause Button -->
+        <ImageButton
+            android:id="@+id/btnVinylPlayPause"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
+            android:layout_gravity="center"
+            android:padding="7dp"
+            android:src="@drawable/ic_widget_play"
+            android:background="@drawable/bg_color_circle"
+            android:backgroundTint="#CC111114"
+            android:tint="@android:color/white"
+            android:scaleType="fitCenter"
+            android:contentDescription="Play/Pause" />
+    </FrameLayout>
+
+    <!-- Bottom Metadata & Track Controls -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginTop="6dp">
+
+        <!-- Prev Track -->
+        <ImageButton
+            android:id="@+id/btnVinylPrev"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:padding="4dp"
+            android:src="@drawable/ic_widget_prev"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:tint="#D0FFFFFF"
+            android:scaleType="fitCenter"
+            android:contentDescription="Previous" />
+
+        <!-- Song Title & Artist -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:layout_marginHorizontal="4dp">
+
+            <TextView
+                android:id="@+id/tvVinylTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Song Title"
+                android:textColor="@android:color/white"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:maxLines="1"
+                android:ellipsize="end" />
+
+            <TextView
+                android:id="@+id/tvVinylArtist"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Artist"
+                android:textColor="#8E8E96"
+                android:textSize="9.5sp"
+                android:maxLines="1"
+                android:ellipsize="end" />
+        </LinearLayout>
+
+        <!-- Next Track -->
+        <ImageButton
+            android:id="@+id/btnVinylNext"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:padding="4dp"
+            android:src="@drawable/ic_widget_next"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:tint="#D0FFFFFF"
+            android:scaleType="fitCenter"
+            android:contentDescription="Next" />
+
+        <!-- Favorite -->
+        <ImageButton
+            android:id="@+id/btnVinylFavorite"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:layout_marginStart="2dp"
+            android:padding="4dp"
+            android:src="@drawable/ic_favorite_border"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:tint="#D0FFFFFF"
+            android:scaleType="fitCenter"
+            android:contentDescription="Favorite" />
+    </LinearLayout>
+
+</LinearLayout>
