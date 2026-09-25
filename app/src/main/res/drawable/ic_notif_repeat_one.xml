@@ -3,21 +3,25 @@
     android:height="24dp"
     android:viewportWidth="24"
     android:viewportHeight="24">
-    <!-- Premium Rounded Repeat One Icon -->
+    <!-- Modern Notification Stadium Pill Loop (Top Arrow) -->
     <path
-        android:fillColor="#00000000"
-        android:strokeColor="#FFFFFF"
-        android:strokeWidth="2"
+        android:pathData="M 5,13.5 V 9.5 A 4.5,4.5 0 0,1 9.5,5 H 19 L 15.5,8.5"
+        android:strokeWidth="2.1"
+        android:strokeColor="#FFFFFFFF"
         android:strokeLineCap="round"
-        android:strokeLineJoin="round"
-        android:pathData="M17 2L21 6L17 10M3 11V10A4 4 0 0 1 7 6H21M7 22L3 18L7 14M21 13V14A4 4 0 0 1 17 18H3"/>
-    
-    <!-- Sleek inner '1' -->
+        android:strokeLineJoin="round" />
+    <!-- Modern Notification Stadium Pill Loop (Bottom Arrow) -->
     <path
-        android:fillColor="#00000000"
-        android:strokeColor="#FFFFFF"
-        android:strokeWidth="2"
+        android:pathData="M 19,10.5 V 14.5 A 4.5,4.5 0 0,1 14.5,19 H 5 L 8.5,15.5"
+        android:strokeWidth="2.1"
+        android:strokeColor="#FFFFFFFF"
         android:strokeLineCap="round"
-        android:strokeLineJoin="round"
-        android:pathData="M10.5 11.5L12 10V14"/>
+        android:strokeLineJoin="round" />
+    <!-- Center Single Loop Numeral '1' -->
+    <path
+        android:pathData="M 10.5,11.2 L 12,10 V 14.5"
+        android:strokeWidth="1.9"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
 </vector>

@@ -9,6 +9,7 @@ import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.TextView
+import com.wayne.musicdeck.utils.DeckToast
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.bottomsheet.BottomSheetBehavior
@@ -90,11 +91,11 @@ class SearchBottomSheet : BottomSheetDialogFragment() {
                              "share" -> mainActivity.shareSong(song)
                              "play_next" -> {
                                  mainActivity.viewModel.playNext(song)
-                                 android.widget.Toast.makeText(mainActivity, "Added to Play Next", android.widget.Toast.LENGTH_SHORT).show()
+                                 DeckToast.show(mainActivity, "Added to Play Next", R.drawable.ic_play_next)
                              }
                              "add_to_queue" -> {
                                  mainActivity.viewModel.addToQueue(song)
-                                 android.widget.Toast.makeText(mainActivity, "Added to Queue", android.widget.Toast.LENGTH_SHORT).show()
+                                 DeckToast.show(mainActivity, "Added to Queue", R.drawable.ic_add_to_queue)
                              }
                              // "ringtone" needs implementation in MainActivity or here, assuming MainActivity has it via generic handler? 
                              // Checking MainActivity, it handled "show_menu", "details", "edit", "add", "delete", "share".
@@ -146,7 +147,7 @@ class SearchBottomSheet : BottomSheetDialogFragment() {
         btnClearHistory.setOnClickListener {
             viewModel.clearSearchHistory()
             loadSearchHistory()
-            android.widget.Toast.makeText(context, "History cleared", android.widget.Toast.LENGTH_SHORT).show()
+            DeckToast.show(view, "History cleared", R.drawable.ic_clear_all)
         }
         
         // Focus and show keyboard

@@ -1,9 +1,9 @@
 {
-  "versionName": "3.1.8",
-  "versionCode": 85,
-  "releaseTitle": "MusicDeck v3.1.8 - Icon Alignment and Refinements",
-  "releaseNotes": "Restores the classic gear icon on the Feature Settings option under Tools and Settings, and updates the list popup menu sort order icon to match the dual vertical arrows and clean horizontal layout.",
-  "downloadUrl": "https://github.com/WayneChibeu/MusicDeck/releases/download/v3.1.8/MusicDeck-v3.1.8.apk",
-  "apkSize": 7297511,
-  "htmlUrl": "https://github.com/WayneChibeu/MusicDeck/releases/tag/v3.1.8"
+  "versionName": "3.2.1",
+  "versionCode": 88,
+  "releaseTitle": "MusicDeck v3.2.1 - Stadium Mode Icons, Unified DeckToast HUD & Notification Sync",
+  "releaseNotes": "Introduces custom stadium racetrack loop and crossover shuffle vector icons, notification playback mode synchronization, a responsive in-app mode feedback pill, and the unified DeckToast HUD system across dialogs and sheets.",
+  "downloadUrl": "https://github.com/WayneChibeu/MusicDeck/releases/download/v3.2.1/MusicDeck-v3.2.1.apk",
+  "apkSize": 7300356,
+  "htmlUrl": "https://github.com/WayneChibeu/MusicDeck/releases/tag/v3.2.1"
 }

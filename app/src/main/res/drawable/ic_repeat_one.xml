@@ -3,13 +3,25 @@
     android:height="24dp"
     android:viewportWidth="24"
     android:viewportHeight="24">
-    <!-- Solid Repeat One in Full White -->
+    <!-- Modern Stadium Pill Loop (Top Arrow) -->
     <path
-        android:fillColor="#FFFFFFFF"
-        android:pathData="M7,7h10v3l4,-4l-4,-4v3H5c-1.1,0 -2,0.9 -2,2v4h2V7zM17,17H7v-3l-4,4l4,4v-3h12c1.1,0 2,-0.9 2,-2v-4h-2V17z"/>
+        android:pathData="M 5,13.5 V 9.5 A 4.5,4.5 0 0,1 9.5,5 H 19 L 15.5,8.5"
+        android:strokeWidth="2.1"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <!-- Modern Stadium Pill Loop (Bottom Arrow) -->
     <path
-        android:fillColor="#FFFFFFFF"
-        android:pathData="M13,15V9h-1l-2,1v1h1.5v4z"/>
+        android:pathData="M 19,10.5 V 14.5 A 4.5,4.5 0 0,1 14.5,19 H 5 L 8.5,15.5"
+        android:strokeWidth="2.1"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <!-- Center Single Loop Numeral '1' -->
+    <path
+        android:pathData="M 10.5,11.2 L 12,10 V 14.5"
+        android:strokeWidth="1.9"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
 </vector>
-
-

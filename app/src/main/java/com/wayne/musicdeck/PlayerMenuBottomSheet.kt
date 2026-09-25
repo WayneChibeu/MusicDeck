@@ -10,6 +10,7 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
+import com.wayne.musicdeck.utils.DeckToast
 import org.koin.androidx.viewmodel.ext.android.activityViewModel
 import org.koin.android.ext.android.inject
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
@@ -68,7 +69,7 @@ class PlayerMenuBottomSheet : BottomSheetDialogFragment() {
                     dismiss()
                     EqualizerBottomSheet.newInstance(sessionId).show(parentFragmentManager, "Equalizer")
                 } else {
-                    Toast.makeText(context, "No audio session available", Toast.LENGTH_SHORT).show()
+                    DeckToast.show(view, "No audio session available", R.drawable.ic_equalizer)
                 }
             }
         }
@@ -107,7 +108,7 @@ class PlayerMenuBottomSheet : BottomSheetDialogFragment() {
                     performLyricsFetch(song)
                 }
             } else {
-                Toast.makeText(context, "No song playing", Toast.LENGTH_SHORT).show()
+                DeckToast.show(view, "No song playing", R.drawable.ic_music_note)
             }
         }
         
@@ -126,12 +127,12 @@ class PlayerMenuBottomSheet : BottomSheetDialogFragment() {
                 is MainViewModel.LyricsStatus.NotFound -> {
                     progressFetchLyrics.visibility = View.GONE
                     tvFetchLyricsLabel.text = "Fetch Lyrics"
-                    Toast.makeText(context, "Lyrics not found online", Toast.LENGTH_SHORT).show()
+                    DeckToast.show(view, "Lyrics not found online", R.drawable.ic_lyrics)
                 }
                 is MainViewModel.LyricsStatus.Error -> {
                     progressFetchLyrics.visibility = View.GONE
                     tvFetchLyricsLabel.text = "Fetch Lyrics"
-                    Toast.makeText(context, status.message, Toast.LENGTH_SHORT).show()
+                    DeckToast.show(view, status.message, R.drawable.ic_lyrics)
                 }
                 else -> {
                     progressFetchLyrics.visibility = View.GONE
@@ -148,7 +149,7 @@ class PlayerMenuBottomSheet : BottomSheetDialogFragment() {
                 dismiss()
                 AddToPlaylistBottomSheet.newInstance(song).show(parentFragmentManager, "AddToPlaylist")
             } else {
-                Toast.makeText(context, "No song playing", Toast.LENGTH_SHORT).show()
+                DeckToast.show(view, "No song playing", R.drawable.ic_music_note)
             }
         }
 
@@ -160,7 +161,7 @@ class PlayerMenuBottomSheet : BottomSheetDialogFragment() {
                 dismiss()
                 SongInfoBottomSheet.newInstance(song).show(parentFragmentManager, "SongInfo")
             } else {
-                Toast.makeText(context, "No song playing", Toast.LENGTH_SHORT).show()
+                DeckToast.show(view, "No song playing", R.drawable.ic_music_note)
             }
         }
 
@@ -175,13 +176,13 @@ class PlayerMenuBottomSheet : BottomSheetDialogFragment() {
                         android.media.RingtoneManager.TYPE_RINGTONE,
                         song.uri
                     )
-                    android.widget.Toast.makeText(context, "Set as ringtone: ${song.title}", android.widget.Toast.LENGTH_SHORT).show()
+                    DeckToast.show(activity, "Set as ringtone: ${song.title}", R.drawable.ic_ringtone)
                 } catch (e: Exception) {
-                    android.widget.Toast.makeText(context, "Failed to set ringtone. Check permissions.", android.widget.Toast.LENGTH_SHORT).show()
+                    DeckToast.show(activity, "Failed to set ringtone", R.drawable.ic_ringtone)
                 }
                 dismiss()
             } else {
-                android.widget.Toast.makeText(context, "No song playing", android.widget.Toast.LENGTH_SHORT).show()
+                DeckToast.show(view, "No song playing", R.drawable.ic_music_note)
             }
         }
 
@@ -198,7 +199,7 @@ class PlayerMenuBottomSheet : BottomSheetDialogFragment() {
                 startActivity(android.content.Intent.createChooser(shareIntent, "Share ${song.title}"))
                 dismiss()
             } else {
-                android.widget.Toast.makeText(context, "No song playing", android.widget.Toast.LENGTH_SHORT).show()
+                DeckToast.show(view, "No song playing", R.drawable.ic_music_note)
             }
         }
 
@@ -263,7 +264,7 @@ class PlayerMenuBottomSheet : BottomSheetDialogFragment() {
         sunsetSwitch.setOnCheckedChangeListener { _, isChecked ->
             settingsManager.isSunsetTransitionEnabled = isChecked
             val msg = if (isChecked) "Sunset Transition enabled" else "Sunset Transition disabled"
-            Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+            DeckToast.show(view, msg, R.drawable.ic_sunset)
         }
 
         view.findViewById<View>(R.id.menuSunset).setOnClickListener {
@@ -287,7 +288,7 @@ class PlayerMenuBottomSheet : BottomSheetDialogFragment() {
             settingsManager.isCrossfadeEnabled = isChecked
             layoutCrossfadeDuration.visibility = if (isChecked) View.VISIBLE else View.GONE
             val msg = if (isChecked) "Crossfade enabled (${settingsManager.crossfadeDurationSeconds}s)" else "Crossfade disabled"
-            Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+            DeckToast.show(view, msg, R.drawable.ic_crossfade)
         }
 
         seekCrossfadeDuration.setOnSeekBarChangeListener(object : android.widget.SeekBar.OnSeekBarChangeListener {
@@ -328,12 +329,12 @@ class PlayerMenuBottomSheet : BottomSheetDialogFragment() {
                 }
                 // Reset LoudnessEnhancer to 0 gain - normalized output
                 AudioEffectManager.setVolumeBoostGain(0, requireContext())
-                Toast.makeText(context, "Sound Check on - volume normalized to safe level", Toast.LENGTH_SHORT).show()
+                DeckToast.show(view, "Sound Check on - volume normalized", R.drawable.ic_sound_check)
             } else {
                 // Restore user's saved volume boost
                 val savedGain = AudioEffectManager.getSavedVolumeBoostGain(requireContext())
                 AudioEffectManager.setVolumeBoostGain(savedGain, requireContext())
-                Toast.makeText(context, "Sound Check off", Toast.LENGTH_SHORT).show()
+                DeckToast.show(view, "Sound Check off", R.drawable.ic_sound_check)
             }
         }
 

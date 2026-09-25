@@ -447,12 +447,30 @@ class MusicService : MediaLibraryService() {
                         )
                     }
                     "REPEAT" -> {
-                        android.util.Log.d("MusicService", "Cycling repeat mode")
-                        player.repeatMode = when (player.repeatMode) {
-                            Player.REPEAT_MODE_OFF -> Player.REPEAT_MODE_ALL
-                            Player.REPEAT_MODE_ALL -> Player.REPEAT_MODE_ONE
-                            else -> Player.REPEAT_MODE_OFF
+                        android.util.Log.d("MusicService", "Cycling playback mode via notification")
+                        when {
+                            // Off -> Single Loop
+                            player.repeatMode == Player.REPEAT_MODE_OFF && !player.shuffleModeEnabled -> {
+                                player.repeatMode = Player.REPEAT_MODE_ONE
+                                player.shuffleModeEnabled = false
+                            }
+                            // Single Loop -> Shuffle
+                            player.repeatMode == Player.REPEAT_MODE_ONE -> {
+                                player.repeatMode = Player.REPEAT_MODE_ALL
+                                player.shuffleModeEnabled = true
+                            }
+                            // Shuffle -> Playlist Loop
+                            player.shuffleModeEnabled -> {
+                                player.repeatMode = Player.REPEAT_MODE_ALL
+                                player.shuffleModeEnabled = false
+                            }
+                            // Playlist Loop -> Off
+                            else -> {
+                                player.repeatMode = Player.REPEAT_MODE_OFF
+                                player.shuffleModeEnabled = false
+                            }
                         }
+                        updateMediaSessionLayout(activeForwardingPlayer)
                         return com.google.common.util.concurrent.Futures.immediateFuture(
                             SessionResult(SessionResult.RESULT_SUCCESS)
                         )
@@ -853,21 +871,24 @@ class MusicService : MediaLibraryService() {
                 .build()
             builder.add(nextBtn)
 
-            // 5. Repeat - State-aware icon with "1" for repeat one
+            // 5. Playback Mode (Single Loop, Shuffle, Playlist Loop, Repeat Off)
+            val isShuffle = player.shuffleModeEnabled
             val repeatMode = player.repeatMode
-            val repeatIcon = when (repeatMode) {
-                Player.REPEAT_MODE_ONE -> R.drawable.ic_notif_repeat_one
-                Player.REPEAT_MODE_ALL -> R.drawable.ic_notif_repeat_all
+            val modeIcon = when {
+                repeatMode == Player.REPEAT_MODE_ONE -> R.drawable.ic_notif_repeat_one
+                isShuffle -> R.drawable.ic_notif_shuffle_on
+                repeatMode == Player.REPEAT_MODE_ALL -> R.drawable.ic_notif_repeat_all
                 else -> R.drawable.ic_notif_repeat_off
             }
-            val repeatDisplayName = when (repeatMode) {
-                Player.REPEAT_MODE_ONE -> "Repeat: One"
-                Player.REPEAT_MODE_ALL -> "Repeat: All"
+            val modeDisplayName = when {
+                repeatMode == Player.REPEAT_MODE_ONE -> "Single Loop"
+                isShuffle -> "Shuffle"
+                repeatMode == Player.REPEAT_MODE_ALL -> "Playlist Loop"
                 else -> "Repeat: Off"
             }
             val repeatBtn = CommandButton.Builder()
-                .setDisplayName(repeatDisplayName)
-                .setIconResId(repeatIcon)
+                .setDisplayName(modeDisplayName)
+                .setIconResId(modeIcon)
                 .setSessionCommand(SessionCommand("REPEAT", android.os.Bundle.EMPTY))
                 .setEnabled(true)
                 .build()

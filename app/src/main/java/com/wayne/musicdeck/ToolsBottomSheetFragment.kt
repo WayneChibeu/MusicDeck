@@ -39,7 +39,7 @@ class ToolsBottomSheetFragment : BottomSheetDialogFragment() {
         binding.btnRescan.setOnClickListener { 
             viewModel.loadPlaylists()
             viewModel.loadSongs()
-            android.widget.Toast.makeText(context, "Scanning library...", android.widget.Toast.LENGTH_SHORT).show()
+            com.wayne.musicdeck.utils.DeckToast.show(activity, "Scanning library...", R.drawable.ic_refresh)
             dismiss()
         }
         

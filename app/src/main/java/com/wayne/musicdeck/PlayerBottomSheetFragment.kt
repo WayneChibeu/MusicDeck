@@ -8,6 +8,7 @@ import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.ViewConfiguration
 import android.widget.Toast
+import com.wayne.musicdeck.utils.DeckToast
 import android.widget.ImageView
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
@@ -1083,25 +1084,28 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
     private fun updateAlbumArtPlaybackScale(isPlaying: Boolean, animate: Boolean = true) {
         val binding = _binding ?: return
         val targetScale = if (isPlaying) 1.0f else 0.92f
-        val targetElevation = if (isPlaying) 6.dpToPx().toFloat() else 2.dpToPx().toFloat()
 
         if (animate && binding.artContainer.isAttachedToWindow) {
-            val interpolator = if (isPlaying) {
-                android.view.animation.OvershootInterpolator(1.15f)
-            } else {
-                androidx.interpolator.view.animation.FastOutSlowInInterpolator()
-            }
+            binding.artContainer.animate().cancel()
+
+            // Fluid ease-out cubic bezier curve matching Apple/ColorOS standard
+            val interpolator = android.view.animation.PathInterpolator(0.22f, 1.0f, 0.36f, 1.0f)
             binding.artContainer.animate()
                 .scaleX(targetScale)
                 .scaleY(targetScale)
-                .translationZ(targetElevation)
-                .setDuration(if (isPlaying) 360L else 300L)
+                .setDuration(if (isPlaying) 380L else 340L)
                 .setInterpolator(interpolator)
+                .withLayer() // Render on GPU hardware layer to prevent frame drops
+                .withEndAction {
+                    if (isPlaying && viewModel.mediaController.value?.isPlaying == true) {
+                        startBreathingAnimation()
+                    }
+                }
                 .start()
         } else {
+            binding.artContainer.animate().cancel()
             binding.artContainer.scaleX = targetScale
             binding.artContainer.scaleY = targetScale
-            binding.artContainer.translationZ = targetElevation
         }
     }
 
@@ -1396,22 +1400,22 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
                 0 -> {
                     player.repeatMode = Player.REPEAT_MODE_OFF
                     player.shuffleModeEnabled = false
-                    Toast.makeText(context, "Repeat Off", Toast.LENGTH_SHORT).show()
+                    showModeFeedbackPill("Repeat Off")
                 }
                 1 -> {
                     player.repeatMode = Player.REPEAT_MODE_ONE
                     player.shuffleModeEnabled = false
-                    Toast.makeText(context, "Single Loop", Toast.LENGTH_SHORT).show()
+                    showModeFeedbackPill("Single Loop")
                 }
                 2 -> {
                     player.repeatMode = Player.REPEAT_MODE_ALL
                     player.shuffleModeEnabled = true
-                    Toast.makeText(context, "Shuffle", Toast.LENGTH_SHORT).show()
+                    showModeFeedbackPill("Shuffle")
                 }
                 3 -> {
                     player.repeatMode = Player.REPEAT_MODE_ALL
                     player.shuffleModeEnabled = false
-                    Toast.makeText(context, "Playlist Loop", Toast.LENGTH_SHORT).show()
+                    showModeFeedbackPill("Playlist Loop")
                 }
             }
             updatePlaybackModeIcon()
@@ -1518,7 +1522,6 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
             updatePlayPauseIcon(isPlaying)
             if (isPlaying) {
                 binding.seekBar.post(updateProgressAction)
-                startBreathingAnimation()
             } else {
                 stopBreathingAnimation()
             }
@@ -1876,6 +1879,54 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         binding.btnRepeat.imageTintList = android.content.res.ColorStateList.valueOf(tintColor)
     }
 
+    private var modePillDismissRunnable: Runnable? = null
+
+    private fun showModeFeedbackPill(text: String) {
+        val b = _binding ?: return
+        b.tvModeFeedbackText.text = text
+        val accentColor = com.google.android.material.color.MaterialColors.getColor(
+            b.root.context,
+            com.google.android.material.R.attr.colorPrimary,
+            android.graphics.Color.parseColor("#FF3B30")
+        )
+        b.ivModeFeedbackIcon.backgroundTintList = android.content.res.ColorStateList.valueOf(accentColor)
+        modePillDismissRunnable?.let { b.layoutModeFeedbackPill.removeCallbacks(it) }
+
+        b.layoutModeFeedbackPill.apply {
+            animate().cancel()
+            alpha = 0f
+            scaleX = 0.85f
+            scaleY = 0.85f
+            visibility = View.VISIBLE
+
+            animate()
+                .alpha(1f)
+                .scaleX(1f)
+                .scaleY(1f)
+                .setDuration(200)
+                .setInterpolator(android.view.animation.OvershootInterpolator(1.2f))
+                .start()
+        }
+
+        modePillDismissRunnable = Runnable {
+            _binding?.layoutModeFeedbackPill?.let { pill ->
+                pill.animate()
+                    .alpha(0f)
+                    .scaleX(0.9f)
+                    .scaleY(0.9f)
+                    .setDuration(220)
+                    .withEndAction {
+                        if (_binding != null) {
+                            pill.visibility = View.GONE
+                        }
+                    }
+                    .start()
+            }
+        }.also {
+            b.layoutModeFeedbackPill.postDelayed(it, 1500)
+        }
+    }
+
     private fun formatTime(ms: Long): String {
         if (ms <= 0) return "0:00"
         val totalSeconds = ms / 1000
@@ -1891,6 +1942,8 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         _binding?.toggleWrapper?.animate()?.cancel()
         _binding?.lyricsDimmer?.animate()?.cancel()
         _binding?.scrollTimestampContainer?.animate()?.cancel()
+        modePillDismissRunnable?.let { _binding?.layoutModeFeedbackPill?.removeCallbacks(it) }
+        _binding?.layoutModeFeedbackPill?.animate()?.cancel()
         
         // Stop breathing animation
         stopBreathingAnimation()
@@ -2008,12 +2061,10 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
 
     private fun stopBreathingAnimation() {
         breathingAnimator?.cancel()
+        breathingAnimator = null
         if (_binding != null) {
-            binding.ivFullArt.animate()
-                .scaleX(1.0f)
-                .scaleY(1.0f)
-                .setDuration(500)
-                .start()
+            binding.ivFullArt.scaleX = 1.0f
+            binding.ivFullArt.scaleY = 1.0f
         }
     }
 
@@ -2053,13 +2104,13 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
             if (currentlyRunning) {
                 FloatingLyricService.stop(ctx)
                 switchDesktop.isChecked = false
-                Toast.makeText(ctx, "Desktop Lyrics disabled", Toast.LENGTH_SHORT).show()
+                DeckToast.show(binding.root, "Desktop Lyrics disabled", R.drawable.ic_floating_window)
                 dialog.dismiss()
             } else {
                 if (android.provider.Settings.canDrawOverlays(ctx)) {
                     FloatingLyricService.start(ctx)
                     switchDesktop.isChecked = true
-                    Toast.makeText(ctx, "Desktop Lyrics enabled", Toast.LENGTH_SHORT).show()
+                    DeckToast.show(binding.root, "Desktop Lyrics enabled", R.drawable.ic_floating_window)
                     dialog.dismiss()
                 } else {
                     val intent = android.content.Intent(
@@ -2067,7 +2118,7 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
                         android.net.Uri.parse("package:${ctx.packageName}")
                     )
                     startActivity(intent)
-                    Toast.makeText(ctx, "Please grant overlay permission", Toast.LENGTH_LONG).show()
+                    DeckToast.show(binding.root, "Please grant overlay permission", R.drawable.ic_floating_window, isLong = true)
                 }
             }
         }
@@ -2211,13 +2262,13 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
                     val amberColor = ContextCompat.getColor(requireContext(), R.color.colorAmber)
                     binding.ivAbLoopIcon.imageTintList = android.content.res.ColorStateList.valueOf(amberColor)
                     binding.tvAbLoopLabel.setTextColor(amberColor)
-                    Toast.makeText(context, "Point A set at $posText. Tap at end point to loop.", Toast.LENGTH_SHORT).show()
+                    DeckToast.show(binding.root, "Point A set at $posText", R.drawable.ic_repeat_ab)
                 }
 
                 // State 1: Point A set, not looping -> Record Point B & Start Loop
                 !currentState.isLooping && currentState.startMs >= 0L -> {
                     if (currentPos <= currentState.startMs + 250L) {
-                        Toast.makeText(context, "Point B must be ahead of Point A", Toast.LENGTH_SHORT).show()
+                        DeckToast.show(binding.root, "Point B must be ahead of Point A", R.drawable.ic_repeat_ab)
                         return@setOnClickListener
                     }
                     com.wayne.musicdeck.utils.HapticManager.performShuffleHaptic(requireContext())
@@ -2232,7 +2283,7 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
                     }
                     val aText = formatTime(currentState.startMs)
                     val bText = formatTime(currentPos)
-                    Toast.makeText(context, "Looping: $aText ⇄ $bText", Toast.LENGTH_SHORT).show()
+                    DeckToast.show(binding.root, "Looping: $aText ⇄ $bText", R.drawable.ic_repeat_ab)
                 }
 
                 // State 2: Looping -> Clear Loop
@@ -2246,7 +2297,7 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
                         }
                         requireContext().startService(intent)
                     }
-                    Toast.makeText(context, "A-B Loop cleared", Toast.LENGTH_SHORT).show()
+                    DeckToast.show(binding.root, "A-B Loop cleared", R.drawable.ic_repeat_ab)
                 }
             }
         }

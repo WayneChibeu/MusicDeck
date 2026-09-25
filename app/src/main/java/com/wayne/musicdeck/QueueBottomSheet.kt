@@ -6,6 +6,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import android.widget.Toast
+import com.wayne.musicdeck.utils.DeckToast
 import androidx.media3.common.MediaItem
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -41,7 +42,7 @@ class QueueBottomSheet : BottomSheetDialogFragment() {
         
         view.findViewById<View>(R.id.btnClearQueue).setOnClickListener {
              viewModel.mediaController.value?.clearMediaItems()
-             Toast.makeText(context, "Queue cleared", Toast.LENGTH_SHORT).show()
+             DeckToast.show(activity, "Queue cleared", R.drawable.ic_clear_all)
              dismiss()
         }
     }
@@ -60,7 +61,7 @@ class QueueBottomSheet : BottomSheetDialogFragment() {
                 try {
                     player.removeMediaItem(position)
                 } catch (e: Exception) {
-                    Toast.makeText(context, "Error removing item", Toast.LENGTH_SHORT).show()
+                    DeckToast.show(view, "Error removing item", R.drawable.ic_close)
                 }
             },
             onItemClick = { position ->

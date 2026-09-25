@@ -328,7 +328,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
-    <!-- HEYTAP MULTI-SELECT BOTTOM ACTION BAR -->
+    <!-- BATCH MULTI-SELECT BOTTOM ACTION BAR -->
     <include
         android:id="@+id/selectionBottomBar"
         layout="@layout/layout_selection_bottom_bar"

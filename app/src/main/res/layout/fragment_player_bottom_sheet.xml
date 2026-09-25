@@ -485,6 +485,44 @@
 
         </LinearLayout>
 
+        <!-- Mode Feedback Floating HUD Pill -->
+        <LinearLayout
+            android:id="@+id/layoutModeFeedbackPill"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:background="@drawable/bg_mode_feedback_pill"
+            android:paddingHorizontal="14dp"
+            android:paddingVertical="7dp"
+            android:visibility="gone"
+            android:elevation="12dp"
+            android:layout_marginBottom="4dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent">
+
+            <ImageView
+                android:id="@+id/ivModeFeedbackIcon"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:src="@drawable/ic_music_note"
+                app:tint="@android:color/white"
+                android:background="@drawable/bg_mode_pill_icon_circle"
+                android:padding="2dp"
+                android:layout_marginEnd="8dp" />
+
+            <TextView
+                android:id="@+id/tvModeFeedbackText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Single Loop"
+                android:textColor="@android:color/white"
+                android:textSize="12sp"
+                android:fontFamily="sans-serif-medium"
+                android:textStyle="bold" />
+        </LinearLayout>
+
     </androidx.constraintlayout.widget.ConstraintLayout>
 
     <!-- LYRIC VIEW -->

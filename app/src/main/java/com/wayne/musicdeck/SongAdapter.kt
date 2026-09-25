@@ -45,7 +45,7 @@ class SongAdapter(
             }
         }
 
-    // --- HeyTap Multi-Select Mode ---
+    // --- Batch Multi-Select Mode ---
     var isSelectionMode: Boolean = false
         set(value) {
             if (field != value) {
@@ -216,7 +216,7 @@ class SongAdapter(
 
                 binding.root.setOnClickListener { onSongClick(song) }
 
-                // Long-press to show full menu (HeyTap style)
+                // Long-press to show full menu
                 binding.root.setOnLongClickListener {
                     onSongMenuClick?.invoke(song, "show_menu")
                     true

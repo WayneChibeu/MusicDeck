@@ -1045,7 +1045,7 @@ class MainActivity : AppCompatActivity() {
     // Cleaned up legacy index code
 
     private fun setupSearch() {
-        // Search opens full-screen HeyTap-style search bottom sheet
+        // Search opens full-screen modern search bottom sheet
         binding.btnSearch.setOnClickListener {
             val searchSheet = SearchBottomSheet.newInstance()
             searchSheet.onSongClick = { song ->
@@ -1707,7 +1707,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun showPlaylistSongOptions(song: Song) {
         val dialog = com.google.android.material.bottomsheet.BottomSheetDialog(this)
-        val view = layoutInflater.inflate(R.layout.layout_heytap_bottom_sheet, null)
+        val view = layoutInflater.inflate(R.layout.layout_quick_actions_sheet, null)
         dialog.setContentView(view)
 
         // Cancel Action
