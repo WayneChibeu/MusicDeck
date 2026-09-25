@@ -19,7 +19,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:paddingHorizontal="24dp"
-        android:paddingTop="72dp"
+        android:paddingTop="56dp"
         android:paddingBottom="16dp"
         android:clipChildren="false"
         android:clipToPadding="false"
@@ -30,6 +30,7 @@
             android:id="@+id/artContainer"
             android:layout_width="0dp"
             android:layout_height="0dp"
+            android:layout_marginTop="36dp"
             app:layout_constraintDimensionRatio="1:1"
             app:layout_constrainedWidth="true"
             app:layout_constrainedHeight="true"
@@ -38,6 +39,7 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintBottom_toTopOf="@+id/visualizerView"
             app:layout_constraintVertical_chainStyle="packed"
+            app:layout_constraintVertical_bias="0.0"
             android:elevation="4dp">
 
             <com.google.android.material.imageview.ShapeableImageView
@@ -399,7 +401,7 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center"
-            android:layout_marginTop="4dp"
+            android:layout_marginTop="12dp"
             android:layout_marginBottom="8dp"
             app:layout_constraintTop_toBottomOf="@+id/seekBar"
             app:layout_constraintBottom_toBottomOf="parent"
@@ -475,7 +477,7 @@
         android:id="@+id/lyricView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:paddingTop="72dp"
+        android:paddingTop="68dp"
         android:paddingBottom="12dp"
         android:visibility="gone">
 
@@ -614,7 +616,6 @@
             android:id="@+id/btnCollapse"
             android:layout_width="40dp"
             android:layout_height="40dp"
-            android:layout_marginTop="16dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@drawable/ic_chevron_down"
             app:tint="?attr/colorOnSurface"
@@ -628,7 +629,6 @@
             android:id="@+id/toggleWrapper"
             android:layout_width="wrap_content"
             android:layout_height="36dp"
-            android:layout_marginTop="20dp"
             android:background="@drawable/bg_toggle_container"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
@@ -670,7 +670,6 @@
             android:id="@+id/btnMenu"
             android:layout_width="40dp"
             android:layout_height="40dp"
-            android:layout_marginTop="16dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@drawable/ic_more_vert"
             app:tint="?attr/colorOnSurface"
