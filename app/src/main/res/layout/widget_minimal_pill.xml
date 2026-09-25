@@ -57,7 +57,7 @@
         android:layout_height="34dp"
         android:padding="5dp"
         android:src="@drawable/ic_widget_play"
-        android:background="?android:attr/selectableItemBackgroundBorderless"
+        android:background="@android:color/transparent"
         android:tint="@android:color/white"
         android:scaleType="fitCenter"
         android:contentDescription="Play/Pause" />
@@ -70,7 +70,7 @@
         android:layout_marginStart="4dp"
         android:padding="5dp"
         android:src="@drawable/ic_widget_next"
-        android:background="?android:attr/selectableItemBackgroundBorderless"
+        android:background="@android:color/transparent"
         android:tint="@android:color/white"
         android:scaleType="fitCenter"
         android:contentDescription="Next" />

@@ -2,6 +2,7 @@
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:description="@string/app_name"
     android:initialLayout="@layout/widget_music_control"
+    android:previewImage="@drawable/preview_music_widget"
     android:previewLayout="@layout/widget_music_control"
     android:minWidth="250dp"
     android:minHeight="56dp"

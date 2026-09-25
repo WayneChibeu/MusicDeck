@@ -1,0 +1,14 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Horizontal descending lines on the left -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M3,6h8v2.2H3V6z M3,11h5.5v2.2H3v-2.2z M3,16h3v2.2H3v-2.2z"/>
+    <!-- Up and down sorting arrows on the right -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M14.5,4.5l-2.5,3.2h1.8v6h1.4v-6h1.8L14.5,4.5z M18.5,15.3h-1.8V9.3h-1.4v6h-1.8l2.5,3.2L18.5,15.3z"/>
+</vector>

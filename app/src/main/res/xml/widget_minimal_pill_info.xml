@@ -2,6 +2,7 @@
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:description="@string/app_name"
     android:initialLayout="@layout/widget_minimal_pill"
+    android:previewImage="@drawable/preview_minimal_pill_widget"
     android:previewLayout="@layout/widget_minimal_pill"
     android:minWidth="140dp"
     android:minHeight="48dp"

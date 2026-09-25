@@ -1,9 +1,9 @@
 {
-  "versionName": "3.1.6",
-  "versionCode": 83,
-  "releaseTitle": "MusicDeck v3.1.6 - Smart Anti-Repeat Shuffle and Persistent Queue",
-  "releaseNotes": "Smart anti-repeat shuffle that prioritizes unplayed tracks and pushes songs heard in the last 24 hours to the back of the queue. Persistent queue that remembers your exact track order and position even when the app is closed or cleared by the system. Dual-deck crossfade sync to stop songs from repeating during transitions. Restored top-anchored album cover layout on the player sheet, rounded popup menu shape, and widget improvements including a live-ticking seek bar on Master Deck and full-cover vinyl art.",
-  "downloadUrl": "https://github.com/WayneChibeu/MusicDeck/releases/download/v3.1.6/MusicDeck-v3.1.6.apk",
-  "apkSize": 7262782,
-  "htmlUrl": "https://github.com/WayneChibeu/MusicDeck/releases/tag/v3.1.6"
+  "versionName": "3.1.7",
+  "versionCode": 84,
+  "releaseTitle": "MusicDeck v3.1.7 - Widget Previews and Player Sheet Constraints",
+  "releaseNotes": "Fixes the player sheet layout constraints so the album cover scales smoothly and never overlaps song titles, artist information, or playback controls. Restores the grid icon on the tools quick action card and sets the sorting icon on the feature settings entry. Adds dedicated dark launcher preview images and transparent RemoteViews backgrounds across all widgets so they never appear blank or white.",
+  "downloadUrl": "https://github.com/WayneChibeu/MusicDeck/releases/download/v3.1.7/MusicDeck-v3.1.7.apk",
+  "apkSize": 7297271,
+  "htmlUrl": "https://github.com/WayneChibeu/MusicDeck/releases/tag/v3.1.7"
 }

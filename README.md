@@ -3,7 +3,7 @@
 A modern, ad-free Android music player powered by the proprietary **DeckAcoustix™ Native C++ DSP Audio Engine** and Jetpack Media3.
 
 ## Download
-[**Download Latest APK (v3.1.6)**](https://github.com/WayneChibeu/MusicDeck/releases/download/v3.1.6/MusicDeck-v3.1.6.apk)
+[**Download Latest APK (v3.1.7)**](https://github.com/WayneChibeu/MusicDeck/releases/download/v3.1.7/MusicDeck-v3.1.7.apk)
 
 *Alternatively, view all [Releases](https://github.com/WayneChibeu/MusicDeck/releases).*
 
@@ -48,7 +48,7 @@ A modern, ad-free Android music player powered by the proprietary **DeckAcoustix
 - **Vinyl Turntable Widget**: Rotating vinyl record with full album art encasing the platter and center spindle controls.
 - **Master Deck Widget**: Comprehensive DJ console widget featuring live-ticking seek progress, timestamp, track metadata, and quick favorite toggle.
 - **Minimal Pill Widget**: Compact floating pill displaying current cover, song title, artist, and responsive transport controls.
-- **Native Launcher Previews**: Integrated XML preview layouts ensuring crisp previews in launcher widget pickers across ColorOS, HeyTap, OneUI, and stock launchers.
+- **Native Launcher Previews**: Dedicated dark raster preview images and dynamic XML layouts ensuring clean, non-white previews in launcher widget pickers across ColorOS, HeyTap, OneUI, and stock launchers.
 
 ---
 
