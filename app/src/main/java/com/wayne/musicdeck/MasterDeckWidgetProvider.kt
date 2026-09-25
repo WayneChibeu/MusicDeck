@@ -120,6 +120,23 @@ class MasterDeckWidgetProvider : AppWidgetProvider() {
             appWidgetManager.updateAppWidget(appWidgetId, views)
         }
 
+        fun updateProgressOnly(context: Context, position: Long, duration: Long) {
+            val manager = AppWidgetManager.getInstance(context)
+            val comp = android.content.ComponentName(context, MasterDeckWidgetProvider::class.java)
+            val ids = manager.getAppWidgetIds(comp)
+            if (ids == null || ids.isEmpty()) return
+
+            val progress = if (duration > 0) ((position.toFloat() / duration) * 1000).toInt().coerceIn(0, 1000) else 0
+            val views = RemoteViews(context.packageName, R.layout.widget_master_deck)
+            views.setProgressBar(R.id.pbMasterDeckProgress, 1000, progress, false)
+            views.setTextViewText(R.id.tvMasterDeckCurrentTime, formatTime(position))
+            if (duration > 0) {
+                views.setTextViewText(R.id.tvMasterDeckTotalTime, formatTime(duration))
+            }
+
+            manager.partiallyUpdateAppWidget(ids, views)
+        }
+
         private fun formatTime(millis: Long): String {
             if (millis <= 0) return "0:00"
             val totalSeconds = millis / 1000

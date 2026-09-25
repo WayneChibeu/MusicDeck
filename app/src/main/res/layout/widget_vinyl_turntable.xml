@@ -21,7 +21,7 @@
             android:layout_height="match_parent"
             android:layout_gravity="center"
             android:scaleType="fitCenter"
-            android:src="@drawable/default_album_art"
+            android:src="@drawable/ic_vinyl_record_preview"
             android:contentDescription="Vinyl Record" />
 
         <!-- Center Spindle / Play-Pause Button -->

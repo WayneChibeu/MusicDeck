@@ -264,41 +264,45 @@ class MainViewModel(
         }
     }
 
-    fun playPlaylist(songs: List<Song>, startIndex: Int) {
-        val controller = mediaController.value ?: return
-        if (startIndex < 0 || startIndex >= songs.size) return
-        
-        val mediaItems = songs.map { 
-            val customCoverPath = it.data.let { path -> customCoverRepository.getCustomCover(path) }
+    private fun createMediaItems(songs: List<Song>): List<androidx.media3.common.MediaItem> {
+        return songs.map { song ->
+            val customCoverPath = song.data.let { path -> customCoverRepository.getCustomCover(path) }
             val artUri = if (customCoverPath != null) {
                 android.net.Uri.fromFile(java.io.File(customCoverPath))
-            } else if (it.albumId > 0 && it.album != "Unknown Album") {
+            } else if (song.albumId > 0 && song.album != "Unknown Album") {
                 android.content.ContentUris.withAppendedId(
                     android.net.Uri.parse("content://media/external/audio/album_art"),
-                    it.albumId
+                    song.albumId
                 )
             } else {
-                it.uri
+                song.uri
             }
 
             androidx.media3.common.MediaItem.Builder()
-                .setMediaId(it.data)
-                .setUri(it.uri)
+                .setMediaId(song.data)
+                .setUri(song.uri)
                 .setMediaMetadata(
                     androidx.media3.common.MediaMetadata.Builder()
-                        .setTitle(it.title)
-                        .setArtist(it.artist)
-                        .setAlbumTitle(it.album)
+                        .setTitle(song.title)
+                        .setArtist(song.artist)
+                        .setAlbumTitle(song.album)
                         .setArtworkUri(artUri)
                         .build()
                 )
                 .setRequestMetadata(
                     androidx.media3.common.MediaItem.RequestMetadata.Builder()
-                        .setExtras(android.os.Bundle().apply { putLong("songId", it.id) })
+                        .setExtras(android.os.Bundle().apply { putLong("songId", song.id) })
                         .build()
                 )
                 .build()
         }
+    }
+
+    fun playPlaylist(songs: List<Song>, startIndex: Int) {
+        val controller = mediaController.value ?: return
+        if (startIndex < 0 || startIndex >= songs.size) return
+        
+        val mediaItems = createMediaItems(songs)
 
         controller.setMediaItems(mediaItems)
         controller.seekTo(startIndex, 0)
@@ -307,6 +311,47 @@ class MainViewModel(
         controller.play()
         
         lastPlayedSongPath = songs[startIndex].data
+        settingsManager.saveActiveQueue(songs.map { it.data }, startIndex)
+    }
+
+    fun playPlaylistFromPosition(songs: List<Song>, startIndex: Int, positionMs: Long, autoPlay: Boolean = true) {
+        val controller = mediaController.value ?: return
+        if (startIndex < 0 || startIndex >= songs.size) return
+        
+        val mediaItems = createMediaItems(songs)
+
+        controller.setMediaItems(mediaItems)
+        controller.seekTo(startIndex, positionMs)
+        controller.prepare()
+        if (autoPlay) {
+            controller.play()
+        }
+        
+        lastPlayedSongPath = songs[startIndex].data
+        settingsManager.saveActiveQueue(songs.map { it.data }, startIndex)
+    }
+
+    fun playSmartShuffled(songs: List<Song>, startIndex: Int = 0) {
+        if (songs.isEmpty()) return
+        viewModelScope.launch(Dispatchers.IO) {
+            val playCounts = try {
+                playCountDao.getAllPlayCounts().associate { it.filePath to it.lastPlayed }
+            } catch (e: Exception) {
+                emptyMap()
+            }
+            val smartList = com.wayne.musicdeck.utils.SmartShuffleManager.smartShuffle(
+                items = songs,
+                getPath = { it.data },
+                settingsManager = settingsManager,
+                playCountMap = playCounts,
+                currentlyPlayingPath = if (startIndex != 0) songs.getOrNull(startIndex)?.data else null
+            )
+            withContext(Dispatchers.Main) {
+                playPlaylist(smartList, 0)
+                mediaController.value?.shuffleModeEnabled = false // queue is already pre-shuffled smartly
+                settingsManager.isShuffleEnabled = true
+            }
+        }
     }
     
     fun deletePlaylist(playlist: com.wayne.musicdeck.data.Playlist) {
@@ -318,37 +363,7 @@ class MainViewModel(
 
     fun addToQueue(songs: List<Song>) {
         val controller = mediaController.value ?: return
-        val mediaItems = songs.map { 
-            val customCoverPath = it.data.let { path -> customCoverRepository.getCustomCover(path) }
-            val artUri = if (customCoverPath != null) {
-                android.net.Uri.fromFile(java.io.File(customCoverPath))
-            } else if (it.albumId > 0 && it.album != "Unknown Album") {
-                android.content.ContentUris.withAppendedId(
-                    android.net.Uri.parse("content://media/external/audio/album_art"),
-                    it.albumId
-                )
-            } else {
-                it.uri
-            }
-
-            androidx.media3.common.MediaItem.Builder()
-                .setMediaId(it.data)
-                .setUri(it.uri)
-                .setMediaMetadata(
-                    androidx.media3.common.MediaMetadata.Builder()
-                        .setTitle(it.title)
-                        .setArtist(it.artist)
-                        .setAlbumTitle(it.album)
-                        .setArtworkUri(artUri)
-                        .build()
-                )
-                .setRequestMetadata(
-                    androidx.media3.common.MediaItem.RequestMetadata.Builder()
-                        .setExtras(android.os.Bundle().apply { putLong("songId", it.id) })
-                        .build()
-                )
-                .build()
-        }
+        val mediaItems = createMediaItems(songs)
         controller.addMediaItems(mediaItems)
     }
     

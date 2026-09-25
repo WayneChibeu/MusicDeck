@@ -2,6 +2,7 @@
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:description="@string/app_name"
     android:initialLayout="@layout/widget_vinyl_turntable"
+    android:previewLayout="@layout/widget_vinyl_turntable"
     android:minWidth="150dp"
     android:minHeight="150dp"
     android:minResizeWidth="130dp"

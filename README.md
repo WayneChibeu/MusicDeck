@@ -3,7 +3,7 @@
 A modern, ad-free Android music player powered by the proprietary **DeckAcoustix™ Native C++ DSP Audio Engine** and Jetpack Media3.
 
 ## Download
-[**Download Latest APK (v3.1.2)**](https://github.com/WayneChibeu/MusicDeck/releases/download/v3.1.2/MusicDeck-v3.1.2.apk)
+[**Download Latest APK (v3.1.6)**](https://github.com/WayneChibeu/MusicDeck/releases/download/v3.1.6/MusicDeck-v3.1.6.apk)
 
 *Alternatively, view all [Releases](https://github.com/WayneChibeu/MusicDeck/releases).*
 
@@ -32,6 +32,9 @@ A modern, ad-free Android music player powered by the proprietary **DeckAcoustix
 - **Two-Pane Landscape Layout**: Purpose-built horizontal layout for vehicle dashboard mounts with a 1:1 album art display on the left and full driving controls on the right.
 
 ### Visuals, Library & Smart Management
+- **Smart Anti-Repeat Shuffle**: History-aware two-tier shuffling that prioritizes songs you haven't heard today and pushes recently played tracks to the back, ensuring large music libraries cycle through all unplayed songs before repeating.
+- **Persistent Active Queue**: MMKV-backed queue state that preserves exact track sequences and playback positions across background process reclaims.
+- **Synchronized Dual-Deck Crossfade**: Coordinated timeline shuffle ordering across dual ExoPlayer engines to prevent repeat tracks during transitions.
 - **Universal Wallpaper Dynamic Theming (AndroidX Palette)**: Direct wallpaper sampling guaranteeing rich, vibrant dynamic theming on all Android ROMs (ColorOS, HyperOS/MIUI, HiOS/XOS, OriginOS).
 - **Smart Playlists**: Intelligent multi-attribute keyword scoring for **Energy Boost** (high-tempo, dance, rock, workout) and **Chill Mode** (acoustic, ambient, ballads, piano) with custom vector iconography.
 - **Shake to Shuffle (Pocket-Safe)**: Proximity-guarded motion detection that sleeps inside pockets or bags to prevent accidental walking/jogging shuffles.
@@ -40,6 +43,12 @@ A modern, ad-free Android music player powered by the proprietary **DeckAcoustix
 - **Floating Glass Alphabet Jumper**: Fast letter jumping with a glowing preview bubble and tactile mechanical haptics.
 - **Glassmorphic Sleep Deck**: Quick preset timer pills (15m to 90m), custom minute slider, and "Stop After Current Song" mode.
 - **Listening Insights**: Total plays, weekly plays, artist counts, and listening streak tracking.
+
+### Home Screen Widgets
+- **Vinyl Turntable Widget**: Rotating vinyl record with full album art encasing the platter and center spindle controls.
+- **Master Deck Widget**: Comprehensive DJ console widget featuring live-ticking seek progress, timestamp, track metadata, and quick favorite toggle.
+- **Minimal Pill Widget**: Compact floating pill displaying current cover, song title, artist, and responsive transport controls.
+- **Native Launcher Previews**: Integrated XML preview layouts ensuring crisp previews in launcher widget pickers across ColorOS, HeyTap, OneUI, and stock launchers.
 
 ---
 

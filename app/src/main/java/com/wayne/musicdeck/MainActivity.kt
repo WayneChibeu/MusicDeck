@@ -256,12 +256,9 @@ class MainActivity : AppCompatActivity() {
                 } else {
                     val currentSongs = viewModel.songs.value
                     if (!currentSongs.isNullOrEmpty()) {
-                        val shuffled = currentSongs.shuffled()
-                        viewModel.playPlaylist(shuffled, 0)
-                        viewModel.mediaController.value?.shuffleModeEnabled = true
-                        settingsManager.isShuffleEnabled = true
+                        viewModel.playSmartShuffled(currentSongs)
                         com.wayne.musicdeck.utils.HapticManager.performShuffleHaptic(this)
-                        android.widget.Toast.makeText(this, "Queue Shuffled", android.widget.Toast.LENGTH_SHORT).show()
+                        android.widget.Toast.makeText(this, "Smart Shuffle", android.widget.Toast.LENGTH_SHORT).show()
                     }
                 }
             }
@@ -1076,16 +1073,15 @@ class MainActivity : AppCompatActivity() {
             android.widget.Toast.makeText(this, "Playing ${songs.size} songs", android.widget.Toast.LENGTH_SHORT).show()
         }
         
-        // Shuffle text - shuffles all songs
+        // Shuffle text - Smart Anti-Repeat Shuffle
         binding.tvShuffle.setOnClickListener {
             val songs = viewModel.songs.value
             if (songs.isNullOrEmpty()) {
                 android.widget.Toast.makeText(this, "No songs available", android.widget.Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
-            val shuffled = songs.shuffled()
-            viewModel.playPlaylist(shuffled, 0)
-            android.widget.Toast.makeText(this, "Shuffling ${songs.size} songs", android.widget.Toast.LENGTH_SHORT).show()
+            viewModel.playSmartShuffled(songs)
+            android.widget.Toast.makeText(this, "Smart Shuffle • ${songs.size} songs", android.widget.Toast.LENGTH_SHORT).show()
         }
         
         // List Menu: Multi-select + Sort Order
@@ -1102,9 +1098,10 @@ class MainActivity : AppCompatActivity() {
             android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
             true
         ).apply {
-            elevation = 16f
+            elevation = 0f
             isOutsideTouchable = true
             setBackgroundDrawable(android.graphics.drawable.ColorDrawable(android.graphics.Color.TRANSPARENT))
+            animationStyle = android.R.style.Animation_Dialog
         }
 
         popupView.findViewById<android.view.View>(R.id.menuMultiSelect).setOnClickListener {
@@ -1121,8 +1118,9 @@ class MainActivity : AppCompatActivity() {
             android.view.View.MeasureSpec.makeMeasureSpec(0, android.view.View.MeasureSpec.UNSPECIFIED),
             android.view.View.MeasureSpec.makeMeasureSpec(0, android.view.View.MeasureSpec.UNSPECIFIED)
         )
-        val xOffset = -(popupView.measuredWidth - anchor.width)
-        popupWindow.showAsDropDown(anchor, xOffset, 8)
+        val padPx = (6 * resources.displayMetrics.density).toInt()
+        val xOffset = -(popupView.measuredWidth - anchor.width) + padPx
+        popupWindow.showAsDropDown(anchor, xOffset, 0)
     }
 
     private fun showSortOrderDialog() {
@@ -1425,6 +1423,21 @@ class MainActivity : AppCompatActivity() {
     
     private fun playLastSong(autoPlay: Boolean = true) {
         val lastPath = viewModel.lastPlayedSongPath ?: return
+        val allSongs = viewModel.songs.value ?: emptyList()
+        val savedQueue = settingsManager.getActiveQueue()
+
+        if (savedQueue.isNotEmpty() && allSongs.isNotEmpty()) {
+            val songMap = allSongs.associateBy { it.data }
+            val queueSongs = savedQueue.mapNotNull { songMap[it] }
+            if (queueSongs.isNotEmpty()) {
+                val index = queueSongs.indexOfFirst { it.data == lastPath }
+                val targetIndex = if (index != -1) index else settingsManager.activeQueueIndex.coerceIn(0, queueSongs.size - 1)
+                val lastPosition = viewModel.lastPlayedPosition
+                viewModel.playPlaylistFromPosition(queueSongs, targetIndex, lastPosition, autoPlay)
+                return
+            }
+        }
+
         val items = adapter.currentList
         // Find by path
         val songItem = items.filterIsInstance<SongListItem.SongItem>().find { it.song.data == lastPath }

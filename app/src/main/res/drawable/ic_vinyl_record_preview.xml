@@ -1,0 +1,33 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="180dp"
+    android:height="180dp"
+    android:viewportWidth="180"
+    android:viewportHeight="180">
+    <!-- Outer Rim -->
+    <path
+        android:fillColor="#121215"
+        android:strokeColor="#383842"
+        android:strokeWidth="1.5"
+        android:pathData="M90,90m-88,0a88,88 0,1 1,176 0a88,88 0,1 1,-176 0" />
+
+    <!-- Vinyl Album Art Body -->
+    <path
+        android:fillColor="#1E1E26"
+        android:pathData="M90,90m-86,0a86,86 0,1 1,172 0a86,86 0,1 1,-172 0" />
+
+    <!-- Concentric Grooves -->
+    <path
+        android:strokeColor="#33000000"
+        android:strokeWidth="1.2"
+        android:pathData="M90,90m-75,0a75,75 0,1 1,150 0a75,75 0,1 1,-150 0 M90,90m-65,0a65,65 0,1 1,130 0a65,65 0,1 1,-130 0 M90,90m-55,0a55,55 0,1 1,110 0a55,55 0,1 1,-110 0 M90,90m-45,0a45,45 0,1 1,90 0a45,45 0,1 1,-90 0 M90,90m-35,0a35,35 0,1 1,70 0a35,35 0,1 1,-70 0 M90,90m-25,0a25,25 0,1 1,50 0a25,25 0,1 1,-50 0" />
+
+    <!-- Inner Label Accent -->
+    <path
+        android:fillColor="#2D2D38"
+        android:pathData="M90,90m-22,0a22,22 0,1 1,44 0a22,22 0,1 1,-44 0" />
+
+    <!-- Center Spindle Hole -->
+    <path
+        android:fillColor="#09090B"
+        android:pathData="M90,90m-7,0a7,7 0,1 1,14 0a7,7 0,1 1,-14 0" />
+</vector>

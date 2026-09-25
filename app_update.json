@@ -1,9 +1,9 @@
 {
-  "versionName": "3.1.5",
-  "versionCode": 82,
-  "releaseTitle": "MusicDeck v3.1.5 - Vertical Centering Fix",
-  "releaseNotes": "Fixes an issue where the playback controls were pushed to the extreme bottom of the screen with a massive gap above them when the audio quality badge was hidden.",
-  "downloadUrl": "https://github.com/WayneChibeu/MusicDeck/releases/download/v3.1.5/MusicDeck-v3.1.5.apk",
-  "apkSize": 7261970,
-  "htmlUrl": "https://github.com/WayneChibeu/MusicDeck/releases/tag/v3.1.5"
+  "versionName": "3.1.6",
+  "versionCode": 83,
+  "releaseTitle": "MusicDeck v3.1.6 - Smart Anti-Repeat Shuffle and Persistent Queue",
+  "releaseNotes": "Smart anti-repeat shuffle that prioritizes unplayed tracks and pushes songs heard in the last 24 hours to the back of the queue. Persistent queue that remembers your exact track order and position even when the app is closed or cleared by the system. Dual-deck crossfade sync to stop songs from repeating during transitions. Restored top-anchored album cover layout on the player sheet, rounded popup menu shape, and widget improvements including a live-ticking seek bar on Master Deck and full-cover vinyl art.",
+  "downloadUrl": "https://github.com/WayneChibeu/MusicDeck/releases/download/v3.1.6/MusicDeck-v3.1.6.apk",
+  "apkSize": 7262782,
+  "htmlUrl": "https://github.com/WayneChibeu/MusicDeck/releases/tag/v3.1.6"
 }

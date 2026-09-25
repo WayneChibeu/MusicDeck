@@ -1292,7 +1292,7 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
                     Toast.makeText(context, "Single Loop", Toast.LENGTH_SHORT).show()
                 }
                 2 -> {
-                    player.repeatMode = Player.REPEAT_MODE_OFF
+                    player.repeatMode = Player.REPEAT_MODE_ALL
                     player.shuffleModeEnabled = true
                     Toast.makeText(context, "Shuffle", Toast.LENGTH_SHORT).show()
                 }

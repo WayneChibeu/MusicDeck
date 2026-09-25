@@ -167,54 +167,77 @@ class MusicWidgetProvider : AppWidgetProvider() {
                 val center = sizePx / 2f
                 val radius = sizePx / 2f - 2f
 
-                // Disc Body (Deep vinyl black)
+                // Disc Body (Deep vinyl black base)
                 val discPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                     color = android.graphics.Color.parseColor("#121215")
                     style = Paint.Style.FILL
                 }
                 canvas.drawCircle(center, center, radius, discPaint)
 
-                // Vinyl Grooves (Subtle concentric tracks)
-                val groovePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                    color = android.graphics.Color.parseColor("#25252B")
-                    style = Paint.Style.STROKE
-                    strokeWidth = 1.2f
-                }
-                var r = radius * 0.44f
-                while (r < radius * 0.95f) {
-                    canvas.drawCircle(center, center, r, groovePaint)
-                    r += 3.5f * density
-                }
-
-                // Vinyl Sheen Highlight (Sleek reflections)
-                val sheenPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                    color = android.graphics.Color.parseColor("#14FFFFFF")
-                    style = Paint.Style.STROKE
-                    strokeWidth = 3f * density
-                }
-                canvas.drawArc(RectF(center - radius * 0.7f, center - radius * 0.7f, center + radius * 0.7f, center + radius * 0.7f), 30f, 60f, false, sheenPaint)
-                canvas.drawArc(RectF(center - radius * 0.7f, center - radius * 0.7f, center + radius * 0.7f, center + radius * 0.7f), 210f, 60f, false, sheenPaint)
-
-                // Center Label with Album Art (Radius ~ 38% of disc)
-                val labelRadius = radius * 0.38f
                 if (art != null) {
-                    val labelSize = (labelRadius * 2).toInt().coerceAtLeast(20)
-                    val scaledArt = Bitmap.createScaledBitmap(art, labelSize, labelSize, true)
-                    val labelBitmap = Bitmap.createBitmap(labelSize, labelSize, Bitmap.Config.ARGB_8888)
-                    val labelCanvas = Canvas(labelBitmap)
-                    val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG)
-                    labelCanvas.drawCircle(labelRadius, labelRadius, labelRadius, labelPaint)
-                    labelPaint.xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_IN)
-                    labelCanvas.drawBitmap(scaledArt, 0f, 0f, labelPaint)
+                    // Full circular album art covering the entire vinyl face
+                    val artSize = (radius * 2).toInt()
+                    val scaledArt = Bitmap.createScaledBitmap(art, artSize, artSize, true)
+                    val circularArt = Bitmap.createBitmap(artSize, artSize, Bitmap.Config.ARGB_8888)
+                    val artCanvas = Canvas(circularArt)
+                    val artPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+                    artCanvas.drawCircle(radius, radius, radius, artPaint)
+                    artPaint.xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_IN)
+                    artCanvas.drawBitmap(scaledArt, 0f, 0f, artPaint)
 
-                    canvas.drawBitmap(labelBitmap, center - labelRadius, center - labelRadius, null)
+                    canvas.drawBitmap(circularArt, center - radius, center - radius, null)
+
+                    // Vinyl Grooves overlaid across the full album art (subtle dark translucent rings)
+                    val groovePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                        color = android.graphics.Color.argb(85, 0, 0, 0)
+                        style = Paint.Style.STROKE
+                        strokeWidth = 1.2f
+                    }
+                    var r = radius * 0.18f
+                    while (r < radius * 0.98f) {
+                        canvas.drawCircle(center, center, r, groovePaint)
+                        r += 3.5f * density
+                    }
+
+                    // Subtle dark vignette gradient around the outer rim of the vinyl
+                    val vignettePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                        shader = android.graphics.RadialGradient(
+                            center, center, radius,
+                            intArrayOf(android.graphics.Color.TRANSPARENT, android.graphics.Color.argb(90, 0, 0, 0)),
+                            floatArrayOf(0.72f, 1.0f),
+                            android.graphics.Shader.TileMode.CLAMP
+                        )
+                    }
+                    canvas.drawCircle(center, center, radius, vignettePaint)
                 } else {
+                    // Fallback when no art: Classic black vinyl with grey grooves
+                    val groovePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                        color = android.graphics.Color.parseColor("#25252B")
+                        style = Paint.Style.STROKE
+                        strokeWidth = 1.2f
+                    }
+                    var r = radius * 0.35f
+                    while (r < radius * 0.95f) {
+                        canvas.drawCircle(center, center, r, groovePaint)
+                        r += 3.5f * density
+                    }
+
                     val defaultLabelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                         color = android.graphics.Color.parseColor("#2B2B32")
                         style = Paint.Style.FILL
                     }
-                    canvas.drawCircle(center, center, labelRadius, defaultLabelPaint)
+                    canvas.drawCircle(center, center, radius * 0.38f, defaultLabelPaint)
                 }
+
+                // Vinyl Sheen Highlight (Sleek reflections)
+                val sheenPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    color = android.graphics.Color.parseColor("#18FFFFFF")
+                    style = Paint.Style.STROKE
+                    strokeWidth = 3.5f * density
+                }
+                val sheenRect = RectF(center - radius * 0.72f, center - radius * 0.72f, center + radius * 0.72f, center + radius * 0.72f)
+                canvas.drawArc(sheenRect, 30f, 60f, false, sheenPaint)
+                canvas.drawArc(sheenRect, 210f, 60f, false, sheenPaint)
 
                 // Spindle Hole in Center
                 val spindlePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {

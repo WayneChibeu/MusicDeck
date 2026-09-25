@@ -10,6 +10,7 @@ import androidx.media3.common.C
 import androidx.media3.common.Player
 import androidx.media3.common.ForwardingPlayer
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.source.ShuffleOrder
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaLibraryService
 import androidx.media3.session.MediaLibraryService.LibraryParams
@@ -624,6 +625,11 @@ class MusicService : MediaLibraryService() {
                     cancelCrossfade()
                     suppressFadeIn = true
                     volumeManager.resetVolume()
+                    MasterDeckWidgetProvider.updateProgressOnly(
+                        this@MusicService,
+                        newPosition.positionMs.coerceAtLeast(0L),
+                        activeDeck.duration.coerceAtLeast(0L)
+                    )
                 }
             }
 
@@ -663,6 +669,12 @@ class MusicService : MediaLibraryService() {
                 clearAbLoop()
                 updateWidget(activeDeck)
                 startPlayCountHeartbeat(mediaItem)
+
+                // Track recently played for Smart Anti-Repeat Shuffle & persist active queue
+                mediaItem?.mediaId?.let { path ->
+                    settingsManager.recordSongPlayed(path)
+                    saveCurrentQueueState()
+                }
 
                 // Sound Check: Automatically normalize volume to safe hearing level
                 if (settingsManager.isSoundCheckEnabled) {
@@ -906,6 +918,13 @@ class MusicService : MediaLibraryService() {
                 if (saveCounter >= 10) {
                     saveCounter = 0
                     saveFinalPosition(currentDeck)
+                    if (currentDeck.isPlaying) {
+                        MasterDeckWidgetProvider.updateProgressOnly(
+                            this@MusicService,
+                            currentDeck.currentPosition.coerceAtLeast(0L),
+                            currentDeck.duration.coerceAtLeast(0L)
+                        )
+                    }
                 }
                 
                 if (settingsManager.isCrossfadeEnabled && !stopAtEndOfCurrentSong && currentDeck.isPlaying && !isCrossfading) {
@@ -1041,6 +1060,7 @@ class MusicService : MediaLibraryService() {
         settingsManager.lastPlayedPosition = position
         settingsManager.lastPlayedTitle = title
         settingsManager.lastPlayedArtist = artist
+        saveCurrentQueueState()
     }
 
     private fun observeFavoritesFlow() {
@@ -1364,6 +1384,35 @@ class MusicService : MediaLibraryService() {
     // See initialization update below 
 
 
+    private fun saveCurrentQueueState() {
+        try {
+            val count = activeDeck.mediaItemCount
+            val currentIndex = activeDeck.currentMediaItemIndex
+            if (count > 0 && currentIndex in 0 until count) {
+                val paths = ArrayList<String>(count)
+                for (i in 0 until count) {
+                    paths.add(activeDeck.getMediaItemAt(i).mediaId)
+                }
+                settingsManager.saveActiveQueue(paths, currentIndex)
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("MusicService", "Failed to save queue state: ${e.message}")
+        }
+    }
+
+    private fun syncDualDeckShuffle(seed: Long = System.currentTimeMillis()) {
+        try {
+            val count = primaryExoPlayer.mediaItemCount
+            if (count > 0) {
+                val shuffleOrder = ShuffleOrder.DefaultShuffleOrder(count, seed)
+                primaryExoPlayer.setShuffleOrder(shuffleOrder)
+                secondaryExoPlayer.setShuffleOrder(shuffleOrder)
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("MusicService", "Failed to sync dual-deck shuffle: ${e.message}")
+        }
+    }
+
     private fun restoreLastSession(player: Player, startPlaying: Boolean = false, onReady: (() -> Unit)? = null) {
         serviceScope.launch(kotlinx.coroutines.Dispatchers.IO) {
             try {
@@ -1382,26 +1431,46 @@ class MusicService : MediaLibraryService() {
                     return@launch
                 }
                 
-                // Find index of the last played song
-                val lastIndex = if (lastPath != null) {
-                    allSongs.indexOfFirst { it.mediaId == lastPath }
+                // Reconstruct persisted active queue if present
+                val songMap = allSongs.associateBy { it.mediaId }
+                val savedPaths = settingsManager.getActiveQueue()
+                val restoredItems = if (savedPaths.isNotEmpty()) {
+                    savedPaths.mapNotNull { songMap[it] }
                 } else {
-                    -1
+                    emptyList()
+                }
+
+                val finalItems = if (restoredItems.isNotEmpty()) {
+                    restoredItems
+                } else if (settingsManager.isShuffleEnabled) {
+                    val playCounts = playCountDao.getAllPlayCounts().associate { it.filePath to it.lastPlayed }
+                    com.wayne.musicdeck.utils.SmartShuffleManager.smartShuffle(
+                        items = allSongs,
+                        getPath = { it.mediaId },
+                        settingsManager = settingsManager,
+                        playCountMap = playCounts,
+                        currentlyPlayingPath = lastPath
+                    )
+                } else {
+                    allSongs
+                }
+
+                val targetIndex = if (lastPath != null) {
+                    val found = finalItems.indexOfFirst { it.mediaId == lastPath }
+                    if (found != -1) found else settingsManager.activeQueueIndex.coerceIn(0, finalItems.size - 1)
+                } else {
+                    settingsManager.activeQueueIndex.coerceIn(0, finalItems.size - 1)
                 }
                 
                 kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-                    primaryExoPlayer.setMediaItems(allSongs)
-                    secondaryExoPlayer.setMediaItems(allSongs)
-                    
-                    if (lastIndex != -1) {
-                        activeDeck.seekTo(lastIndex, lastPos)
-                    } else {
-                        // If last song not found, just start from the first one
-                        activeDeck.seekTo(0, 0L)
-                    }
+                    primaryExoPlayer.setMediaItems(finalItems, targetIndex, lastPos)
+                    secondaryExoPlayer.setMediaItems(finalItems, targetIndex, lastPos)
                     
                     primaryExoPlayer.shuffleModeEnabled = settingsManager.isShuffleEnabled
                     secondaryExoPlayer.shuffleModeEnabled = settingsManager.isShuffleEnabled
+                    if (settingsManager.isShuffleEnabled) {
+                        syncDualDeckShuffle()
+                    }
                     primaryExoPlayer.repeatMode = settingsManager.repeatMode
                     secondaryExoPlayer.repeatMode = settingsManager.repeatMode
                     primaryExoPlayer.prepare()
@@ -1409,6 +1478,7 @@ class MusicService : MediaLibraryService() {
                     if (startPlaying) {
                         activeDeck.play()
                     }
+                    saveCurrentQueueState()
                     
                     // Small delay to ensure player state is updated before calling onReady
                     kotlinx.coroutines.delay(100)
@@ -1436,9 +1506,10 @@ class MusicService : MediaLibraryService() {
                 player.shuffleModeEnabled = true
             }
             settingsManager.isShuffleEnabled = true
+            syncDualDeckShuffle()
             player.seekToNextMediaItem()
             com.wayne.musicdeck.utils.HapticManager.performShuffleHaptic(this@MusicService)
-            android.widget.Toast.makeText(this@MusicService, "Queue Shuffled", android.widget.Toast.LENGTH_SHORT).show()
+            android.widget.Toast.makeText(this@MusicService, "Smart Shuffle", android.widget.Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -1568,21 +1639,37 @@ class MusicService : MediaLibraryService() {
         override fun setShuffleModeEnabled(shuffleModeEnabled: Boolean) {
             primaryExoPlayer.shuffleModeEnabled = shuffleModeEnabled
             secondaryExoPlayer.shuffleModeEnabled = shuffleModeEnabled
+            settingsManager.isShuffleEnabled = shuffleModeEnabled
+            if (shuffleModeEnabled) {
+                syncDualDeckShuffle()
+            }
         }
 
         override fun setMediaItems(mediaItems: List<androidx.media3.common.MediaItem>, resetPosition: Boolean) {
             primaryExoPlayer.setMediaItems(mediaItems, resetPosition)
             secondaryExoPlayer.setMediaItems(mediaItems, resetPosition)
+            if (settingsManager.isShuffleEnabled) {
+                syncDualDeckShuffle()
+            }
+            saveCurrentQueueState()
         }
 
         override fun setMediaItems(mediaItems: List<androidx.media3.common.MediaItem>, startIndex: Int, startPositionMs: Long) {
             primaryExoPlayer.setMediaItems(mediaItems, startIndex, startPositionMs)
             secondaryExoPlayer.setMediaItems(mediaItems, startIndex, startPositionMs)
+            if (settingsManager.isShuffleEnabled) {
+                syncDualDeckShuffle()
+            }
+            saveCurrentQueueState()
         }
 
         override fun setMediaItems(mediaItems: List<androidx.media3.common.MediaItem>) {
             primaryExoPlayer.setMediaItems(mediaItems)
             secondaryExoPlayer.setMediaItems(mediaItems)
+            if (settingsManager.isShuffleEnabled) {
+                syncDualDeckShuffle()
+            }
+            saveCurrentQueueState()
         }
 
         override fun addMediaItems(mediaItems: List<androidx.media3.common.MediaItem>) {

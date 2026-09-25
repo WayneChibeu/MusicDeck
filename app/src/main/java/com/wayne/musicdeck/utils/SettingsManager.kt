@@ -42,6 +42,89 @@ class SettingsManager(context: Context) {
         kv.removeValueForKey("search_history")
     }
 
+    // Active Queue Persistence across process death
+    fun saveActiveQueue(paths: List<String>, currentIndex: Int) {
+        if (paths.isEmpty()) {
+            clearActiveQueue()
+            return
+        }
+        kv.encode("active_queue_paths", paths.joinToString("\n"))
+        kv.encode("active_queue_index", currentIndex.coerceIn(0, paths.size - 1))
+    }
+
+    fun getActiveQueue(): List<String> {
+        val str = kv.decodeString("active_queue_paths", null) ?: return emptyList()
+        return if (str.isEmpty()) emptyList() else str.split("\n")
+    }
+
+    var activeQueueIndex: Int
+        get() = kv.decodeInt("active_queue_index", 0)
+        set(value) { kv.encode("active_queue_index", value) }
+
+    fun hasActiveQueue(): Boolean {
+        val str = kv.decodeString("active_queue_paths", null)
+        return !str.isNullOrEmpty()
+    }
+
+    fun clearActiveQueue() {
+        kv.removeValueForKey("active_queue_paths")
+        kv.removeValueForKey("active_queue_index")
+    }
+
+    // Song Play Timestamp / History Tracking for Smart Anti-Repeat Shuffle
+    fun recordSongPlayed(filePath: String, timestamp: Long = System.currentTimeMillis()) {
+        if (filePath.isEmpty()) return
+        val currentStr = kv.decodeString("recent_played_history", "") ?: ""
+        val historyMap = LinkedHashMap<String, Long>()
+        if (currentStr.isNotEmpty()) {
+            currentStr.split("\n").forEach { line ->
+                val parts = line.split("\t")
+                if (parts.size == 2) {
+                    val ts = parts[1].toLongOrNull() ?: 0L
+                    historyMap[parts[0]] = ts
+                }
+            }
+        }
+        historyMap.remove(filePath)
+        historyMap[filePath] = timestamp
+
+        val trimmed = if (historyMap.size > 300) {
+            historyMap.entries.toList().takeLast(300).associate { it.key to it.value }
+        } else {
+            historyMap
+        }
+
+        val encoded = trimmed.entries.joinToString("\n") { "${it.key}\t${it.value}" }
+        kv.encode("recent_played_history", encoded)
+    }
+
+    fun getSongLastPlayed(filePath: String): Long {
+        if (filePath.isEmpty()) return 0L
+        val currentStr = kv.decodeString("recent_played_history", "") ?: ""
+        if (currentStr.isEmpty()) return 0L
+        currentStr.split("\n").forEach { line ->
+            val parts = line.split("\t")
+            if (parts.size == 2 && parts[0] == filePath) {
+                return parts[1].toLongOrNull() ?: 0L
+            }
+        }
+        return 0L
+    }
+
+    fun getAllRecentPlays(): Map<String, Long> {
+        val currentStr = kv.decodeString("recent_played_history", "") ?: ""
+        if (currentStr.isEmpty()) return emptyMap()
+        val result = mutableMapOf<String, Long>()
+        currentStr.split("\n").forEach { line ->
+            val parts = line.split("\t")
+            if (parts.size == 2) {
+                val ts = parts[1].toLongOrNull()
+                if (ts != null) result[parts[0]] = ts
+            }
+        }
+        return result
+    }
+
     // Modernization: Theme state management (Seal-ify)
     var isDynamicColorEnabled: Boolean
         get() = kv.decodeBool("dynamic_color_enabled", true)

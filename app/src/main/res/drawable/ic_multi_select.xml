@@ -3,7 +3,8 @@
     android:height="24dp"
     android:viewportWidth="24"
     android:viewportHeight="24">
-  <path
-      android:fillColor="#FFFFFFFF"
-      android:pathData="M3,5h2v2H3V5zm0,6h2v2H3v-2zm0,6h2v2H3v-2zm6,-12h12v2H9V5zm0,6h12v2H9v-2zm0,6h12v2H9v-2z"/>
+    <!-- Checklist items with checkmarks and lines -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M3,5.5l1.8,1.8L8,4l1.2,1.2-4.4,4.4L2,6.8L3,5.5z M11,5h10v2H11V5z M3,11.5l1.8,1.8L8,10l1.2,1.2-4.4,4.4L2,12.8l1,-1.3z M11,11h10v2H11v-2z M3,17.5l1.8,1.8L8,16l1.2,1.2-4.4,4.4L2,18.8l1,-1.3z M11,17h10v2H11v-2z"/>
 </vector>
