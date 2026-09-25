@@ -670,7 +670,6 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         var lastTapX = 0f
         var lastTapY = 0f
         var consecutiveTapCount = 0
-        var currentSeekSideIsForward: Boolean? = null
 
         artView.setOnTouchListener { v, event ->
             if (velocityTracker == null) {
@@ -690,17 +689,14 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
                     breathingAnimator?.cancel()
 
                     val now = System.currentTimeMillis()
-                    val isRightHalf = event.x > (artView.width / 2f)
-                    val isSameSide = (currentSeekSideIsForward == isRightHalf)
-
-                    if (now - lastTapTime < 450 && isSameSide && Math.abs(event.x - lastTapX) < 120 * density && Math.abs(event.y - lastTapY) < 120 * density) {
+                    if (now - lastTapTime < 450 && Math.abs(event.x - lastTapX) < 120 * density && Math.abs(event.y - lastTapY) < 120 * density) {
                         consecutiveTapCount++
                         if (consecutiveTapCount >= 2) {
-                            handleCumulativeSeek(isForward = isRightHalf)
+                            triggerDoubleTapFavorite()
+                            consecutiveTapCount = 0
                         }
                     } else {
                         consecutiveTapCount = 1
-                        currentSeekSideIsForward = isRightHalf
                     }
                     lastTapTime = now
                     lastTapX = event.x
@@ -994,6 +990,121 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         overlay.postDelayed(seekFeedbackResetRunnable, 650)
     }
 
+    private fun triggerDoubleTapFavorite() {
+        val player = viewModel.mediaController.value ?: return
+        val currentPath = player.currentMediaItem?.mediaId ?: return
+        val song = viewModel.songs.value?.find { it.data == currentPath } ?: return
+        val wasFavorite = viewModel.favorites.value?.any { it.data == currentPath } == true
+
+        com.wayne.musicdeck.utils.HapticManager.performSpringClick(requireContext())
+
+        if (!wasFavorite) {
+            viewModel.toggleFavorite(song)
+            updateFavoriteIcon(true, animate = true)
+        }
+
+        playCoverHeartBurstAnimation()
+    }
+
+    private fun playCoverHeartBurstAnimation() {
+        val binding = _binding ?: return
+        val heart = binding.ivHeartBurst
+
+        heart.animate().cancel()
+        heart.visibility = View.VISIBLE
+        heart.scaleX = 0.2f
+        heart.scaleY = 0.2f
+        heart.alpha = 0f
+        heart.translationY = 0f
+
+        heart.animate()
+            .scaleX(1.3f)
+            .scaleY(1.3f)
+            .alpha(1f)
+            .setDuration(220)
+            .setInterpolator(android.view.animation.OvershootInterpolator(2.2f))
+            .withEndAction {
+                heart.animate()
+                    .scaleX(1.0f)
+                    .scaleY(1.0f)
+                    .setDuration(100)
+                    .withEndAction {
+                        heart.animate()
+                            .translationY(-40.dpToPx().toFloat())
+                            .alpha(0f)
+                            .setDuration(320)
+                            .setStartDelay(180)
+                            .setInterpolator(android.view.animation.AccelerateInterpolator())
+                            .withEndAction {
+                                heart.visibility = View.GONE
+                                heart.translationY = 0f
+                            }
+                            .start()
+                    }
+                    .start()
+            }
+            .start()
+    }
+
+    private var seekTrackAnimator: ValueAnimator? = null
+
+    private fun animateSeekBarExpansion(expand: Boolean) {
+        val binding = _binding ?: return
+        seekTrackAnimator?.cancel()
+
+        val startHeight = binding.seekBar.maxHeight
+        val targetHeight = if (expand) 8.dpToPx() else 4.dpToPx()
+
+        binding.tvCurrentTime.animate()
+            .scaleX(if (expand) 1.12f else 1.0f)
+            .scaleY(if (expand) 1.12f else 1.0f)
+            .alpha(if (expand) 1.0f else 0.8f)
+            .setDuration(180)
+            .start()
+
+        seekTrackAnimator = ValueAnimator.ofInt(startHeight, targetHeight).apply {
+            duration = 180
+            interpolator = androidx.interpolator.view.animation.FastOutSlowInInterpolator()
+            addUpdateListener { va ->
+                if (_binding == null) return@addUpdateListener
+                val h = va.animatedValue as Int
+                binding.seekBar.minHeight = h
+                binding.seekBar.maxHeight = h
+
+                val fraction = (h - 4.dpToPx()).toFloat() / (4.dpToPx().coerceAtLeast(1))
+                val targetThumb = (16.dpToPx() + (22.dpToPx() - 16.dpToPx()) * fraction).toInt()
+                (binding.seekBar.thumb as? android.graphics.drawable.GradientDrawable)?.setSize(targetThumb, targetThumb)
+                binding.seekBar.requestLayout()
+            }
+            start()
+        }
+    }
+
+    private fun updateAlbumArtPlaybackScale(isPlaying: Boolean, animate: Boolean = true) {
+        val binding = _binding ?: return
+        val targetScale = if (isPlaying) 1.0f else 0.92f
+        val targetElevation = if (isPlaying) 6.dpToPx().toFloat() else 2.dpToPx().toFloat()
+
+        if (animate && binding.artContainer.isAttachedToWindow) {
+            val interpolator = if (isPlaying) {
+                android.view.animation.OvershootInterpolator(1.15f)
+            } else {
+                androidx.interpolator.view.animation.FastOutSlowInInterpolator()
+            }
+            binding.artContainer.animate()
+                .scaleX(targetScale)
+                .scaleY(targetScale)
+                .translationZ(targetElevation)
+                .setDuration(if (isPlaying) 360L else 300L)
+                .setInterpolator(interpolator)
+                .start()
+        } else {
+            binding.artContainer.scaleX = targetScale
+            binding.artContainer.scaleY = targetScale
+            binding.artContainer.translationZ = targetElevation
+        }
+    }
+
     private var isTrackChangeAnimating = false
 
     private fun loadIncomingArt(mediaItem: MediaItem?) {
@@ -1252,6 +1363,7 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         updateMetadata(player.currentMediaItem)
         binding.visualizerView.setVisualizerEnabled(settingsManager.isVisualizerEnabled)
         binding.visualizerView.setPlaying(player.isPlaying)
+        updateAlbumArtPlaybackScale(player.isPlaying, animate = false)
         
         binding.tvTotalTime.text = formatTime(player.duration)
         if (player.duration > 0) {
@@ -1337,11 +1449,12 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
 
             override fun onStartTrackingTouch(seekBar: android.widget.SeekBar?) {
                 isTracking = true
-                // Thumb stays visible - no more phantom animation to preserve dynamic coloring
+                animateSeekBarExpansion(true)
             }
 
             override fun onStopTrackingTouch(seekBar: android.widget.SeekBar?) {
                 isTracking = false
+                animateSeekBarExpansion(false)
                 
                 if (seekBar != null) {
                     val duration = player.duration
@@ -1356,6 +1469,7 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         // Waveform scrub listeners
         binding.waveformSeekBar.onStartTouch = {
             isWaveformSeeking = true
+            binding.waveformSeekBar.animate().scaleY(1.22f).setDuration(180).start()
         }
         binding.waveformSeekBar.onSeekListener = { ratio ->
             val duration = player.duration
@@ -1368,6 +1482,7 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         }
         binding.waveformSeekBar.onStopTouch = {
             isWaveformSeeking = false
+            binding.waveformSeekBar.animate().scaleY(1.0f).setDuration(200).start()
         }
 
         // Determine initial playback mode
@@ -1726,6 +1841,7 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         if (_binding == null) return
         val icon = if (isPlaying) R.drawable.ic_pause_rounded else R.drawable.ic_play_rounded
         binding.btnPlayPause.setImageResource(icon)
+        updateAlbumArtPlaybackScale(isPlaying, animate = true)
     }
 
     private fun updatePlaybackModeIcon() {
@@ -1788,6 +1904,7 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         _binding?.seekBar?.handler?.removeCallbacks(updateProgressAction)
         
         // Unregister volume warning observer
+        seekTrackAnimator?.cancel()
         unregisterVolumeObserver()
         hideVolumeWarningRunnable?.let { _binding?.tvVolumeWarning?.removeCallbacks(it) }
         

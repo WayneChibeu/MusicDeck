@@ -59,6 +59,21 @@
                 android:src="@drawable/default_album_art"
                 app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Large" />
 
+            <!-- Heart Burst Pop Overlay for Double-Tap Favorite -->
+            <ImageView
+                android:id="@+id/ivHeartBurst"
+                android:layout_width="100dp"
+                android:layout_height="100dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_favorite"
+                app:tint="@color/colorRose"
+                android:visibility="gone"
+                android:alpha="0"
+                android:elevation="14dp"
+                android:clickable="false"
+                android:focusable="false"
+                android:contentDescription="Favorited" />
+
             <!-- Left Seek (-5s) Minimal Arc + Typography Overlay -->
             <FrameLayout
                 android:id="@+id/layoutSeekRewind"
