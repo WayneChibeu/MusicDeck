@@ -1,9 +1,9 @@
 {
-  "versionName": "3.1.7",
-  "versionCode": 84,
-  "releaseTitle": "MusicDeck v3.1.7 - Widget Previews and Player Sheet Constraints",
-  "releaseNotes": "Fixes the player sheet layout constraints so the album cover scales smoothly and never overlaps song titles, artist information, or playback controls. Restores the grid icon on the tools quick action card and sets the sorting icon on the feature settings entry. Adds dedicated dark launcher preview images and transparent RemoteViews backgrounds across all widgets so they never appear blank or white.",
-  "downloadUrl": "https://github.com/WayneChibeu/MusicDeck/releases/download/v3.1.7/MusicDeck-v3.1.7.apk",
-  "apkSize": 7297271,
-  "htmlUrl": "https://github.com/WayneChibeu/MusicDeck/releases/tag/v3.1.7"
+  "versionName": "3.1.8",
+  "versionCode": 85,
+  "releaseTitle": "MusicDeck v3.1.8 - Icon Alignment and Refinements",
+  "releaseNotes": "Restores the classic gear icon on the Feature Settings option under Tools and Settings, and updates the list popup menu sort order icon to match the dual vertical arrows and clean horizontal layout.",
+  "downloadUrl": "https://github.com/WayneChibeu/MusicDeck/releases/download/v3.1.8/MusicDeck-v3.1.8.apk",
+  "apkSize": 7297511,
+  "htmlUrl": "https://github.com/WayneChibeu/MusicDeck/releases/tag/v3.1.8"
 }
