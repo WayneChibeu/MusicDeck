@@ -17,7 +17,7 @@
         android:id="@+id/ivToastIcon"
         android:layout_width="18dp"
         android:layout_height="18dp"
-        android:src="@drawable/ic_music_note"
+        android:src="@drawable/ic_deck_logo"
         app:tint="@android:color/white"
         android:background="@drawable/bg_mode_pill_icon_circle"
         android:padding="2.5dp"

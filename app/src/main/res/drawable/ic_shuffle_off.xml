@@ -2,18 +2,35 @@
     android:width="24dp"
     android:height="24dp"
     android:viewportWidth="24"
-    android:viewportHeight="24">
-    <!-- Modern Curved Crossover Shuffle Off State -->
+    android:viewportHeight="24"
+    android:alpha="0.4">
+
+    <!-- Top Left to Bottom Right Track & Arrow -->
     <path
-        android:pathData="M 4.5,7 H 8 C 11.5,7 12.5,17 16,17 H 19.5 L 16.5,14"
-        android:strokeWidth="2.1"
+        android:pathData="M 3.5,6.5 H 7.5 C 11.5,6.5 12.5,17.5 16.5,17.5 H 19.5"
+        android:strokeWidth="2.0"
         android:strokeColor="#FFFFFFFF"
         android:strokeLineCap="round"
         android:strokeLineJoin="round" />
     <path
-        android:pathData="M 4.5,17 H 8 C 11.5,17 12.5,7 16,7 H 19.5 L 16.5,10"
-        android:strokeWidth="2.1"
+        android:pathData="M 16.5,14.5 L 19.5,17.5 L 16.5,20.5"
+        android:strokeWidth="2.0"
         android:strokeColor="#FFFFFFFF"
         android:strokeLineCap="round"
         android:strokeLineJoin="round" />
+
+    <!-- Bottom Left to Top Right Track & Arrow -->
+    <path
+        android:pathData="M 3.5,17.5 H 7.5 C 11.5,17.5 12.5,6.5 16.5,6.5 H 19.5"
+        android:strokeWidth="2.0"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M 16.5,3.5 L 19.5,6.5 L 16.5,9.5"
+        android:strokeWidth="2.0"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+
 </vector>

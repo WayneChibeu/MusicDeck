@@ -1081,19 +1081,31 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
         }
     }
 
+    private var targetPlaybackScale: Float = 1.0f
+
     private fun updateAlbumArtPlaybackScale(isPlaying: Boolean, animate: Boolean = true) {
         val binding = _binding ?: return
         val targetScale = if (isPlaying) 1.0f else 0.92f
 
+        if (targetPlaybackScale == targetScale && animate) return
+        targetPlaybackScale = targetScale
+
         if (animate && binding.artContainer.isAttachedToWindow) {
             binding.artContainer.animate().cancel()
 
-            // Fluid ease-out cubic bezier curve matching Apple/ColorOS standard
-            val interpolator = android.view.animation.PathInterpolator(0.22f, 1.0f, 0.36f, 1.0f)
+            val duration = if (isPlaying) 400L else 320L
+            val interpolator = if (isPlaying) {
+                // Fluid pop-up bounce on play
+                android.view.animation.OvershootInterpolator(1.18f)
+            } else {
+                // Gentle deceleration curve on pause/shrink
+                android.view.animation.DecelerateInterpolator(1.6f)
+            }
+
             binding.artContainer.animate()
                 .scaleX(targetScale)
                 .scaleY(targetScale)
-                .setDuration(if (isPlaying) 380L else 340L)
+                .setDuration(duration)
                 .setInterpolator(interpolator)
                 .withLayer() // Render on GPU hardware layer to prevent frame drops
                 .withEndAction {
@@ -1380,7 +1392,14 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
 
         binding.btnPlayPause.setOnClickListener {
             playHaptic(it)
-            if (player.isPlaying) player.pause() else player.play()
+            val willPlay = !player.isPlaying
+            updatePlayPauseIcon(willPlay)
+            if (willPlay) {
+                player.play()
+            } else {
+                stopBreathingAnimation()
+                player.pause()
+            }
         }
         binding.btnPrev.setOnClickListener {
             playHaptic(it)
@@ -2062,9 +2081,14 @@ class PlayerBottomSheetFragment : BottomSheetDialogFragment() {
     private fun stopBreathingAnimation() {
         breathingAnimator?.cancel()
         breathingAnimator = null
-        if (_binding != null) {
-            binding.ivFullArt.scaleX = 1.0f
-            binding.ivFullArt.scaleY = 1.0f
+        val b = _binding ?: return
+        if (b.ivFullArt.scaleX != 1.0f) {
+            b.ivFullArt.animate()
+                .scaleX(1.0f)
+                .scaleY(1.0f)
+                .setDuration(240L)
+                .setInterpolator(android.view.animation.DecelerateInterpolator())
+                .start()
         }
     }
 

@@ -1,9 +1,9 @@
 {
-  "versionName": "3.2.1",
-  "versionCode": 88,
-  "releaseTitle": "MusicDeck v3.2.1 - Stadium Mode Icons, Unified DeckToast HUD & Notification Sync",
-  "releaseNotes": "Introduces custom stadium racetrack loop and crossover shuffle vector icons, notification playback mode synchronization, a responsive in-app mode feedback pill, and the unified DeckToast HUD system across dialogs and sheets.",
-  "downloadUrl": "https://github.com/WayneChibeu/MusicDeck/releases/download/v3.2.1/MusicDeck-v3.2.1.apk",
-  "apkSize": 7300356,
-  "htmlUrl": "https://github.com/WayneChibeu/MusicDeck/releases/tag/v3.2.1"
+  "versionName": "3.2.2",
+  "versionCode": 89,
+  "releaseTitle": "MusicDeck v3.2.2 - Symmetrical Mode Vectors, MusicDeck Logo HUD & Butter-Smooth Playback Transitions",
+  "releaseNotes": "Refines loop and shuffle vectors with balanced symmetrical geometry, incorporates the official MusicDeck turntable logo onto in-app feedback badges, and eliminates pause/play scale latency with seamless 120 FPS pop-up dynamics.",
+  "downloadUrl": "https://github.com/WayneChibeu/MusicDeck/releases/download/v3.2.2/MusicDeck-v3.2.2.apk",
+  "apkSize": 7301696,
+  "htmlUrl": "https://github.com/WayneChibeu/MusicDeck/releases/tag/v3.2.2"
 }

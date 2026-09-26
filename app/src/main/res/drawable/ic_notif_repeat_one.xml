@@ -3,25 +3,41 @@
     android:height="24dp"
     android:viewportWidth="24"
     android:viewportHeight="24">
-    <!-- Modern Notification Stadium Pill Loop (Top Arrow) -->
+
+    <!-- Top Track & Right-Pointing Arrow -->
     <path
-        android:pathData="M 5,13.5 V 9.5 A 4.5,4.5 0 0,1 9.5,5 H 19 L 15.5,8.5"
-        android:strokeWidth="2.1"
+        android:pathData="M 4,13 V 9 A 3.5,3.5 0 0,1 7.5,5.5 H 19"
+        android:strokeWidth="2.0"
         android:strokeColor="#FFFFFFFF"
         android:strokeLineCap="round"
         android:strokeLineJoin="round" />
-    <!-- Modern Notification Stadium Pill Loop (Bottom Arrow) -->
     <path
-        android:pathData="M 19,10.5 V 14.5 A 4.5,4.5 0 0,1 14.5,19 H 5 L 8.5,15.5"
-        android:strokeWidth="2.1"
+        android:pathData="M 16.5,2.5 L 19.5,5.5 L 16.5,8.5"
+        android:strokeWidth="2.0"
         android:strokeColor="#FFFFFFFF"
         android:strokeLineCap="round"
         android:strokeLineJoin="round" />
-    <!-- Center Single Loop Numeral '1' -->
+
+    <!-- Bottom Track & Left-Pointing Arrow -->
     <path
-        android:pathData="M 10.5,11.2 L 12,10 V 14.5"
-        android:strokeWidth="1.9"
+        android:pathData="M 20,11 V 15 A 3.5,3.5 0 0,1 16.5,18.5 H 5"
+        android:strokeWidth="2.0"
         android:strokeColor="#FFFFFFFF"
         android:strokeLineCap="round"
         android:strokeLineJoin="round" />
+    <path
+        android:pathData="M 7.5,15.5 L 4.5,18.5 L 7.5,21.5"
+        android:strokeWidth="2.0"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+
+    <!-- Centered Numeral 1 Badge -->
+    <path
+        android:pathData="M 10.4,11.0 L 12.2,9.2 V 14.8 M 10.4,14.8 H 14.0"
+        android:strokeWidth="2.0"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+
 </vector>

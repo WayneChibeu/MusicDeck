@@ -34,7 +34,7 @@ object DeckToast {
     fun show(
         view: View?,
         message: String,
-        @DrawableRes iconRes: Int? = R.drawable.ic_music_note,
+        @DrawableRes iconRes: Int? = R.drawable.ic_deck_logo,
         isLong: Boolean = false,
         bottomOffsetDp: Int = 80
     ) {
@@ -52,7 +52,7 @@ object DeckToast {
     fun show(
         context: Context?,
         message: String,
-        @DrawableRes iconRes: Int? = R.drawable.ic_music_note,
+        @DrawableRes iconRes: Int? = R.drawable.ic_deck_logo,
         isLong: Boolean = false,
         bottomOffsetDp: Int = 80
     ) {

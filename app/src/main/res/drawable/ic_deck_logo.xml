@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+
+    <!-- Outer Turntable Deck Rim -->
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.8"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M 12,2.5 A 9.5,9.5 0 1,1 11.9,2.5 Z" />
+
+    <!-- Concentric Vinyl Sound Groove -->
+    <path
+        android:strokeColor="#80FFFFFF"
+        android:strokeWidth="0.9"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M 12,5.5 A 6.5,6.5 0 1,1 11.9,5.5 Z" />
+
+    <!-- Center Spindle Hub Ring -->
+    <path
+        android:strokeColor="#B0FFFFFF"
+        android:strokeWidth="1.1"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M 12,8.5 A 3.5,3.5 0 1,1 11.9,8.5 Z" />
+
+    <!-- Solid Center Play Glyph -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="0.6"
+        android:strokeLineJoin="round"
+        android:pathData="M 10.8,10.0 L 10.8,14.0 L 14.2,12.0 Z" />
+
+</vector>
